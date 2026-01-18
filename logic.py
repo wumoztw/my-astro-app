@@ -6,6 +6,7 @@ from flatlib.geopos import GeoPos
 from flatlib.object import GenericObject
 from datetime import datetime, date
 import pandas as pd
+from geopy.geocoders import Nominatim
 
 class AstrologyLogic:
     # Standard Classical Orbs (Moieties)
@@ -134,6 +135,20 @@ class AstrologyLogic:
                 if os.path.exists(path):
                     swe.set_ephe_path(path)
                     break
+
+    def get_location_coordinates(self, location_name):
+        """
+        Queries location coordinates with robust error handling.
+        """
+        try:
+            geolocator = Nominatim(user_agent='EasyAstrology_App_2026')
+            location = geolocator.geocode(location_name, timeout=10)
+            if location:
+                return location.latitude, location.longitude
+            return None
+        except Exception:
+            # Silently fail to allow manual coordinate input fallback
+            return None
 
     def get_zodiac_sign(self, degree):
         sign_idx = int(degree // 30)
