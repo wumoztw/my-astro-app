@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime, date
-from geopy.geocoders import Nominatim
 from flatlib import const
 
 # Modular Imports
@@ -109,10 +108,11 @@ if generate_btn:
     try:
         final_lat, final_lon = manual_lat, manual_lon
         if manual_lon == 121.50 and manual_lat == 25.03 and location_city != "台北市":
-            geolocator = Nominatim(user_agent="my-astro-minimal-app")
-            location = geolocator.geocode(location_city)
-            if location:
-                final_lat, final_lon = location.latitude, location.longitude
+            coords = logic.get_location_coordinates(location_city)
+            if coords:
+                final_lat, final_lon = coords
+            else:
+                st.sidebar.warning("⚠️ 自動地點檢索暫時無法連線，請手動展開下方進階選項輸入經緯度。")
 
         birth_date_str = birth_date.strftime('%Y/%m/%d')
         birth_time_str = birth_time.strftime('%H:%M')

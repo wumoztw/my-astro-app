@@ -6,7 +6,7 @@ from flatlib.geopos import GeoPos
 from flatlib.object import GenericObject
 from datetime import datetime, date
 import pandas as pd
-from geopy.geocoders import Nominatim
+from geopy.geocoders import ArcGIS
 
 class AstrologyLogic:
     # Standard Classical Orbs (Moieties)
@@ -141,7 +141,7 @@ class AstrologyLogic:
         Queries location coordinates with robust error handling.
         """
         try:
-            geolocator = Nominatim(user_agent='EasyAstrology_App_2026')
+            geolocator = ArcGIS()
             location = geolocator.geocode(location_name, timeout=10)
             if location:
                 return location.latitude, location.longitude
