@@ -1,0 +1,6 @@
+streamlit
+pandas
+flatlib
+pyswisseph
+geopy
+tabulate
