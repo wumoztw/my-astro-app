@@ -203,7 +203,20 @@ if generate_btn:
         mi_n = logic.TRANS_PLANETS.get(act['minor'], act['minor'])
         md += f"- 法達當前大運：{m_n}\n"
         md += f"- 法達當前小運：{mi_n}\n"
-        md += f"- 下次換運日期：{act['end'].strftime('%Y/%m/%d')}\n"
+        md += f"- 下次換運日期：{act['end'].strftime('%Y/%m/%d')}\n\n"
+
+        md += "---\n\n"
+        md += "## 🤖 AI 深度解析指引 (第一性原理版)\n\n"
+        md += "請將此檔案內容完整複製並貼給 AI (推薦使用 Venice AI)，並直接使用以下指令提問：\n\n"
+        md += "```text\n"
+        md += "「你現在是一位具備第一性原理思考模式的正統古典占星大師。請摒棄一切情緒化的修飾詞與現代占星的模糊定義，以理性、冷靜、客觀的口吻對這份數據進行分析。\n\n"
+        md += "分析步驟如下：\n\n"
+        md += "1. 核心矩陣拆解：根據『本質力量得分』與『後天宮位強弱』，條列式指出這張命盤中最強與最弱的三個核心點位。\n"
+        md += "2. 優劣平衡分析：分析這張命盤的『資源優勢（強旺行星與接納）』與『結構性缺陷（受損行星與相位）』，並說明它們如何相互作用。\n"
+        md += "3. 現狀戰略指引：結合目前的『法達星限』與『年主星』，計算出當下最應投入資源的具體領域。\n\n"
+        md += "分析完畢後，請根據我的命盤特徵，主動提供三個『值得進一步探討的深度問題』引導我繼續提問。」\n"
+        md += "```\n\n"
+        md += "Venice AI 推薦連結：https://venice.ai/chat?ref=XmvhLM\n"
 
         st.session_state.report_md = md
         st.session_state.report_data = {
