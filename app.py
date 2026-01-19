@@ -148,9 +148,11 @@ if generate_btn:
         aspects = logic.get_aspects(chart)
         is_day = logic.is_day_birth(chart, houses)
         f_data = logic.get_firdaria_data(birth_date_str, is_day)
+        lots = logic.calculate_lots(chart, houses, is_day)
+        fixed_stars = logic.get_fixed_stars(chart)
 
         # Build Markdown Report
-        md = "# 古典占星命盤完整資料\n\n"
+        md = "# 古典占星命盤完整資料 (升級版)\n\n"
         md += f"產出時間：{datetime.now().strftime('%Y/%m/%d %H:%M:%S')}\n\n"
         md += "---\n\n"
         md += "## 出生資訊\n\n"
@@ -160,21 +162,34 @@ if generate_btn:
         md += f"- 太陽星座：{sun_sign} {sun_deg}°{sun_min}'\n"
         md += f"- 月亮星座：{moon_sign} {moon_deg}°{moon_min}'\n\n"
         
-        md += "## 行星狀態\n\n"
+        md += "## 行星狀態與本質力量\n\n"
         for p in planets_data:
-            md += f"- {p['name']}：{p['sign']} {p['degree_str']} {p['retro']} | [{p['house']}]\n"
-        md += "\n"
+            d = p['dignity']
+            d_str = ", ".join(d['list']) if d['list'] else "無 (Peregrine)"
+            acc_str = ", ".join(p['accidental'])
+            md += f"### {p['symbol']} {p['name']}\n"
+            md += f"- 位置：{p['sign']} {p['degree_str']} {p['retro']} | [{p['house']}]\n"
+            md += f"- 本質力量：{d_str} (總分: {d['score']})\n"
+            md += f"- 後天狀態：{acc_str}\n\n"
         
+        md += "## 特殊點位與恆星\n\n"
+        for lot in lots:
+            md += f"- {lot['name']}：{lot['sign']} {lot['degree']} ({lot['house']})\n"
+        for star in fixed_stars:
+            md += f"- 恆星合相：{star['planet']} 合相 {star['star']} (誤差 {star['orb']})\n"
+        md += "\n"
+
         md += "## 宮位資料\n\n"
         for h in houses:
             h_deg, h_min, _ = logic.degree_to_dms(h['degree'])
             md += f"- {h['id_str']}：{h['sign']} {h_deg}°{h_min}' (主：{h['ruler']})\n"
         md += "\n"
         
-        md += "## 相位表\n\n"
+        md += "## 相位與接納\n\n"
         if aspects:
             for a in aspects:
-                md += f"- {a['p1']} - {a['p2']}：{a['aspect']} (誤差 {a['orb']})\n"
+                rec = f" | 接納：{a['reception']}" if a['reception'] else ""
+                md += f"- {a['p1']} - {a['p2']}：{a['aspect']} (誤差 {a['orb']}){rec}\n"
         else:
             md += "無顯著相位。\n"
         md += "\n"
@@ -200,7 +215,9 @@ if generate_btn:
             'aspects': aspects,
             'prof_info': prof_info,
             'f_data': f_data,
-            'is_day': is_day
+            'is_day': is_day,
+            'lots': lots,
+            'fixed_stars': fixed_stars
         }
     except Exception as e:
         st.error(f"分析錯誤: {str(e)}")
@@ -208,7 +225,8 @@ if generate_btn:
 # --- UI Layout ---
 if st.session_state.report_data:
     d = st.session_state.report_data
-    st.markdown("<h1 style='text-align: center; margin-bottom: 30px;'>古典占星命盤完整資料</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; margin-bottom: 5px; color: #000;'>專業古典占星論命系統</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-style: italic; color: #666; margin-bottom: 30px;'>Professional Classical Astrology Analysis System</p>", unsafe_allow_html=True)
     
     sc1, sc2, sc3 = st.columns(3)
     with sc1:
@@ -218,15 +236,25 @@ if st.session_state.report_data:
     with sc3:
         st.markdown(f"<div class='summary-card'><div class='summary-title'>上升星座</div><div class='summary-value'>{d['asc']}</div></div>", unsafe_allow_html=True)
     
-    t1, t2, t3 = st.tabs(['宮位與行星分佈', '行星相位表', '法達星限與小限'])
+    t1, t2, t3, t4 = st.tabs(['行星與本質力量', '相位與接納', '特殊點位與恆星', '法達星限與小限'])
     
     with t1:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-        st.subheader("行星分佈表")
-        df_p = pd.DataFrame(d['planets'])
-        df_p_disp = df_p[['name', 'sign', 'degree_str', 'house']].copy()
-        df_p_disp.columns = ['行星', '星座', '度數', '宮位位址']
-        st.table(df_p_disp)
+        st.subheader("行星本質與後天狀態")
+        
+        # Prepare planetary table data
+        rows = []
+        for p in d['planets']:
+            dig = p['dignity']
+            rows.append({
+                '行星': f"{p['symbol']} {p['name']}",
+                '位置': f"{p['sign']} {p['degree_str']} {p['retro']}",
+                '宮位': p['house'],
+                '本質力量': ", ".join(dig['list']) if dig['list'] else "無 (Peregrine)",
+                '計分': dig['score'],
+                '後天狀態': ", ".join(p['accidental'])
+            })
+        st.table(pd.DataFrame(rows))
         st.markdown("</div>", unsafe_allow_html=True)
         
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
@@ -239,16 +267,34 @@ if st.session_state.report_data:
 
     with t2:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-        st.subheader("行星相位表")
+        st.subheader("行星相位與接納關係")
         if d['aspects']:
             df_a = pd.DataFrame(d['aspects'])
-            df_a.columns = ['行星 1', '行星 2', '相位類型', '誤差']
-            st.dataframe(df_a, use_container_width=True)
+            df_a.columns = ['行星 1', '行星 2', '相位類型', '誤差', '接納關係']
+            st.table(df_a)
         else:
             st.write("目前無顯著相位。")
         st.markdown("</div>", unsafe_allow_html=True)
 
     with t3:
+        st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+        st.subheader("希臘點 (Lots)")
+        df_l = pd.DataFrame(d['lots'])
+        df_l.columns = ['點位名稱', '星座', '度數', '宮位']
+        st.table(df_l)
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+        st.subheader("重要恆星合相 (Fixed Stars)")
+        if d['fixed_stars']:
+            df_s = pd.DataFrame(d['fixed_stars'])
+            df_s.columns = ['行星', '恆星', '誤差']
+            st.table(df_s)
+        else:
+            st.write("目前無行星與重要恆星合相。")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with t4:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("推運資訊摘要")
         pi = d['prof_info']
@@ -256,10 +302,24 @@ if st.session_state.report_data:
         st.write(f"小限走到：{pi.get('prof_sign')} (第 {pi.get('prof_house_num')} 宮)")
         st.write(f"年度主星：{pi.get('lord_of_year')}")
         st.markdown("---")
+        
+        st.subheader("法達大限 (Firdaria) 時間表")
+        # Optimization: Show active period clearly
         act = d['f_data']['active']
-        st.write(f"法達當前大運：{logic.TRANS_PLANETS.get(act['major'], act['major'])}")
-        st.write(f"法達當前小運：{logic.TRANS_PLANETS.get(act['minor'], act['minor'])}")
-        st.write(f"下次換運：{act['end'].strftime('%Y/%m/%d')}")
+        st.info(f"**當前大運**：{logic.TRANS_PLANETS.get(act['major'], act['major'])} | **當前小運**：{logic.TRANS_PLANETS.get(act['minor'], act['minor'])} (直到 {act['end'].strftime('%Y/%m/%d')})")
+        
+        # Optional: Full timeline expander
+        with st.expander("查看完整法達星限時間表"):
+            f_rows = []
+            for major in d['f_data']['timeline']:
+                for minor in major['subs']:
+                    f_rows.append({
+                        '大運': logic.TRANS_PLANETS.get(major['lord'], major['lord']),
+                        '小運': logic.TRANS_PLANETS.get(minor['minor'], minor['minor']),
+                        '開始日期': minor['start'].strftime('%Y/%m/%d'),
+                        '結束日期': minor['end'].strftime('%Y/%m/%d')
+                    })
+            st.table(pd.DataFrame(f_rows))
         st.markdown("</div>", unsafe_allow_html=True)
 
     with st.sidebar:
