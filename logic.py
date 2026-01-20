@@ -12,6 +12,16 @@ from dignities_logic import DignitiesLogic
 from aspects_logic import AspectsLogic
 from lots_logic import LotsLogic
 from time_lords_logic import TimeLordsLogic
+import streamlit as st
+import os
+
+@st.cache_resource
+def init_ephemeris():
+    """Initializes the Swiss Ephemeris path once."""
+    ephem_path = os.path.abspath('ephem')
+    if os.path.exists(ephem_path):
+        swe.set_ephe_path(ephem_path)
+    return True
 
 class AstrologyLogic:
     # Localization Dictionaries (Shared)
@@ -53,20 +63,6 @@ class AstrologyLogic:
         9: '第九宮', 10: '第十宮', 11: '第十一宮', 12: '第十二宮'
     }
 
-import streamlit as st
-import os
-
-@st.cache_resource
-def init_ephemeris():
-    """Initializes the Swiss Ephemeris path once."""
-    ephem_path = os.path.abspath('ephem')
-    if os.path.exists(ephem_path):
-        swe.set_ephe_path(ephem_path)
-    return True
-
-class AstrologyLogic:
-    # Localization Dictionaries (Shared)
-    # ... (rest of the class)
     def __init__(self):
         # Cache initialization
         init_ephemeris()
