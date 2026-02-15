@@ -1,6 +1,7 @@
 from flatlib import const
 from datetime import datetime, date
 import pandas as pd
+from dignities_logic import DignitiesLogic
 
 class TimeLordsLogic:
     def calculate_profections(self, chart, trans_signs, planet_glyphs, trans_planets, birth_dt_str, current_date=None):
@@ -14,16 +15,8 @@ class TimeLordsLogic:
         prof_sign_idx = (birth_asc_sign_idx + age) % 12
         prof_sign = const.LIST_SIGNS[prof_sign_idx]
         
-        # This needs a ruler table - ideally passed or accessed via shared logic
-        # For simplicity in this standalone module, we'll re-define traditional rulers
-        RULERS = {
-            const.ARIES: const.MARS, const.TAURUS: const.VENUS, const.GEMINI: const.MERCURY,
-            const.CANCER: const.MOON, const.LEO: const.SUN, const.VIRGO: const.MERCURY,
-            const.LIBRA: const.VENUS, const.SCORPIO: const.MARS, const.SAGITTARIUS: const.JUPITER,
-            const.CAPRICORN: const.SATURN, const.AQUARIUS: const.SATURN, const.PISCES: const.JUPITER
-        }
-        
-        lord_id = RULERS[prof_sign]
+        # Use centralized ruler table from DignitiesLogic to prevent repeated object creation
+        lord_id = DignitiesLogic.RULERS[prof_sign]
         lord_planet = chart.get(lord_id)
         p_sign_deg = lord_planet.lon % 30
         d = int(p_sign_deg)
