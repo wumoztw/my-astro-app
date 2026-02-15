@@ -60,7 +60,7 @@ class AspectsLogic:
         if (p1_in_p2_dom or p1_in_p2_exalt) and (p2_in_p1_dom or p2_in_p1_exalt):
             return "互容 (Mutual Reception)"
         elif p1_in_p2_dom or p1_in_p2_exalt:
-            return f"{trans_planets.get(p1_id)} 接納 {trans_planets.get(p2_id)}"
-        elif p2_in_p1_dom or p2_in_p1_exalt:
             return f"{trans_planets.get(p2_id)} 接納 {trans_planets.get(p1_id)}"
+        elif p2_in_p1_dom or p2_in_p1_exalt:
+            return f"{trans_planets.get(p1_id)} 接納 {trans_planets.get(p2_id)}"
         return ""

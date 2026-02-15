@@ -50,6 +50,8 @@ class AstrologyLogic:
         const.MARS: "火星",
         const.JUPITER: "木星",
         const.SATURN: "土星",
+        const.NORTH_NODE: "北交點",
+        const.SOUTH_NODE: "南交點",
         const.ASC: "上升點",
         "Sun": "太陽",
         "Moon": "月亮",
@@ -58,6 +60,8 @@ class AstrologyLogic:
         "Mars": "火星",
         "Jupiter": "木星",
         "Saturn": "土星",
+        "North Node": "北交點",
+        "South Node": "南交點",
         "Asc": "上升點",
         "Ascendant": "上升點",
     }
@@ -366,11 +370,15 @@ class AstrologyLogic:
         lines.append(f"- 當前年主星：{data['prof_info'].get('lord_of_year')}\n\n")
 
         act = data["f_data"]["active"]
-        m_n = self.TRANS_PLANETS.get(act["major"], act["major"])
-        mi_n = self.TRANS_PLANETS.get(act["minor"], act["minor"])
-        lines.append(f"- 法達當前大運：{m_n}\n")
-        lines.append(f"- 法達當前小運：{mi_n}\n")
-        lines.append(f"- 下次換運日期：{act['end'].strftime('%Y/%m/%d')}\n\n")
+        if act["major"]:
+            m_n = self.TRANS_PLANETS.get(act["major"], act["major"])
+            mi_n = self.TRANS_PLANETS.get(act["minor"], act["minor"])
+            end_str = act["end"].strftime("%Y/%m/%d") if act["end"] else "未知"
+            lines.append(f"- 法達當前大運：{m_n}\n")
+            lines.append(f"- 法達當前小運：{mi_n}\n")
+            lines.append(f"- 下次換運日期：{end_str}\n\n")
+        else:
+            lines.append("- 法達當前運勢：超出計算範圍\n\n")
 
         lines.append("---\n\n")
         lines.append("## 🤖 深度思考型 AI 古典占星大師解析指引\n")
