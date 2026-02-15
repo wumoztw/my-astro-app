@@ -38,6 +38,8 @@ sys.modules['flatlib.datetime'] = MagicMock()
 sys.modules['flatlib.geopos'] = MagicMock()
 
 mock_streamlit = MagicMock()
+mock_streamlit.cache_data = lambda x: x
+mock_streamlit.cache_resource = lambda x: x
 sys.modules['streamlit'] = mock_streamlit
 
 sys.modules['pandas'] = MagicMock()

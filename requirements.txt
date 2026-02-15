@@ -1,6 +1,6 @@
 streamlit
 pandas
 flatlib
-pyswisseph
+pyswisseph>=2.10.3.2
 geopy
 tabulate

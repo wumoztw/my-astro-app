@@ -80,35 +80,37 @@ class TimeLordsLogic:
         
         active_major, active_minor, active_start, active_end = None, None, None, None
         
-        for major_lord, years in seq:
-            # 使用 pd.Timedelta 處理時間跨度 (365.25天/年)
-            major_end = current_start + pd.Timedelta(days=years * 365.25)
-            sub_periods = []
-            
-            # 處理行星的大運（有子運）
-            if major_lord not in ['North Node', 'South Node']:
-                idx = planets_order.index(major_lord)
-                ordered_minors = planets_order[idx:] + planets_order[:idx]
-                sub_duration_days = (years * 365.25) / 7.0
-                sub_start = current_start
+        # 循環三次以支援高齡 (最多 225 歲)
+        for _ in range(3):
+            for major_lord, years in seq:
+                # 使用 pd.Timedelta 處理時間跨度 (365.25天/年)
+                major_end = current_start + pd.Timedelta(days=years * 365.25)
+                sub_periods = []
                 
-                for minor_lord in ordered_minors:
-                    sub_end = sub_start + pd.Timedelta(days=sub_duration_days)
-                    sub_data = {'major': major_lord, 'minor': minor_lord, 'start': sub_start, 'end': sub_end}
-                    sub_periods.append(sub_data)
+                # 處理行星的大運（有子運）
+                if major_lord not in ['North Node', 'South Node']:
+                    idx = planets_order.index(major_lord)
+                    ordered_minors = planets_order[idx:] + planets_order[:idx]
+                    sub_duration_days = (years * 365.25) / 7.0
+                    sub_start = current_start
                     
-                    # 檢查是否為當前活動運勢
-                    if sub_start <= current_date < sub_end:
-                        active_major, active_minor, active_start, active_end = major_lord, minor_lord, sub_start, sub_end
-                    sub_start = sub_end
-            # 處理南北交點的大運（無子運）
-            else:
-                if current_start <= current_date < major_end:
-                    active_major, active_minor, active_start, active_end = major_lord, major_lord, current_start, major_end
-                sub_periods.append({'major': major_lord, 'minor': major_lord, 'start': current_start, 'end': major_end})
-            
-            timeline.append({'lord': major_lord, 'start': current_start, 'end': major_end, 'subs': sub_periods})
-            current_start = major_end
+                    for minor_lord in ordered_minors:
+                        sub_end = sub_start + pd.Timedelta(days=sub_duration_days)
+                        sub_data = {'major': major_lord, 'minor': minor_lord, 'start': sub_start, 'end': sub_end}
+                        sub_periods.append(sub_data)
+
+                        # 檢查是否為當前活動運勢
+                        if sub_start <= current_date < sub_end:
+                            active_major, active_minor, active_start, active_end = major_lord, minor_lord, sub_start, sub_end
+                        sub_start = sub_end
+                # 處理南北交點的大運（無子運）
+                else:
+                    if current_start <= current_date < major_end:
+                        active_major, active_minor, active_start, active_end = major_lord, major_lord, current_start, major_end
+                    sub_periods.append({'major': major_lord, 'minor': major_lord, 'start': current_start, 'end': major_end})
+
+                timeline.append({'lord': major_lord, 'start': current_start, 'end': major_end, 'subs': sub_periods})
+                current_start = major_end
             
         return {
             'is_day': is_day,

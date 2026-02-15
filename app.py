@@ -227,7 +227,11 @@ if st.session_state.report_data:
         st.subheader("法達大限 (Firdaria) 時間表")
         # Optimization: Show active period clearly
         act = d['f_data']['active']
-        st.info(f"**當前大運**：{logic.TRANS_PLANETS.get(act['major'], act['major'])} | **當前小運**：{logic.TRANS_PLANETS.get(act['minor'], act['minor'])} (直到 {act['end'].strftime('%Y/%m/%d')})")
+        if act['major']:
+            end_str = act['end'].strftime('%Y/%m/%d') if act['end'] else "未知"
+            st.info(f"**當前大運**：{logic.TRANS_PLANETS.get(act['major'], act['major'])} | **當前小運**：{logic.TRANS_PLANETS.get(act['minor'], act['minor'])} (直到 {end_str})")
+        else:
+            st.warning("⚠️ 當前日期超出法達星限計算範圍。")
         
         # Optional: Full timeline expander
         with st.expander("查看完整法達星限時間表"):
@@ -237,8 +241,8 @@ if st.session_state.report_data:
                     f_rows.append({
                         '大運': logic.TRANS_PLANETS.get(major['lord'], major['lord']),
                         '小運': logic.TRANS_PLANETS.get(minor['minor'], minor['minor']),
-                        '開始日期': minor['start'].strftime('%Y/%m/%d'),
-                        '結束日期': minor['end'].strftime('%Y/%m/%d')
+                        '開始日期': minor['start'].strftime('%Y/%m/%d') if hasattr(minor['start'], 'strftime') else str(minor['start']),
+                        '結束日期': minor['end'].strftime('%Y/%m/%d') if hasattr(minor['end'], 'strftime') else str(minor['end'])
                     })
             st.table(pd.DataFrame(f_rows))
         st.markdown("</div>", unsafe_allow_html=True)
