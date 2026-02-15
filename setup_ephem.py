@@ -3,9 +3,10 @@ import urllib.request
 
 EPHEM_DIR = 'ephem'
 FILES_TO_DOWNLOAD = {
-    'sepl_18.se1': 'https://www.astro.com/ftp/swisseph/ephe/sepl_18.se1',
-    'semo_18.se1': 'https://www.astro.com/ftp/swisseph/ephe/semo_18.se1',
-    'seas_18.se1': 'https://www.astro.com/ftp/swisseph/ephe/seas_18.se1',
+    'sepl_18.se1': 'https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/sepl_18.se1',
+    'semo_18.se1': 'https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/semo_18.se1',
+    'seas_18.se1': 'https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/seas_18.se1',
+    'sefstars.txt': 'https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/sefstars.txt',
 }
 
 def download_ephem():

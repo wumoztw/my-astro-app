@@ -1,4 +1,6 @@
 from flatlib import const
+import swisseph as swe
+import logging
 
 class LotsLogic:
     def calculate_lots(self, chart, houses, is_day, trans_signs, trans_houses):
@@ -37,24 +39,42 @@ class LotsLogic:
 
     def get_fixed_stars(self, chart, trans_planets):
         """Checks for conjunctions with major fixed stars."""
-        # 2026 Epoch (Approximate modern positions)
-        stars = {
+        # Fallback 2026 Epoch (Approximate modern positions)
+        fallback_stars = {
             'Regulus (軒轅十四)': 150.1, 
             'Spica (角宿一)': 204.0     
         }
         
+        jd = chart.date.jd
+        star_list = [
+            ('Regulus', 'Regulus (軒轅十四)'),
+            ('Spica', 'Spica (角宿一)')
+        ]
+
         findings = []
         planets = [const.SUN, const.MOON, const.MERCURY, const.VENUS, const.MARS, const.JUPITER, const.SATURN]
         
         for p_id in planets:
             p = chart.get(p_id)
-            for s_name, s_lon in stars.items():
-                diff = abs(p.lon - s_lon)
-                if diff > 180: diff = 360 - diff
-                if diff <= 1.5: # 1.5 degree orb for stars
-                    findings.append({
-                        'planet': trans_planets.get(p_id),
-                        'star': s_name,
-                        'orb': f"{round(diff, 2)}°"
-                    })
+            for s_name_swe, s_name_display in star_list:
+                try:
+                    # Try dynamic calculation with Swiss Ephemeris
+                    # swe.fixstar2_ut returns (data, name)
+                    # data is [lon, lat, dist, lon_speed, lat_speed, dist_speed]
+                    res = swe.fixstar2_ut(s_name_swe, jd)
+                    s_lon = res[0][0]
+                except Exception as e:
+                    # Fallback to hardcoded values if swisseph fails
+                    logging.warning(f"Swiss Ephemeris calculation failed for {s_name_swe}: {e}")
+                    s_lon = fallback_stars.get(s_name_display)
+
+                if s_lon is not None:
+                    diff = abs(p.lon - s_lon)
+                    if diff > 180: diff = 360 - diff
+                    if diff <= 1.5: # 1.5 degree orb for stars
+                        findings.append({
+                            'planet': trans_planets.get(p_id),
+                            'star': s_name_display,
+                            'orb': f"{round(diff, 2)}°"
+                        })
         return findings
