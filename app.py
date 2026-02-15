@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import html
 from datetime import datetime, date
 from flatlib import const
 
@@ -157,7 +158,7 @@ if generate_btn:
         md += "---\n\n"
         md += "## 出生資訊\n\n"
         md += f"- 生日：{birth_date_str} {birth_time_str}\n"
-        md += f"- 地點：{location_city} ({final_lat:.2f}N, {final_lon:.2f}E)\n"
+        md += f"- 地點：{html.escape(location_city)} ({final_lat:.2f}N, {final_lon:.2f}E)\n"
         md += f"- 上升星座：{asc_sign} {asc_deg}°{asc_min}'\n"
         md += f"- 太陽星座：{sun_sign} {sun_deg}°{sun_min}'\n"
         md += f"- 月亮星座：{moon_sign} {moon_deg}°{moon_min}'\n\n"
