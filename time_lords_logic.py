@@ -3,6 +3,25 @@ from datetime import datetime, date
 import pandas as pd
 
 class TimeLordsLogic:
+    RULERS = {
+        const.ARIES: const.MARS, const.TAURUS: const.VENUS, const.GEMINI: const.MERCURY,
+        const.CANCER: const.MOON, const.LEO: const.SUN, const.VIRGO: const.MERCURY,
+        const.LIBRA: const.VENUS, const.SCORPIO: const.MARS, const.SAGITTARIUS: const.JUPITER,
+        const.CAPRICORN: const.SATURN, const.AQUARIUS: const.SATURN, const.PISCES: const.JUPITER
+    }
+
+    DAY_SEQ = [
+        (const.SUN, 10), (const.VENUS, 8), (const.MERCURY, 13),
+        (const.MOON, 9), (const.SATURN, 11), (const.JUPITER, 12), (const.MARS, 7),
+        ('North Node', 3), ('South Node', 2)
+    ]
+
+    NIGHT_SEQ = [
+        (const.MOON, 9), (const.SATURN, 11), (const.JUPITER, 12), (const.MARS, 7),
+        (const.SUN, 10), (const.VENUS, 8), (const.MERCURY, 13),
+        ('North Node', 3), ('South Node', 2)
+    ]
+
     def calculate_profections(self, chart, trans_signs, planet_glyphs, trans_planets, birth_dt_str, current_date=None):
         if current_date is None: current_date = date.today()
         birth_dt = datetime.strptime(birth_dt_str, '%Y/%m/%d')
@@ -14,16 +33,7 @@ class TimeLordsLogic:
         prof_sign_idx = (birth_asc_sign_idx + age) % 12
         prof_sign = const.LIST_SIGNS[prof_sign_idx]
         
-        # This needs a ruler table - ideally passed or accessed via shared logic
-        # For simplicity in this standalone module, we'll re-define traditional rulers
-        RULERS = {
-            const.ARIES: const.MARS, const.TAURUS: const.VENUS, const.GEMINI: const.MERCURY,
-            const.CANCER: const.MOON, const.LEO: const.SUN, const.VIRGO: const.MERCURY,
-            const.LIBRA: const.VENUS, const.SCORPIO: const.MARS, const.SAGITTARIUS: const.JUPITER,
-            const.CAPRICORN: const.SATURN, const.AQUARIUS: const.SATURN, const.PISCES: const.JUPITER
-        }
-        
-        lord_id = RULERS[prof_sign]
+        lord_id = self.RULERS[prof_sign]
         lord_planet = chart.get(lord_id)
         p_sign_deg = lord_planet.lon % 30
         d = int(p_sign_deg)
@@ -42,18 +52,7 @@ class TimeLordsLogic:
         if current_date is None: current_date = date.today()
         birth_dt = datetime.strptime(birth_dt_str, '%Y/%m/%d').date()
         
-        day_seq = [
-            (const.SUN, 10), (const.VENUS, 8), (const.MERCURY, 13), 
-            (const.MOON, 9), (const.SATURN, 11), (const.JUPITER, 12), (const.MARS, 7),
-            ('North Node', 3), ('South Node', 2)
-        ]
-        night_seq = [
-            (const.MOON, 9), (const.SATURN, 11), (const.JUPITER, 12), (const.MARS, 7),
-            (const.SUN, 10), (const.VENUS, 8), (const.MERCURY, 13), 
-            ('North Node', 3), ('South Node', 2)
-        ]
-        
-        seq = day_seq if is_day else night_seq
+        seq = self.DAY_SEQ if is_day else self.NIGHT_SEQ
         planets_order = [s[0] for s in seq if s[0] not in ['North Node', 'South Node']]
         
         timeline = []
