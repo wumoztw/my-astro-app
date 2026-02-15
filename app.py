@@ -247,7 +247,7 @@ if generate_btn:
 # --- UI Layout ---
 if st.session_state.report_data:
     d = st.session_state.report_data
-    st.markdown("<h1 style='text-align: center; margin-bottom: 5px; color: #000;'>專業古典占星論命系統</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; margin-bottom: 5px; color: #000;'>古典占星論命資訊</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; font-style: italic; color: #666; margin-bottom: 30px;'>Professional Classical Astrology Analysis System</p>", unsafe_allow_html=True)
     
     sc1, sc2, sc3 = st.columns(3)
