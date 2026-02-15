@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import os
-import html
-import logging
 from datetime import datetime, date
 from flatlib import const
 
@@ -11,22 +9,6 @@ from logic import AstrologyLogic
 
 # Initialize Logic
 logic = AstrologyLogic()
-
-
-def _get_final_coordinates(location_city, manual_lat, manual_lon):
-    """
-    Determines the final latitude and longitude based on city name or manual input.
-    """
-    final_lat, final_lon = manual_lat, manual_lon
-    # Default Taipei coordinates: 121.50, 25.03. If unchanged and city is not Taipei, try geocoding.
-    if manual_lon == 121.50 and manual_lat == 25.03 and location_city != "台北市":
-        coords = logic.get_location_coordinates(location_city)
-        if coords:
-            final_lat, final_lon = coords
-        else:
-            st.sidebar.warning("⚠️ 自動地點檢索暫時無法連線，請手動展開下方進階選項輸入經緯度。")
-    return final_lat, final_lon
-
 
 st.set_page_config(page_title="古典占星命盤簡易排盤程式", layout="wide")
 
@@ -124,24 +106,143 @@ generate_btn = st.sidebar.button("排命盤", use_container_width=True)
 # --- Logic Processing ---
 if generate_btn:
     try:
-        final_lat, final_lon = _get_final_coordinates(
-            location_city, manual_lat, manual_lon
-        )
+        final_lat, final_lon = manual_lat, manual_lon
+        if manual_lon == 121.50 and manual_lat == 25.03 and location_city != "台北市":
+            coords = logic.get_location_coordinates(location_city)
+            if coords:
+                final_lat, final_lon = coords
+            else:
+                st.sidebar.warning("⚠️ 自動地點檢索暫時無法連線，請手動展開下方進階選項輸入經緯度。")
 
-        # Core analysis
-        report_data = logic.run_analysis(
-            birth_date, birth_time, final_lat, final_lon, utc_offset
-        )
+        birth_date_str = birth_date.strftime('%Y/%m/%d')
+        birth_time_str = birth_time.strftime('%H:%M')
+        
+        sign = '+' if utc_offset >= 0 else '-'
+        abs_offset = abs(utc_offset)
+        h, m = int(abs_offset), int((abs_offset - int(abs_offset)) * 60)
+        offset_str = f"{sign}{h:02d}:{m:02d}"
+        
+        from flatlib.datetime import Datetime
+        from flatlib.geopos import GeoPos
+        from flatlib.chart import Chart
+        
+        dt = Datetime(birth_date_str, birth_time_str, offset_str)
+        pos = GeoPos(final_lat, final_lon)
+        chart = Chart(dt, pos)
+        
+        # Calculations
+        asc = chart.get(const.ASC)
+        asc_sign = logic.TRANS_SIGNS.get(asc.sign, asc.sign)
+        asc_deg, asc_min, _ = logic.degree_to_dms(asc.lon % 30)
+        
+        sun_p = chart.get(const.SUN)
+        moon_p = chart.get(const.MOON)
+        sun_sign = logic.TRANS_SIGNS.get(sun_p.sign, sun_p.sign)
+        moon_sign = logic.TRANS_SIGNS.get(moon_p.sign, moon_p.sign)
+        sun_deg, sun_min, _ = logic.degree_to_dms(sun_p.lon % 30)
+        moon_deg, moon_min, _ = logic.degree_to_dms(moon_p.lon % 30)
 
-        # Report generation
-        report_md = logic.generate_markdown_report(report_data, location_city)
+        houses = logic.calculate_equal_houses(asc.lon)
+        planets_data = logic.get_planets_data(chart, houses)
+        prof_info = logic.calculate_profections(chart, houses, birth_date_str)
+        aspects = logic.get_aspects(chart)
+        is_day = logic.is_day_birth(chart, houses)
+        f_data = logic.get_firdaria_data(birth_date_str, is_day)
+        lots = logic.calculate_lots(chart, houses, is_day)
+        fixed_stars = logic.get_fixed_stars(chart)
 
-        st.session_state.report_md = report_md
-        st.session_state.report_data = report_data
+        # Build Markdown Report
+        md = "# 古典占星命盤完整資料 (升級版)\n\n"
+        md += f"產出時間：{datetime.now().strftime('%Y/%m/%d %H:%M:%S')}\n\n"
+        md += "---\n\n"
+        md += "## 出生資訊\n\n"
+        md += f"- 生日：{birth_date_str} {birth_time_str}\n"
+        md += f"- 地點：{location_city} ({final_lat:.2f}N, {final_lon:.2f}E)\n"
+        md += f"- 上升星座：{asc_sign} {asc_deg}°{asc_min}'\n"
+        md += f"- 太陽星座：{sun_sign} {sun_deg}°{sun_min}'\n"
+        md += f"- 月亮星座：{moon_sign} {moon_deg}°{moon_min}'\n\n"
+        
+        md += "## 行星狀態與本質力量\n\n"
+        for p in planets_data:
+            d = p['dignity']
+            d_str = ", ".join(d['list']) if d['list'] else "無 (Peregrine)"
+            acc_str = ", ".join(p['accidental'])
+            md += f"### {p['symbol']} {p['name']}\n"
+            md += f"- 位置：{p['sign']} {p['degree_str']} {p['retro']} | [{p['house']}]\n"
+            md += f"- 本質力量：{d_str} (總分: {d['score']})\n"
+            md += f"- 後天狀態：{acc_str}\n\n"
+        
+        md += "## 特殊點位與恆星\n\n"
+        for lot in lots:
+            md += f"- {lot['name']}：{lot['sign']} {lot['degree']} ({lot['house']})\n"
+        for star in fixed_stars:
+            md += f"- 恆星合相：{star['planet']} 合相 {star['star']} (誤差 {star['orb']})\n"
+        md += "\n"
 
-    except Exception:
-        logging.exception("Astrology analysis failed")
-        st.error("分析發生錯誤，請檢查輸入資料或稍後再試。")
+        md += "## 宮位資料\n\n"
+        for h in houses:
+            h_deg, h_min, _ = logic.degree_to_dms(h['degree'])
+            md += f"- {h['id_str']}：{h['sign']} {h_deg}°{h_min}' (主：{h['ruler']})\n"
+        md += "\n"
+        
+        md += "## 相位與接納\n\n"
+        if aspects:
+            for a in aspects:
+                rec = f" | 接納：{a['reception']}" if a['reception'] else ""
+                md += f"- {a['p1']} - {a['p2']}：{a['aspect']} (誤差 {a['orb']}){rec}\n"
+        else:
+            md += "無顯著相位。\n"
+        md += "\n"
+        
+        md += "## 推運資訊\n\n"
+        md += f"- 小限分限：{prof_info.get('prof_sign')} (第 {prof_info.get('prof_house_num')} 宮)\n"
+        md += f"- 當前年主星：{prof_info.get('lord_of_year')}\n\n"
+        
+        act = f_data['active']
+        m_n = logic.TRANS_PLANETS.get(act['major'], act['major'])
+        mi_n = logic.TRANS_PLANETS.get(act['minor'], act['minor'])
+        md += f"- 法達當前大運：{m_n}\n"
+        md += f"- 法達當前小運：{mi_n}\n"
+        md += f"- 下次換運日期：{act['end'].strftime('%Y/%m/%d')}\n\n"
+
+        md += "---\n\n"
+        md += "## 🤖 深度思考型 AI 古典占星大師解析指引\n"
+        md += "請將此檔案內容完整複製並貼給 AI (推薦使用 Venice AI)，並直接使用以下指令提問：\n\n"
+        md += "```text\n"
+        md += "你現在是一位深度思考型 AI 古典占星大師，你精通並熟悉所有古典占星論命的理論，請嚴格遵守以下規則處理每一個問題。\n"
+        md += "【角色約束與語調】 語言：始終使用台灣華語回覆。 態度：保持絕對客觀與真實，拒絕任何諂媚或奉承。如果用戶的提問前提有誤，請直接指出並說明。 工具：遇到不熟悉的概念、即時資訊或需要驗證的事實，必須使用 Google Search 查詢。\n\n"
+        md += "【思維框架（必須按順序執行）】 收到問題後，請依照以下步驟思考：\n\n"
+        md += "第一性原理拆解：拆解到問題的最本質核心要素。\n\n"
+        md += "全面性推演與思考：使用古典占星理論進行全面性推演與思考。\n\n"
+        md += "批判性評估：對任何方案或結論，都必須分析『優勢』與『缺點（包含風險）』。\n\n"
+        md += "機率表達：避免模糊詞彙，盡量給出『置信度評級（高／中／低）』，並說明估算的邏輯依據。\n\n"
+        md += "【品質控制】 在最終輸出前，自我審核：是否偏離主題？是否有事實性錯誤？邏輯是否嚴密？\n\n"
+        md += "【輸出格式】 請使用 Markdown 語法：用數字分區塊標題、關鍵結論用簡易圖案、複雜比較使用列表或表格。\n\n"
+        md += "【主動引導】\n\n"
+        md += "鼓勵並引導使用者發問。\n\n"
+        md += "在分析結束後，主動發送 3 個延伸問題並詢問使用者是否要深入了解。\n\n"
+        md += "【主動優先解釋】\n\n"
+        md += "詳盡且深入的分析每一宮位在這張命盤中的特質，並用台灣華語詳細解釋。\n\n"
+        md += "詳盡且深入的分析每一個行星在這張命盤中的特質，並解釋行星與行星的交角在這張命盤中的含意。\n"
+        md += "```\n\n"
+        md += "**Venice AI 推薦連結：[https://venice.ai/chat?ref=XmvhLM](https://venice.ai/chat?ref=XmvhLM)**\n"
+
+        st.session_state.report_md = md
+        st.session_state.report_data = {
+            'asc': f"{asc_sign} {asc_deg}°{asc_min}'",
+            'sun': f"{sun_sign} {sun_deg}°{sun_min}'",
+            'moon': f"{moon_sign} {moon_deg}°{moon_min}'",
+            'planets': planets_data,
+            'houses': houses,
+            'aspects': aspects,
+            'prof_info': prof_info,
+            'f_data': f_data,
+            'is_day': is_day,
+            'lots': lots,
+            'fixed_stars': fixed_stars
+        }
+    except Exception as e:
+        st.error(f"分析錯誤: {str(e)}")
 
 # --- UI Layout ---
 if st.session_state.report_data:
@@ -227,11 +328,7 @@ if st.session_state.report_data:
         st.subheader("法達大限 (Firdaria) 時間表")
         # Optimization: Show active period clearly
         act = d['f_data']['active']
-        if act['major']:
-            end_str = act['end'].strftime('%Y/%m/%d') if act['end'] else "未知"
-            st.info(f"**當前大運**：{logic.TRANS_PLANETS.get(act['major'], act['major'])} | **當前小運**：{logic.TRANS_PLANETS.get(act['minor'], act['minor'])} (直到 {end_str})")
-        else:
-            st.warning("⚠️ 當前日期超出法達星限計算範圍。")
+        st.info(f"**當前大運**：{logic.TRANS_PLANETS.get(act['major'], act['major'])} | **當前小運**：{logic.TRANS_PLANETS.get(act['minor'], act['minor'])} (直到 {act['end'].strftime('%Y/%m/%d')})")
         
         # Optional: Full timeline expander
         with st.expander("查看完整法達星限時間表"):
@@ -241,8 +338,8 @@ if st.session_state.report_data:
                     f_rows.append({
                         '大運': logic.TRANS_PLANETS.get(major['lord'], major['lord']),
                         '小運': logic.TRANS_PLANETS.get(minor['minor'], minor['minor']),
-                        '開始日期': minor['start'].strftime('%Y/%m/%d') if hasattr(minor['start'], 'strftime') else str(minor['start']),
-                        '結束日期': minor['end'].strftime('%Y/%m/%d') if hasattr(minor['end'], 'strftime') else str(minor['end'])
+                        '開始日期': minor['start'].strftime('%Y/%m/%d'),
+                        '結束日期': minor['end'].strftime('%Y/%m/%d')
                     })
             st.table(pd.DataFrame(f_rows))
         st.markdown("</div>", unsafe_allow_html=True)

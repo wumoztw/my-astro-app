@@ -11,17 +11,7 @@
 ## 系統環境說明 (Linux Mint / Python 3.12)
 由於 Python 3.12 移除了部分舊有的 Unicode API，導致官方版的 `pyswisseph` 無法直接安裝。本系統已手動編譯並安裝了相容於 Python 3.12 的版本到虛擬環境 `venv` 中。
 
-## 如何使用 (網頁版)
-本系統已支援 GitHub Pages，你可以直接透過 GitHub 的網頁網址來存取，無需在本地電腦安裝任何程式：
-
-1. **啟用 GitHub Pages**：
-   - 在 GitHub 儲存庫頁面，點擊 **Settings** (設定)。
-   - 在左側選單選擇 **Pages**。
-   - 在 "Build and deployment" 下方的 "Branch" 選擇 `main` 分支，並點擊 **Save**。
-2. **存取網址**：
-   - 稍等約一分鐘後，你就可以透過 `https://<你的用戶名>.github.io/<儲存庫名稱>/` 直接使用。
-
-## 本地執行 (開發者使用)
+## 如何執行
 1. **進入專案目錄**：
    ```bash
    cd ~/桌面/my-astro-app
@@ -33,7 +23,7 @@
    ./venv/bin/streamlit run app.py
    ```
 
-## 操作步驟
+3. **操作步驟**：
    - 在側邊欄輸入出生日期、時間、地點（如 "Taipei"）與 UTC 時區偏移。
    - 點擊「生成命盤報告」按鈕。
 
