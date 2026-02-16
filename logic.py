@@ -6,6 +6,8 @@ from flatlib.geopos import GeoPos
 from datetime import datetime, date
 import pandas as pd
 from geopy.geocoders import ArcGIS
+from timezonefinder import TimezoneFinder
+import pytz
 
 # Modular Imports
 from dignities_logic import DignitiesLogic
@@ -72,6 +74,21 @@ class AstrologyLogic:
         self.aspects = AspectsLogic()
         self.lots = LotsLogic()
         self.time_lords = TimeLordsLogic()
+        self.tf = TimezoneFinder()
+
+    def get_timezone_info(self, lat, lon):
+        """Returns (timezone_name, utc_offset_hours) for given coordinates."""
+        try:
+            tz_name = self.tf.timezone_at(lat=lat, lng=lon)
+            if tz_name:
+                tz = pytz.timezone(tz_name)
+                # Get offset for NOW
+                now = datetime.now(pytz.utc)
+                offset_seconds = tz.utcoffset(now).total_seconds()
+                return tz_name, offset_seconds / 3600.0
+            return None, None
+        except Exception:
+            return None, None
 
     def get_location_coordinates(self, location_name):
         try:

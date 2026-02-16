@@ -112,19 +112,32 @@ with col2:
 if generate_btn or horary_btn:
     try:
         if horary_btn:
-            # First Principles Fix: Capture UTC, then apply user-selected offset
+            # First Principles: Resolve location first to get accurate timezone
+            final_lat, final_lon = manual_lat, manual_lon
+            if manual_lon == 121.50 and manual_lat == 25.03 and location_city != "台北市":
+                coords = logic.get_location_coordinates(location_city)
+                if coords:
+                    final_lat, final_lon = coords
+            
+            # Detect timezone and offset
+            _, detected_offset = logic.get_timezone_info(final_lat, final_lon)
+            if detected_offset is not None:
+                utc_offset = detected_offset
+
+            # Capture UTC and apply the detected offset
             now_utc = datetime.now(timezone.utc)
             now_local = now_utc + timedelta(hours=utc_offset)
             birth_date = now_local.date()
             birth_time = now_local.time()
-            # We keep the location_city from sidebar
-        final_lat, final_lon = manual_lat, manual_lon
-        if manual_lon == 121.50 and manual_lat == 25.03 and location_city != "台北市":
-            coords = logic.get_location_coordinates(location_city)
-            if coords:
-                final_lat, final_lon = coords
-            else:
-                st.sidebar.warning("⚠️ 自動地點檢索暫時無法連線，請手動展開下方進階選項輸入經緯度。")
+        else:
+            # Regular Chart logic
+            final_lat, final_lon = manual_lat, manual_lon
+            if manual_lon == 121.50 and manual_lat == 25.03 and location_city != "台北市":
+                coords = logic.get_location_coordinates(location_city)
+                if coords:
+                    final_lat, final_lon = coords
+                else:
+                    st.sidebar.warning("⚠️ 自動地點檢索暫時無法連線，請手動展開下方進階選項輸入經緯度。")
 
         birth_date_str = birth_date.strftime('%Y/%m/%d')
         birth_time_str = birth_time.strftime('%H:%M')

@@ -4,3 +4,5 @@ flatlib
 pyswisseph
 geopy
 tabulate
+timezonefinder
+pytz
