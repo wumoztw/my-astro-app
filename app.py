@@ -15,39 +15,14 @@ logic = AstrologyLogic()
 
 st.set_page_config(page_title="古典占星命盤簡易排盤程式", layout="wide")
 
-# Detect browser timezone, date, time, lat, and lon and sync to query parameters
+# Detect browser timezone for UTC offset (optional utility)
 components.html(
     """
     <script>
-    const urlParams = new URLSearchParams(window.parent.location.search);
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const now = new Date();
-    const bd = now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
-    const bt = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-    
-    let changed = false;
-
+    const urlParams = new URLSearchParams(window.parent.location.search);
     if (urlParams.get('tz') !== tz) {
         urlParams.set('tz', tz);
-        changed = true;
-    }
-    
-    if (urlParams.get('bd') !== bd || urlParams.get('bt') !== bt) {
-        urlParams.set('bd', bd);
-        urlParams.set('bt', bt);
-        changed = true;
-    }
-
-    if (!urlParams.has('lat') || !urlParams.has('lon')) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-            urlParams.set('lat', pos.coords.latitude.toFixed(4));
-            urlParams.set('lon', pos.coords.longitude.toFixed(4));
-            window.parent.location.search = urlParams.toString();
-        }, (err) => {
-            console.error("Geolocation error:", err);
-            if (changed) window.parent.location.search = urlParams.toString();
-        });
-    } else if (changed) {
         window.parent.location.search = urlParams.toString();
     }
     </script>
@@ -55,10 +30,8 @@ components.html(
     height=0,
 )
 
-# Read detected browser info
+# Read detected timezone (default to UTC if not yet synced)
 browser_tz_name = st.query_params.get("tz", "UTC")
-browser_lat = st.query_params.get("lat")
-browser_lon = st.query_params.get("lon")
 
 # --- Custom Styling (Minimalist Clean Theme) ---
 st.markdown("""
@@ -121,17 +94,17 @@ if 'report_md' not in st.session_state:
     st.session_state.report_md = ""
 
 # --- Sidebar Inputs ---
-st.sidebar.header("輸入出生資料")
+st.sidebar.header("時間與地點資料輸入")
 
 # Date/Time Input via Text
-date_input_raw = st.sidebar.text_input("出生日期 (YYYY/MM/DD)", value="1900/01/01")
+date_input_raw = st.sidebar.text_input("日期 (YYYY/MM/DD)", value="1900/01/01")
 try:
     birth_date = datetime.strptime(date_input_raw.strip(), '%Y/%m/%d').date()
 except ValueError:
     st.sidebar.error("請依照 YYYY/MM/DD 格式輸入日期")
     st.stop()
 
-time_input_raw = st.sidebar.text_input("出生時間 (HH:MM)", value="12:00")
+time_input_raw = st.sidebar.text_input("時間 (HH:MM)", value="12:00")
 try:
     time_str = time_input_raw.replace('：', ':').strip()
     birth_time = datetime.strptime(time_str, '%H:%M').time()
@@ -141,7 +114,7 @@ except ValueError:
 
 st.sidebar.markdown("---")
 
-location_city = st.sidebar.text_input("輸入出生城市", "台北市")
+location_city = st.sidebar.text_input("輸入城市名稱", "台北市")
 
 with st.sidebar.expander("自行手動輸入經緯度與時區", expanded=False):
     manual_lon = st.number_input("經度 (Longitude)", value=121.50, format="%.2f")
@@ -149,73 +122,27 @@ with st.sidebar.expander("自行手動輸入經緯度與時區", expanded=False)
     utc_offset = st.number_input("時區偏移 (UTC Offset)", value=8.0, step=0.5)
 
 st.sidebar.markdown("---")
-if st.query_params.get("bd") and st.query_params.get("bt"):
-    st.sidebar.caption(f"✅ 已同步瀏覽器時空資訊")
-    st.sidebar.caption(f"時間：{st.query_params.get('bd')} {st.query_params.get('bt')}")
-    if browser_lat and browser_lon:
-        st.sidebar.caption(f"地點：{browser_lat}, {browser_lon}")
-else:
-    st.sidebar.caption("⏳ 正在等待檢索瀏覽器資訊...")
-
-st.sidebar.markdown("---")
+# Buttons for calculation
 col1, col2 = st.sidebar.columns(2)
 with col1:
-    generate_btn = st.button("排命盤", use_container_width=True)
+    generate_btn = st.button("排本命盤", use_container_width=True)
 with col2:
     horary_btn = st.button("卜卦占星", use_container_width=True)
 
 # --- Logic Processing ---
 if generate_btn or horary_btn:
     try:
-        if horary_btn:
-            # First Principles: Use EXCLUSIVELY browser-reported data
-            try:
-                import pytz
-                btz = pytz.timezone(browser_tz_name)
-                
-                # Capture browser date/time from query params
-                browser_bd = st.query_params.get("bd")
-                browser_bt = st.query_params.get("bt")
-                
-                if browser_bd and browser_bt:
-                    # Parse browser-side local time
-                    dt_combined = datetime.strptime(f"{browser_bd} {browser_bt}", "%Y/%m/%d %H:%M")
-                    now_local = btz.localize(dt_combined)
-                    birth_date = now_local.date()
-                    birth_time = now_local.time()
-                else:
-                    # Emergency fallback to server's view of btz
-                    now_local = datetime.now(btz)
-                    birth_date = now_local.date()
-                    birth_time = now_local.time()
-                
-                # Precise offset from browser local time
-                utc_offset = now_local.utcoffset().total_seconds() / 3600.0
-                
-                # Use detected coordinates (bypass manual/city search)
-                if browser_lat and browser_lon:
-                    final_lat = float(browser_lat)
-                    final_lon = float(browser_lon)
-                else:
-                    # If geolocation failed/denied, fall back to manual inputs
-                    final_lat, final_lon = manual_lat, manual_lon
-            except Exception as e:
-                # Fail-safe mode
-                now_utc = datetime.now(timezone.utc)
-                now_local = now_utc + timedelta(hours=utc_offset)
-                birth_date = now_local.date()
-                birth_time = now_local.time()
-                final_lat, final_lon = manual_lat, manual_lon
-        else:
-            # Regular Chart logic: Priority to manual/city search
-            final_lat, final_lon = manual_lat, manual_lon
-            if manual_lon == 121.50 and manual_lat == 25.03 and location_city != "台北市":
-                coords = logic.get_location_coordinates(location_city)
-                if coords:
-                    final_lat, final_lon = coords
-                else:
+        # Resolve location for the chart (essential for Houses)
+        final_lat, final_lon = manual_lat, manual_lon
+        if manual_lon == 121.50 and manual_lat == 25.03 and location_city != "台北市":
+            coords = logic.get_location_coordinates(location_city)
+            if coords:
+                final_lat, final_lon = coords
+            else:
+                if not horary_btn: # For regular chart, show warning if city search fails
                     st.sidebar.warning("⚠️ 自動地點檢索暫時無法連線，請手動展開下方進階選項輸入經緯度。")
 
+        # Basic parsing remains same, but we bypass any browser overrides
         birth_date_str = birth_date.strftime('%Y/%m/%d')
         birth_time_str = birth_time.strftime('%H:%M')
         
