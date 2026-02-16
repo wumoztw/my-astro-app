@@ -15,16 +15,26 @@ logic = AstrologyLogic()
 
 st.set_page_config(page_title="古典占星命盤簡易排盤程式", layout="wide")
 
-# Detect browser timezone, lat, and lon and sync to query parameters
+# Detect browser timezone, date, time, lat, and lon and sync to query parameters
 components.html(
     """
     <script>
     const urlParams = new URLSearchParams(window.parent.location.search);
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const now = new Date();
+    const bd = now.getFullYear() + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
+    const bt = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    
     let changed = false;
 
     if (urlParams.get('tz') !== tz) {
         urlParams.set('tz', tz);
+        changed = true;
+    }
+    
+    if (urlParams.get('bd') !== bd || urlParams.get('bt') !== bt) {
+        urlParams.set('bd', bd);
+        urlParams.set('bt', bt);
         changed = true;
     }
 
@@ -139,6 +149,15 @@ with st.sidebar.expander("自行手動輸入經緯度與時區", expanded=False)
     utc_offset = st.number_input("時區偏移 (UTC Offset)", value=8.0, step=0.5)
 
 st.sidebar.markdown("---")
+if st.query_params.get("bd") and st.query_params.get("bt"):
+    st.sidebar.caption(f"✅ 已同步瀏覽器時空資訊")
+    st.sidebar.caption(f"時間：{st.query_params.get('bd')} {st.query_params.get('bt')}")
+    if browser_lat and browser_lon:
+        st.sidebar.caption(f"地點：{browser_lat}, {browser_lon}")
+else:
+    st.sidebar.caption("⏳ 正在等待檢索瀏覽器資訊...")
+
+st.sidebar.markdown("---")
 col1, col2 = st.sidebar.columns(2)
 with col1:
     generate_btn = st.button("排命盤", use_container_width=True)
@@ -149,29 +168,39 @@ with col2:
 if generate_btn or horary_btn:
     try:
         if horary_btn:
-            # First Principles: Use detected browser timezone and location
+            # First Principles: Use EXCLUSIVELY browser-reported data
             try:
                 import pytz
                 btz = pytz.timezone(browser_tz_name)
-                now_local = datetime.now(btz)
-                birth_date = now_local.date()
-                birth_time = now_local.time()
                 
-                # Detect offset for the discovered timezone
+                # Capture browser date/time from query params
+                browser_bd = st.query_params.get("bd")
+                browser_bt = st.query_params.get("bt")
+                
+                if browser_bd and browser_bt:
+                    # Parse browser-side local time
+                    dt_combined = datetime.strptime(f"{browser_bd} {browser_bt}", "%Y/%m/%d %H:%M")
+                    now_local = btz.localize(dt_combined)
+                    birth_date = now_local.date()
+                    birth_time = now_local.time()
+                else:
+                    # Emergency fallback to server's view of btz
+                    now_local = datetime.now(btz)
+                    birth_date = now_local.date()
+                    birth_time = now_local.time()
+                
+                # Precise offset from browser local time
                 utc_offset = now_local.utcoffset().total_seconds() / 3600.0
                 
-                # Use detected coordinates if available
+                # Use detected coordinates (bypass manual/city search)
                 if browser_lat and browser_lon:
                     final_lat = float(browser_lat)
                     final_lon = float(browser_lon)
                 else:
+                    # If geolocation failed/denied, fall back to manual inputs
                     final_lat, final_lon = manual_lat, manual_lon
-                    if manual_lon == 121.50 and manual_lat == 25.03 and location_city != "台北市":
-                        coords = logic.get_location_coordinates(location_city)
-                        if coords:
-                            final_lat, final_lon = coords
             except Exception as e:
-                # Fallback
+                # Fail-safe mode
                 now_utc = datetime.now(timezone.utc)
                 now_local = now_utc + timedelta(hours=utc_offset)
                 birth_date = now_local.date()
