@@ -1,60 +1,47 @@
-# Classical Astrology System (古典占星排盤系統)
+# 古典占星命盤簡易排盤程式 (my-astro-app)
 
-這是一個專業的**古典占星 (Classical Astrology)** 排盤與分析系統。本系統基於 Python 的 `flatlib` 與 `Streamlit` 開發，專注於中世紀與希臘時期的占星理論，提供精確的星盤計算與深度分析功能。
+這是一個專業的古典占星（Classical Astrology）排盤與分析系統，專為占星師與愛好者設計通。本程式不僅能生成精確的星盤數據，更結合了現代 AI（如 Deep Thinking LLMs）的解析能力，提供深度且具邏輯性的占星諮詢指引。
 
----
+## 🌟 核心功能
 
-## 核心技術框架
-- **前端介面**：使用 [Streamlit](https://streamlit.io/) 構建的高品質 Web 介面，具有簡約的黑白美學與響應式佈局。
-- **計算引擎**：整合了 `flatlib` 與瑞士星曆表 (`swisseph`)，確保星體位置與度數的科學精確度。
-- **資料儲存**：包含 `ephem/` 目錄下的星曆表檔案，提供精確的行星位置計算。
+### 1. 雙模式排盤
+- **本命命盤 (Nativity)**：輸入出生日期、時間與地點，生成完整的本命星盤分析。
+- **卜卦占星 (Horary)**：一鍵捕捉當前時間（自動偵測時區）與地點，進行即時的事件占星分析。適合需要快速決策或問題指引的場景。
 
----
+### 2. 專業古典占星運算
+- **行星力量評估**：
+    - **本質力量 (Essential Dignities)**：詳細計算廟、旺、三分、界、面，並提供傳統計分。
+    - **後天狀態 (Accidental Dignities)**：分析宮位強弱、逆行（Ⓡ）、燃燒（Combustion）等狀態。
+- **古典相位與接納**：
+    - 計算傳統五大相位（合相、六分、四分、三分、對分）。
+    - **互容與接納 (Mutual Reception & Reception)**：深度解析行星間的互動意願與幫助關係。
+- **希臘點 (Lots)**：精確計算幸運點、精神點等重要希臘點位及其宮位分佈。
+- **重要恆星 (Fixed Stars)**：自動偵測與行星合相的恆星及其占星含意。
+- **古典推運 (Time Lords)**：
+    - **法達星限 (Firdaria)**：生成完整的生命大限與小限時間表，掌握生命長週期節奏。
+    - **小限 (Profections)**：計算當前年齡的小限宮位與年度主星，對焦當年度核心課題。
 
-## 主要功能模組解析
+### 3. AI 深度解析整合
+- **AI 大師指引**：系統會自動生成針對「本命模式」或「卜卦模式」優化的結構化 Markdown 報告。
+- **深度思考框架**：報告內建專業生成的 System Prompt，可直接貼給 o1, Gemini 2.0 Thinking 等模型，讓 AI 模擬古典占星大師的思維進行批判性與機率性的深度分析，拒絕空泛的奉承。
 
-### 1. 行星狀態與本質力量分析
-程式會根據行星所在的星座、度數以及晝夜區分，計算以下指標：
-- **本質力量 (Essential Dignities)**：依照埃及界 (Egyptian Terms) 與迦勒底面 (Chaldean Faces) 的傳統規則，計算行星的廟 (Domicile)、旺 (Exaltation)、三分 (Triplicity)、界 (Term)、面 (Face) 的得分。
-- **後天狀態 (Accidental Dignities)**：分析行星的宮位強度、日心 (Cazimi)/燃燒 (Combust) 狀態以及是否逆行。
+### 4. 極簡視覺與便攜性
+- **純粹設計**：採用極簡白淨配色與響應式排版，專注於資訊呈現，提供專業工具的厚實感。
+- **自動偵測**：支援瀏覽器時區自動偵測與 ArcGIS 精確地理位置搜尋。
+- **報告下載**：一鍵將完整的排盤數據與 AI 指引下載為 Markdown 檔案，便於存檔。
 
-### 2. 相位與接納關係
-- **古典容許度**：基於行星自身的「光芒範圍 (Moiety)」計算合相、六分、四分、三分、對分相位。
-- **接納 (Reception)**：自動判斷行星之間是否存在「接納」或「互容 (Mutual Reception)」關係。
+## 🛠️ 技術棧
+- **語言**: Python 3.11+
+- **前端工具**: Streamlit
+- **占星運算**: Swiss Ephemeris (via pyswisseph), Flatlib
+- **地理與時間**: Geopy (ArcGIS), TimezoneFinder, Pytz
 
-### 3. 特殊點位與恆星
-- **希臘點 (Lots/Parts)**：計算「幸運點 (Fortune)」與「精神點 (Spirit)」，並自動適應晝夜出生。
-- **恆星合相 (Fixed Stars)**：偵測行星與重要恆星（如 Regulus、Spica）的合相。
+## 🚀 快速開始
+1. 安裝套件：`pip install -r requirements.txt`
+2. 執行程式：`streamlit run app.py`
 
-### 4. 宮位與推運系統
-- **等宮制 (Equal House System)**：以 ASC 為起點的宮位劃分。
-- **推運利器**：實作了「小限法 (Annual Profections)」與「法達星限 (Firdaria)」，提供完整的年度與大運時間表。
-
----
-
-## 獨特特色：AI 整合功能
-程式內建了 **「深度思考型 AI 古典占星大師解析指引」**，會自動生成優化過的 Prompt，讓使用者能將排盤資料交給 AI 進行專業的邏輯化解讀。
-
----
-
-## 系統環境說明 (Linux Mint / Python 3.12)
-由於 Python 3.12 兼容性問題，本系統已手動編譯並安裝了相容版 `pyswisseph` 到虛擬環境 `venv` 中。
-
-## 如何執行
-1. **進入專案目錄**：
-   ```bash
-   cd ~/桌面/my-astro-app
-   ```
-2. **啟動應用程式**：
-   ```bash
-   ./venv/bin/streamlit run app.py
-   ```
-
-## 檔案說明
-- `app.py`: Streamlit 網頁介面。
-- `logic.py`: 核心占星運算邏輯。
-- `dignities_logic.py`, `aspects_logic.py`, `lots_logic.py`, `time_lords_logic.py`: 模組化運算邏輯。
-- `requirements.txt`: 專案依賴。
+## 📦 GitHub 維護
+程式內附 `GitHub更新教學.md`，方便使用者即使不具備程式開發背景，也能透過簡單的「發射三部曲」指令維護與更新自有的雲端版本。
 
 ---
-*Note: 地名搜尋功能需連線至 Nominatim (OpenStreetMap) 服務。*
+專業古典占星分析系統，連結星辰與 AI 的智慧。
