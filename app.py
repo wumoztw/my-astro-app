@@ -6,6 +6,7 @@ from flatlib import const
 
 # Modular Imports
 from logic import AstrologyLogic
+from horary_prompt import HORARY_SYSTEM_PROMPT
 
 # Initialize Logic
 logic = AstrologyLogic()
@@ -101,11 +102,21 @@ with st.sidebar.expander("自行手動輸入經緯度與時區", expanded=False)
     utc_offset = st.number_input("時區偏移 (UTC Offset)", value=8.0, step=0.5)
 
 st.sidebar.markdown("---")
-generate_btn = st.sidebar.button("排命盤", use_container_width=True)
+col1, col2 = st.sidebar.columns(2)
+with col1:
+    generate_btn = st.button("排命盤", use_container_width=True)
+with col2:
+    horary_btn = st.button("卜卦占星", use_container_width=True)
 
 # --- Logic Processing ---
-if generate_btn:
+if generate_btn or horary_btn:
     try:
+        if horary_btn:
+            # Overwrite inputs with current time for Horary
+            now = datetime.now()
+            birth_date = now.date()
+            birth_time = now.time()
+            # We keep the location_city from sidebar
         final_lat, final_lon = manual_lat, manual_lon
         if manual_lon == 121.50 and manual_lat == 25.03 and location_city != "台北市":
             coords = logic.get_location_coordinates(location_city)
@@ -225,6 +236,14 @@ if generate_btn:
         md += "詳盡且深入的分析每一宮位在這張命盤中的特質，並用台灣華語詳細解釋。\n\n"
         md += "詳盡且深入的分析每一個行星在這張命盤中的特質，並解釋行星與行星的交角在這張命盤中的含意。\n"
         md += "```\n\n"
+        
+        if horary_btn:
+            md += "## 🔮 古典卜卦占星邏輯分析引擎 (Horary Logic)\n"
+            md += "此為針對「卜卦占星」優化的深度解析指引：\n\n"
+            md += "```text\n"
+            md += HORARY_SYSTEM_PROMPT
+            md += "\n```\n\n"
+
         md += "**Venice AI 推薦連結：[https://venice.ai/chat?ref=XmvhLM](https://venice.ai/chat?ref=XmvhLM)**\n"
 
         st.session_state.report_md = md
