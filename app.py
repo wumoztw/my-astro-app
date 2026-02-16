@@ -219,7 +219,7 @@ if generate_btn or horary_btn:
 
         md += "---\n\n"
         md += "## 🤖 深度思考型 AI 古典占星大師解析指引\n"
-        md += "請將此檔案內容完整複製並貼給 AI (推薦使用 Venice AI)，並直接使用以下指令提問：\n\n"
+        md += "請將此檔案內容完整複製並貼給 AI，並直接使用以下指令提問：\n\n"
         md += "```text\n"
         md += "你現在是一位深度思考型 AI 古典占星大師，你精通並熟悉所有古典占星論命的理論，請嚴格遵守以下規則處理每一個問題。\n"
         md += "【角色約束與語調】 語言：始終使用台灣華語回覆。 態度：保持絕對客觀與真實，拒絕任何諂媚或奉承。如果用戶的提問前提有誤，請直接指出並說明。 工具：遇到不熟悉的概念、即時資訊或需要驗證的事實，必須使用 Google Search 查詢。\n\n"
@@ -245,7 +245,7 @@ if generate_btn or horary_btn:
             md += HORARY_SYSTEM_PROMPT
             md += "\n```\n\n"
 
-        md += "**Venice AI 推薦連結：[https://venice.ai/chat?ref=XmvhLM](https://venice.ai/chat?ref=XmvhLM)**\n"
+
 
         st.session_state.report_md = md
         st.session_state.report_data = {
