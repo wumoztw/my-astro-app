@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 from flatlib import const
 
 # Modular Imports
@@ -112,10 +112,11 @@ with col2:
 if generate_btn or horary_btn:
     try:
         if horary_btn:
-            # Overwrite inputs with current time for Horary
-            now = datetime.now()
-            birth_date = now.date()
-            birth_time = now.time()
+            # First Principles Fix: Capture UTC, then apply user-selected offset
+            now_utc = datetime.now(timezone.utc)
+            now_local = now_utc + timedelta(hours=utc_offset)
+            birth_date = now_local.date()
+            birth_time = now_local.time()
             # We keep the location_city from sidebar
         final_lat, final_lon = manual_lat, manual_lon
         if manual_lon == 121.50 and manual_lat == 25.03 and location_city != "台北市":
