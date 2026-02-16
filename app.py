@@ -8,10 +8,31 @@ from flatlib import const
 from logic import AstrologyLogic
 from horary_prompt import HORARY_SYSTEM_PROMPT
 
+import streamlit.components.v1 as components
+
 # Initialize Logic
 logic = AstrologyLogic()
 
 st.set_page_config(page_title="古典占星命盤簡易排盤程式", layout="wide")
+
+# --- First Principles: Browser Timezone Detection ---
+# Detect browser timezone and sync to query parameters
+components.html(
+    """
+    <script>
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const urlParams = new URLSearchParams(window.parent.location.search);
+    if (urlParams.get('tz') !== tz) {
+        urlParams.set('tz', tz);
+        window.parent.location.search = urlParams.toString();
+    }
+    </script>
+    """,
+    height=0,
+)
+
+# Read detected timezone (default to UTC if not yet synced)
+browser_tz_name = st.query_params.get("tz", "UTC")
 
 # --- Custom Styling (Minimalist Clean Theme) ---
 st.markdown("""
@@ -112,23 +133,31 @@ with col2:
 if generate_btn or horary_btn:
     try:
         if horary_btn:
-            # First Principles: Resolve location first to get accurate timezone
+            # First Principles: Use detected browser timezone for precise local time
+            try:
+                import pytz
+                btz = pytz.timezone(browser_tz_name)
+                now_local = datetime.now(btz)
+                birth_date = now_local.date()
+                birth_time = now_local.time()
+                
+                # Detect offset for the discovered timezone
+                _, detected_offset = logic.get_timezone_info(manual_lat, manual_lon) # Fallback detection
+                # But override with the ACTUAL offset from pytz for the browser timezone
+                utc_offset = now_local.utcoffset().total_seconds() / 3600.0
+            except Exception:
+                # Fallback to coordinate-based detection if pytz/tz fails
+                now_utc = datetime.now(timezone.utc)
+                now_local = now_utc + timedelta(hours=utc_offset)
+                birth_date = now_local.date()
+                birth_time = now_local.time()
+            
+            # Resolve location for the chart (essential for Houses)
             final_lat, final_lon = manual_lat, manual_lon
             if manual_lon == 121.50 and manual_lat == 25.03 and location_city != "台北市":
                 coords = logic.get_location_coordinates(location_city)
                 if coords:
                     final_lat, final_lon = coords
-            
-            # Detect timezone and offset
-            _, detected_offset = logic.get_timezone_info(final_lat, final_lon)
-            if detected_offset is not None:
-                utc_offset = detected_offset
-
-            # Capture UTC and apply the detected offset
-            now_utc = datetime.now(timezone.utc)
-            now_local = now_utc + timedelta(hours=utc_offset)
-            birth_date = now_local.date()
-            birth_time = now_local.time()
         else:
             # Regular Chart logic
             final_lat, final_lon = manual_lat, manual_lon
