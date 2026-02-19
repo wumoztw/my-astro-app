@@ -47,7 +47,7 @@ class TimeLordsLogic:
         # Ensure current_date is a pandas Timestamp for consistent comparison
         target_ts = pd.Timestamp(current_date)
         
-        birth_dt = datetime.strptime(birth_dt_str, '%Y/%m/%d').date()
+        birth_dt = pd.Timestamp(datetime.strptime(birth_dt_str, '%Y/%m/%d')).normalize()
         
         day_seq = [
             (const.SUN, 10), (const.VENUS, 8), (const.MERCURY, 13), 
