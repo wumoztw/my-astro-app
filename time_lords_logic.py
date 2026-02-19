@@ -5,9 +5,13 @@ import pandas as pd
 class TimeLordsLogic:
     def calculate_profections(self, chart, trans_signs, planet_glyphs, trans_planets, birth_dt_str, current_date=None):
         if current_date is None: current_date = date.today()
+        if isinstance(current_date, datetime): current_date = current_date.date()
+        
         birth_dt = datetime.strptime(birth_dt_str, '%Y/%m/%d')
-        age = current_date.year - birth_dt.year
-        if (current_date.month, current_date.day) < (birth_dt.month, birth_dt.day): age -= 1
+        birth_d = birth_dt.date()
+        age = current_date.year - birth_d.year
+        if (current_date.month, current_date.day) < (birth_d.month, birth_d.day): age -= 1
+        if age < 0: age = 0  # Handle future births (horary)
         
         asc = chart.get(const.ASC)
         birth_asc_sign_idx = const.LIST_SIGNS.index(asc.sign)
@@ -40,6 +44,9 @@ class TimeLordsLogic:
     def get_firdaria_data(self, birth_dt_str, is_day, current_date=None):
         """Calculates Firdaria periods and the currently active one."""
         if current_date is None: current_date = date.today()
+        # Ensure current_date is a pandas Timestamp for consistent comparison
+        target_ts = pd.Timestamp(current_date)
+        
         birth_dt = datetime.strptime(birth_dt_str, '%Y/%m/%d').date()
         
         day_seq = [
@@ -73,16 +80,21 @@ class TimeLordsLogic:
                     sub_end = sub_start + pd.Timedelta(days=sub_duration_days)
                     sub_data = {'major': major_lord, 'minor': minor_lord, 'start': sub_start, 'end': sub_end}
                     sub_periods.append(sub_data)
-                    if sub_start <= current_date < sub_end:
+                    if sub_start <= target_ts < sub_end:
                         active_major, active_minor, active_start, active_end = major_lord, minor_lord, sub_start, sub_end
                     sub_start = sub_end
             else:
-                if current_start <= current_date < major_end:
+                if current_start <= target_ts < major_end:
                     active_major, active_minor, active_start, active_end = major_lord, major_lord, current_start, major_end
                 sub_periods.append({'major': major_lord, 'minor': major_lord, 'start': current_start, 'end': major_end})
             
             timeline.append({'lord': major_lord, 'start': current_start, 'end': major_end, 'subs': sub_periods})
             current_start = major_end
+
+        # Fallback for future-dated horary charts
+        if active_major is None and timeline:
+            first_p = timeline[0]['subs'][0]
+            active_major, active_minor, active_start, active_end = first_p['major'], first_p['minor'], first_p['start'], first_p['end']
             
         return {
             'is_day': is_day,
