@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
-import os
-import json
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime
 from flatlib import const
+import markdown2
+from weasyprint import HTML
 
 # Modular Imports
 from logic import AstrologyLogic
@@ -13,12 +13,6 @@ import streamlit.components.v1 as components
 
 # Initialize Logic
 logic = AstrologyLogic()
-
-class CustomEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, (datetime, date)):
-            return obj.isoformat()
-        return super().default(obj)
 
 st.set_page_config(page_title="古典占星命盤簡易排盤程式", layout="wide")
 
@@ -391,7 +385,7 @@ if st.session_state.report_data:
     with st.sidebar:
         st.markdown("---")
         st.subheader("下載文字版本命盤資訊")
-        format_choice = st.radio("選擇檔案格式", ["Markdown (.md)", "JSON (.json)"])
+        format_choice = st.radio("選擇檔案格式", ["Markdown (.md)", "PDF (.pdf)"])
 
         if format_choice == "Markdown (.md)":
             st.download_button(
@@ -403,14 +397,33 @@ if st.session_state.report_data:
                 key="download_md"
             )
         else:
-            json_str = json.dumps(st.session_state.report_data, cls=CustomEncoder, ensure_ascii=False, indent=2)
+            # Convert Markdown to HTML with table support
+            html_content = markdown2.markdown(st.session_state.report_md, extras=["tables"])
+            # Add basic CSS to support Chinese characters and basic formatting
+            styled_html = f"""
+            <html>
+            <head>
+            <style>
+                body {{ font-family: 'Helvetica Neue', Helvetica, Arial, 'Microsoft JhengHei', sans-serif; line-height: 1.6; padding: 20px; }}
+                h1, h2, h3 {{ color: #333; }}
+                table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
+                th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                th {{ background-color: #f2f2f2; }}
+            </style>
+            </head>
+            <body>
+            {html_content}
+            </body>
+            </html>
+            """
+            pdf_bytes = HTML(string=styled_html).write_pdf()
             st.download_button(
                 label="點擊下載",
-                data=json_str,
-                file_name=f"Chart_Report_{datetime.now().strftime('%Y%m%d')}.json",
-                mime="application/json",
+                data=pdf_bytes,
+                file_name=f"Chart_Report_{datetime.now().strftime('%Y%m%d')}.pdf",
+                mime="application/pdf",
                 use_container_width=True,
-                key="download_json"
+                key="download_pdf"
             )
 
 else:
