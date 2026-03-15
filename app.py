@@ -399,7 +399,8 @@ if st.session_state.report_data:
                 data=st.session_state.report_md,
                 file_name=f"Chart_Report_{datetime.now().strftime('%Y%m%d')}.md",
                 mime="text/markdown",
-                use_container_width=True
+                use_container_width=True,
+                key="download_md"
             )
         else:
             json_str = json.dumps(st.session_state.report_data, cls=CustomEncoder, ensure_ascii=False, indent=2)
@@ -408,7 +409,8 @@ if st.session_state.report_data:
                 data=json_str,
                 file_name=f"Chart_Report_{datetime.now().strftime('%Y%m%d')}.json",
                 mime="application/json",
-                use_container_width=True
+                use_container_width=True,
+                key="download_json"
             )
 
 else:
