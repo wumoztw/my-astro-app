@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import json
 from datetime import datetime, date, timedelta, timezone
 from flatlib import const
 
@@ -12,6 +13,12 @@ import streamlit.components.v1 as components
 
 # Initialize Logic
 logic = AstrologyLogic()
+
+class CustomEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        return super().default(obj)
 
 st.set_page_config(page_title="古典占星命盤簡易排盤程式", layout="wide")
 
@@ -384,13 +391,25 @@ if st.session_state.report_data:
     with st.sidebar:
         st.markdown("---")
         st.subheader("下載文字版本命盤資訊")
-        st.download_button(
-            label="點擊下載",
-            data=st.session_state.report_md,
-            file_name=f"Chart_Report_{datetime.now().strftime('%Y%m%d')}.md",
-            mime="text/markdown",
-            use_container_width=True
-        )
+        format_choice = st.radio("選擇檔案格式", ["Markdown (.md)", "JSON (.json)"])
+
+        if format_choice == "Markdown (.md)":
+            st.download_button(
+                label="點擊下載",
+                data=st.session_state.report_md,
+                file_name=f"Chart_Report_{datetime.now().strftime('%Y%m%d')}.md",
+                mime="text/markdown",
+                use_container_width=True
+            )
+        else:
+            json_str = json.dumps(st.session_state.report_data, cls=CustomEncoder, ensure_ascii=False, indent=2)
+            st.download_button(
+                label="點擊下載",
+                data=json_str,
+                file_name=f"Chart_Report_{datetime.now().strftime('%Y%m%d')}.json",
+                mime="application/json",
+                use_container_width=True
+            )
 
 else:
     st.markdown("<br><br><div style='text-align: center;'>", unsafe_allow_html=True)
