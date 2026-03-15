@@ -173,10 +173,14 @@ if generate_btn or horary_btn:
 
         houses = logic.calculate_equal_houses(asc.lon)
         planets_data = logic.get_planets_data(chart, houses)
-        prof_info = logic.calculate_profections(chart, houses, birth_date_str, current_date=birth_date)
+
+        # Determine target date for progressions and time lords based on system time
+        target_date = datetime.now().date()
+
+        prof_info = logic.calculate_profections(chart, houses, birth_date_str, current_date=target_date)
         aspects = logic.get_aspects(chart)
         is_day = logic.is_day_birth(chart, houses)
-        f_data = logic.get_firdaria_data(birth_date_str, is_day, current_date=birth_date)
+        f_data = logic.get_firdaria_data(birth_date_str, is_day, current_date=target_date)
         lots = logic.calculate_lots(chart, houses, is_day)
         fixed_stars = logic.get_fixed_stars(chart)
 
