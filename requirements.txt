@@ -6,5 +6,3 @@ geopy
 tabulate
 timezonefinder
 pytz
-weasyprint
-markdown2
