@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 .DS_Store
 .env
+GEMINI.md
+GitHub更新教學.md
