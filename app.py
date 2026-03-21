@@ -7,6 +7,8 @@ from flatlib import const
 # Modular Imports
 from logic import AstrologyLogic
 from horary_prompt import HORARY_SYSTEM_PROMPT
+from natal_prompt import NATAL_SYSTEM_PROMPT
+from ai_logic import AIAssistant
 
 import streamlit.components.v1 as components
 
@@ -92,6 +94,18 @@ if 'report_data' not in st.session_state:
     st.session_state.report_data = None
 if 'report_md' not in st.session_state:
     st.session_state.report_md = ""
+if 'ai_analysis_triggered' not in st.session_state:
+    st.session_state.ai_analysis_triggered = False
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+if 'dynamic_models' not in st.session_state:
+    st.session_state.dynamic_models = []
+if 'last_key' not in st.session_state:
+    st.session_state.last_key = ""
+if 'last_provider' not in st.session_state:
+    st.session_state.last_provider = ""
+if 'chart_type' not in st.session_state:
+    st.session_state.chart_type = "natal" # Default
 
 # --- Sidebar Inputs ---
 st.sidebar.header("時間與地點資料輸入")
@@ -121,6 +135,51 @@ with st.sidebar.expander("自行手動輸入經緯度與時區", expanded=False)
     manual_lat = st.number_input("緯度 (Latitude)", value=25.03, format="%.2f")
     utc_offset = st.number_input("時區偏移 (UTC Offset)", value=8.0, step=0.5)
 
+@st.dialog("取得免費 API Key", width="large")
+def show_api_keys_dialog():
+    st.markdown("""
+    如果你還沒有 API Key，可以前往以下平台免費註冊並取得：
+    - **Google Gemini**: [Google AI Studio](https://aistudio.google.com/app/apikey) (推薦，每天有高額免費額度)
+    - **Groq**: [GroqCloud](https://console.groq.com/keys) (推薦，提供速度極快的開源模型，免費額度高)
+    - **OpenRouter**: [OpenRouter API](https://openrouter.ai/keys) (推薦，可以使用多款頂尖的開源免費模型，如 Llama 3)
+    - **OpenAI**: [OpenAI Platform](https://platform.openai.com/api-keys) (需綁定信用卡，無免費額度)
+    
+    *取得 Key 後，請複製並貼上到左側的輸入框中，即可開始使用 AI 自動解析功能！*
+    """)
+
+st.sidebar.markdown("---")
+st.sidebar.header("AI 設定 (不輸入也可排盤)")
+
+ai_provider = st.sidebar.selectbox("AI 供應商", ["Gemini", "Groq", "OpenAI", "OpenRouter"])
+
+# Key label changes based on provider
+key_label = f"{ai_provider} API Key"
+ai_api_key = st.sidebar.text_input(key_label, type="password", help=f"請輸入您的 {ai_provider} API Key")
+
+if st.sidebar.button("👉 點此查閱如何取得免費 API Key", type="tertiary", help="查看各大平台的免費 API Key 註冊教學"):
+    show_api_keys_dialog()
+
+# Trigger dynamic model discovery if key or provider changed
+if (ai_api_key != st.session_state.get('last_key') or ai_provider != st.session_state.get('last_provider')):
+    st.session_state.last_key = ai_api_key
+    st.session_state.last_provider = ai_provider
+    # Initialize a temp assistant to fetch models
+    with st.sidebar:
+        with st.spinner("🔍 正在探索可用模型..."):
+            temp_assistant = AIAssistant(provider=ai_provider, api_key=ai_api_key)
+            st.session_state.dynamic_models = temp_assistant.fetch_available_models()
+    st.rerun()
+
+# Default fallback if discovery failed or key empty
+if not st.session_state.dynamic_models:
+    temp_assistant = AIAssistant(provider=ai_provider)
+    st.session_state.dynamic_models = temp_assistant.get_model_list(ai_provider)
+
+ai_model = st.sidebar.selectbox("AI 模型", st.session_state.dynamic_models)
+
+# Initialize AI Assistant with correct parameters
+ai_assistant = AIAssistant(provider=ai_provider, api_key=ai_api_key, model_name=ai_model)
+
 st.sidebar.markdown("---")
 # Buttons for calculation
 col1, col2 = st.sidebar.columns(2)
@@ -131,6 +190,15 @@ with col2:
 
 # --- Logic Processing ---
 if generate_btn or horary_btn:
+    # Reset AI analysis and chat history when a NEW chart is generated
+    st.session_state.ai_analysis_triggered = False
+    st.session_state.chat_history = []
+    
+    if generate_btn:
+        st.session_state.chart_type = "natal"
+    elif horary_btn:
+        st.session_state.chart_type = "horary"
+
     try:
         # Resolve location for the chart (essential for Houses)
         final_lat, final_lon = manual_lat, manual_lon
@@ -185,7 +253,10 @@ if generate_btn or horary_btn:
         fixed_stars = logic.get_fixed_stars(chart)
 
         # Build Markdown Report
-        md = "# 古典占星命盤完整資料 (升級版)\n\n"
+        title_map = {'natal': '古典占星本命盤完整資料', 'horary': '古典占星卜卦盤解析資料'}
+        current_title = title_map.get(st.session_state.chart_type, '古典占星命盤資料')
+        
+        md = f"# {current_title} (升級版)\n\n"
         md += f"產出時間：{datetime.now().strftime('%Y/%m/%d %H:%M:%S')}\n\n"
         md += "---\n\n"
         md += "## 出生資訊\n\n"
@@ -239,32 +310,9 @@ if generate_btn or horary_btn:
         md += f"- 下次換運日期：{act['end'].strftime('%Y/%m/%d')}\n\n"
 
         md += "---\n\n"
-        if horary_btn:
-            md += "## 🔮 古典卜卦占星邏輯分析引擎 (Horary Logic)\n"
-            md += "此為針對「卜卦占星」優化的深度解析指引：\n\n"
-            md += "```text\n"
-            md += HORARY_SYSTEM_PROMPT
-            md += "\n```\n\n"
-        else:
-            md += "## 🤖 深度思考型 AI 古典占星大師解析指引\n"
-            md += "請將此檔案內容完整複製並貼給 AI，並直接使用以下指令提問：\n\n"
-            md += "```text\n"
-            md += "你現在是一位深度思考型 AI 古典占星大師，你精通並熟悉所有古典占星論命的理論，請嚴格遵守以下規則處理每一個問題。\n"
-            md += "【角色約束與語調】 語言：始終使用台灣華語回覆。 態度：保持絕對客觀與真實，拒絕任何諂媚或奉承。如果用戶的提問前提有誤，請直接指出並說明。 工具：遇到不熟悉的概念、即時資訊或需要驗證的事實，必須使用 Google Search 查詢。\n\n"
-            md += "【思維框架（必須按順序執行）】 收到問題後，請依照以下步驟思考：\n\n"
-            md += "第一性原理拆解：拆解到問題的最本質核心要素。\n\n"
-            md += "全面性推演與思考：使用古典占星理論進行全面性推演與思考。\n\n"
-            md += "批判性評估：對任何方案或結論，都必須分析『優勢』與『缺點（包含風險）』。\n\n"
-            md += "機率表達：避免模糊詞彙，盡量給出『置信度評級（高／中／低）』，並說明估算的邏輯依據。\n\n"
-            md += "【品質控制】 在最終輸出前，自我審核：是否偏離主題？是否有事實性錯誤？邏輯是否嚴密？\n\n"
-            md += "【輸出格式】 請使用 Markdown 語法：用數字分區塊標題、關鍵結論用簡易圖案、複雜比較使用列表或表格。\n\n"
-            md += "【主動引導】\n\n"
-            md += "鼓勵並引導使用者發問。\n\n"
-            md += "在分析結束後，主動發送 3 個延伸問題並詢問使用者是否要深入了解。\n\n"
-            md += "【主動優先解釋】\n\n"
-            md += "詳盡且深入的分析每一宮位在這張命盤中的特質，並用台灣華語詳細解釋。\n\n"
-            md += "詳盡且深入的分析每一個行星在這張命盤中的特質，並解釋行星與行星的交角在這張命盤中的含意。\n"
-            md += "```\n\n"
+        md += "## 🤖 AI 自動解析已就緒\n"
+        report_type = "本命盤" if st.session_state.chart_type == 'natal' else "卜卦占星盤"
+        md += f"目前的分析模式為：**{report_type}**。請點擊側邊欄的「🚀 啟動 AI 深度解析」開始互動。\n\n"
 
 
 
@@ -285,10 +333,46 @@ if generate_btn or horary_btn:
     except Exception as e:
         st.error(f"分析錯誤: {str(e)}")
 
+# --- AI Integration Processing (Specialized Modules) ---
+if st.session_state.report_data and ai_assistant.is_configured:
+    with st.sidebar:
+        st.markdown("---")
+        st.subheader("🤖 AI 自動解析")
+        
+        if st.session_state.chart_type == 'horary':
+            # --- Specialized Horary AI Module ---
+            horary_question = st.text_input("📌 請輸入您想占卜的問題：", help="例如：我會不會順利錄取這份工作？")
+            
+            if st.button("🔮 啟動卜卦盤 AI 邏輯分析引擎", use_container_width=True, type="primary"):
+                st.session_state.ai_analysis_triggered = True
+                
+                question_block = f"\n\n--- 用戶想占卜的問題 (非常重要) ---\n問題內容：{horary_question}\n" if horary_question.strip() else ""
+                
+                initial_user_msg = (
+                    f"{HORARY_SYSTEM_PROMPT}\n\n"
+                    "--- 以下是卜卦星盤數據 ---\n\n"
+                    f"{st.session_state.report_md}"
+                    f"{question_block}"
+                )
+                st.session_state.chat_history = [{"role": "user", "content": initial_user_msg}]
+        else:
+            # --- Specialized Natal AI Module ---
+            if st.button("🚀 啟動本命盤 AI 大師深度解析", use_container_width=True, type="primary"):
+                st.session_state.ai_analysis_triggered = True
+                initial_user_msg = (
+                    f"{NATAL_SYSTEM_PROMPT}\n\n"
+                    "--- 以下是本命星盤數據 ---\n\n"
+                    f"{st.session_state.report_md}"
+                )
+                st.session_state.chat_history = [{"role": "user", "content": initial_user_msg}]
+
 # --- UI Layout ---
 if st.session_state.report_data:
     d = st.session_state.report_data
-    st.markdown("<h1 style='text-align: center; margin-bottom: 5px; color: #000;'>古典占星論命資訊</h1>", unsafe_allow_html=True)
+    ui_title_map = {'natal': '古典占星本命盤資訊', 'horary': '古典占星卜卦盤資訊'}
+    ui_title = ui_title_map.get(st.session_state.chart_type, '古典占星論命資訊')
+    
+    st.markdown(f"<h1 style='text-align: center; margin-bottom: 5px; color: #000;'>{ui_title}</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; font-style: italic; color: #666; margin-bottom: 30px;'>Professional Classical Astrology Analysis System</p>", unsafe_allow_html=True)
     
     sc1, sc2, sc3 = st.columns(3)
@@ -299,13 +383,19 @@ if st.session_state.report_data:
     with sc3:
         st.markdown(f"<div class='summary-card'><div class='summary-title'>上升星座</div><div class='summary-value'>{d['asc']}</div></div>", unsafe_allow_html=True)
     
-    t1, t2, t3, t4 = st.tabs(['行星與本質力量', '相位與接納', '特殊點位與恆星', '法達星限與小限'])
+    # --- UI Layout ---
+    # Define tabs dynamically
+    tabs_list = ['行星與本質力量', '相位與接納', '特殊點位與恆星', '法達星限與小限']
+    if st.session_state.get('ai_analysis_triggered'):
+        tabs_list.append('✨ AI 深度解析報告')
     
-    with t1:
+    all_tabs = st.tabs(tabs_list)
+    
+    # Tab 1: Planets
+    with all_tabs[0]:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("行星本質與後天狀態")
         
-        # Prepare planetary table data
         rows = []
         for p in d['planets']:
             dig = p['dignity']
@@ -328,7 +418,8 @@ if st.session_state.report_data:
         st.table(df_h_disp)
         st.markdown("</div>", unsafe_allow_html=True)
 
-    with t2:
+    # Tab 2: Aspects
+    with all_tabs[1]:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("行星相位與接納關係")
         if d['aspects']:
@@ -339,7 +430,8 @@ if st.session_state.report_data:
             st.write("目前無顯著相位。")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    with t3:
+    # Tab 3: Lots & Stars
+    with all_tabs[2]:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("希臘點 (Lots)")
         df_l = pd.DataFrame(d['lots'])
@@ -357,7 +449,8 @@ if st.session_state.report_data:
             st.write("目前無行星與重要恆星合相。")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    with t4:
+    # Tab 4: Time Lords
+    with all_tabs[3]:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("推運資訊摘要")
         pi = d['prof_info']
@@ -367,11 +460,9 @@ if st.session_state.report_data:
         st.markdown("---")
         
         st.subheader("法達大限 (Firdaria) 時間表")
-        # Optimization: Show active period clearly
         act = d['f_data']['active']
         st.info(f"**當前大運**：{logic.TRANS_PLANETS.get(act['major'], act['major'])} | **當前小運**：{logic.TRANS_PLANETS.get(act['minor'], act['minor'])} (直到 {act['end'].strftime('%Y/%m/%d')})")
         
-        # Optional: Full timeline expander
         with st.expander("查看完整法達星限時間表"):
             f_rows = []
             for major in d['f_data']['timeline']:
@@ -384,6 +475,60 @@ if st.session_state.report_data:
                     })
             st.table(pd.DataFrame(f_rows))
         st.markdown("</div>", unsafe_allow_html=True)
+
+    # Tab 5: AI Analysis (Dynamic Chat)
+    if st.session_state.get('ai_analysis_triggered'):
+        with all_tabs[4]:
+            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+            if st.session_state.chart_type == "natal":
+                st.subheader("✨ AI 大師深度分析報告與對話 (本命盤專用)")
+            else:
+                st.subheader("🔮 AI 邏輯分析引擎報告與對話 (卜卦盤專用)")
+            
+            # Display chat history
+            for msg in st.session_state.chat_history:
+                # Skip the very first bulky data message to keep UI clean, or show a summary
+                if msg == st.session_state.chat_history[0]:
+                    with st.chat_message("user"):
+                        st.write("📊 *已上傳命盤數據進行解析...*")
+                    continue
+                
+                with st.chat_message(msg["role"]):
+                    st.markdown(msg["content"])
+
+            # Handle first generation if history only has the initial user message
+            if len(st.session_state.chat_history) == 1:
+                with st.chat_message("assistant"):
+                    # Select correct specialized prompt
+                    current_prompt = HORARY_SYSTEM_PROMPT if st.session_state.chart_type == 'horary' else NATAL_SYSTEM_PROMPT
+                    full_response = ""
+                    resp_container = st.empty()
+                    for chunk in ai_assistant.generate_chat_stream(current_prompt, st.session_state.chat_history):
+                        full_response += chunk
+                        resp_container.markdown(full_response)
+                    st.session_state.chat_history.append({"role": "assistant", "content": full_response})
+                    st.rerun()
+
+            # Chat input for follow-up
+            if prompt := st.chat_input("對這張命盤有什麼想追問的嗎？"):
+                st.session_state.chat_history.append({"role": "user", "content": prompt})
+                with st.chat_message("user"):
+                    st.markdown(prompt)
+                
+                with st.chat_message("assistant"):
+                    # Select correct specialized prompt for follow-up
+                    current_prompt = HORARY_SYSTEM_PROMPT if st.session_state.chart_type == 'horary' else NATAL_SYSTEM_PROMPT
+                    full_response = ""
+                    resp_container = st.empty()
+                    for chunk in ai_assistant.generate_chat_stream(current_prompt, st.session_state.chat_history):
+                        full_response += chunk
+                        resp_container.markdown(full_response)
+                    st.session_state.chat_history.append({"role": "assistant", "content": full_response})
+                    st.rerun()
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # Re-declare tabs (Handled above now)
 
     with st.sidebar:
         st.markdown("---")

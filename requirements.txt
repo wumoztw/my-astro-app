@@ -6,3 +6,7 @@ geopy
 tabulate
 timezonefinder
 pytz
+google-generativeai
+python-dotenv
+groq
+openai
