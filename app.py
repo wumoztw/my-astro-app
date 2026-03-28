@@ -298,16 +298,42 @@ if generate_btn or horary_btn:
             md += "無顯著相位。\n"
         md += "\n"
         
-        md += "## 推運資訊\n\n"
-        md += f"- 小限分限：{prof_info.get('prof_sign')} (第 {prof_info.get('prof_house_num')} 宮)\n"
-        md += f"- 當前年主星：{prof_info.get('lord_of_year')}\n\n"
-        
-        act = f_data['active']
-        m_n = logic.TRANS_PLANETS.get(act['major'], act['major'])
-        mi_n = logic.TRANS_PLANETS.get(act['minor'], act['minor'])
-        md += f"- 法達當前大運：{m_n}\n"
-        md += f"- 法達當前小運：{mi_n}\n"
-        md += f"- 下次換運日期：{act['end'].strftime('%Y/%m/%d')}\n\n"
+        if st.session_state.chart_type == 'natal':
+            md += "## 推運資訊\n\n"
+            md += f"- 小限分限：{prof_info.get('prof_sign')} (第 {prof_info.get('prof_house_num')} 宮)\n"
+            md += f"- 當前年主星：{prof_info.get('lord_of_year')}\n\n"
+            
+            md += "### 未來 5 年小限主星預告\n"
+            md += "| 預測西元年 | 年齡 | 小限宮位 | 年度主星 |\n"
+            md += "|----------|------|----------|----------|\n"
+            for i in range(1, 6):
+                future_year = target_date.year + i
+                try:
+                    future_date = target_date.replace(year=future_year)
+                except ValueError:
+                    future_date = target_date.replace(year=future_year, day=28)
+                fw_prof = logic.calculate_profections(chart, houses, birth_date_str, current_date=future_date)
+                md += f"| {future_year} 年 | {fw_prof.get('age')} 歲 | {fw_prof.get('prof_sign')} (第 {fw_prof.get('prof_house_num')} 宮) | {fw_prof.get('lord_of_year')} |\n"
+            md += "\n"
+            
+            act = f_data['active']
+            m_n = logic.TRANS_PLANETS.get(act['major'], act['major'])
+            mi_n = logic.TRANS_PLANETS.get(act['minor'], act['minor'])
+            md += f"- 法達當前大運：{m_n}\n"
+            md += f"- 法達當前小運：{mi_n}\n"
+            md += f"- 下次換運日期：{act['end'].strftime('%Y/%m/%d')}\n\n"
+
+            md += "### 完整法達星限時間表\n"
+            md += "| 大運 | 小運 | 開始日期 | 結束日期 |\n"
+            md += "|------|------|----------|----------|\n"
+            for major in f_data['timeline']:
+                for minor in major['subs']:
+                    major_name = logic.TRANS_PLANETS.get(major['lord'], major['lord'])
+                    minor_name = logic.TRANS_PLANETS.get(minor['minor'], minor['minor'])
+                    start_str = minor['start'].strftime('%Y/%m/%d')
+                    end_str = minor['end'].strftime('%Y/%m/%d')
+                    md += f"| {major_name} | {minor_name} | {start_str} | {end_str} |\n"
+            md += "\n"
 
         md += "---\n\n"
         md += "## 🤖 AI 自動解析已就緒\n"
