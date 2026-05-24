@@ -35,57 +35,147 @@ components.html(
 # Read detected timezone (default to UTC if not yet synced)
 browser_tz_name = st.query_params.get("tz", "UTC")
 
-# --- Custom Styling (Minimalist Clean Theme) ---
+# --- Custom Styling (Clear Sky Blue Theme) ---
 st.markdown("""
 <style>
-    /* Global Background */
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@300;400;600&display=swap');
+
+    /* Global App Background */
     .stApp {
-        background-color: #FFFFFF;
+        background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 50%, #BAE6FD 100%) !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+    
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Cinzel', serif !important;
+        color: #0F172A !important;
+        letter-spacing: 0.5px;
+    }
+    .stMarkdown, p, span, div, label {
+        color: #1E293B !important;
     }
     
     /* Sidebar Aesthetics */
     section[data-testid="stSidebar"] {
-        background-color: #F8F9FA !important;
-        border-right: 1px solid #DEE2E6;
+        background-color: #F8FAFC !important;
+        border-right: 1px solid rgba(15, 23, 42, 0.08) !important;
     }
     section[data-testid="stSidebar"] label {
-        color: #212529 !important;
+        color: #475569 !important;
         font-weight: 600 !important;
     }
     
-    /* Input Design */
-    .stTextInput input, .stNumberInput input {
-        border: 1px solid #CED4DA !important;
-        border-radius: 4px !important;
+    /* Inputs Styling */
+    .stTextInput input, .stNumberInput input, .stSelectbox div[role="button"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid rgba(15, 23, 42, 0.15) !important;
+        color: #0F172A !important;
+        border-radius: 6px !important;
+    }
+    .stTextInput input:focus, .stNumberInput input:focus {
+        border-color: #0EA5E9 !important;
+        box-shadow: 0 0 10px rgba(14, 165, 233, 0.25) !important;
     }
     
-    /* Typography */
-    h1, h2, h3 {
-        color: #212529 !important;
-    }
-    .stMarkdown, p, span, div {
-        color: #212529 !important;
-    }
-    
-    /* Simple Container */
+    /* Custom Glassmorphism Container (Bright Clear Sky) */
     .stContainer {
-        border: 1px solid #E9ECEF;
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
-        background-color: #FFFFFF;
+        background: rgba(255, 255, 255, 0.5) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        border-radius: 12px !important;
+        padding: 24px !important;
+        margin-bottom: 24px !important;
+        box-shadow: 0 8px 32px 0 rgba(14, 165, 233, 0.06) !important;
     }
     
     /* Summary Card (Big Three) */
     .summary-card {
-        background: #F8F9FA;
-        border-radius: 8px;
-        padding: 15px;
-        text-align: center;
-        border: 1px solid #DEE2E6;
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(2, 132, 199, 0.12) 100%) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        border: 1px solid rgba(14, 165, 233, 0.25) !important;
+        border-radius: 12px !important;
+        padding: 18px !important;
+        text-align: center !important;
+        box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08) !important;
     }
-    .summary-title { font-size: 0.9rem; opacity: 0.8; margin-bottom: 5px; }
-    .summary-value { font-size: 1.4rem; font-weight: bold; }
+    .summary-title {
+        font-size: 0.8rem !important;
+        color: #475569 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1.5px !important;
+        margin-bottom: 6px !important;
+        opacity: 0.9;
+    }
+    .summary-value {
+        font-size: 1.4rem !important;
+        font-family: 'Cinzel', serif !important;
+        font-weight: 700 !important;
+        color: #0369A1 !important;
+        text-shadow: 0 0 10px rgba(14, 165, 233, 0.2) !important;
+    }
+
+    /* Buttons Styling */
+    .stButton button {
+        background: linear-gradient(90deg, #0EA5E9 0%, #2563EB 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 10px 20px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.5px !important;
+        box-shadow: 0 4px 15px rgba(14, 165, 233, 0.2) !important;
+        transition: all 0.3s ease !important;
+    }
+    .stButton button:hover {
+        background: linear-gradient(90deg, #38BDF8 0%, #3B82F6 100%) !important;
+        box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* Sidebar Button Fallbacks */
+    section[data-testid="stSidebar"] .stButton button {
+        background: #E2E8F0 !important;
+        border: 1px solid rgba(15, 23, 42, 0.08) !important;
+        color: #1E293B !important;
+        box-shadow: none !important;
+    }
+    section[data-testid="stSidebar"] .stButton button:hover {
+        background: #CBD5E1 !important;
+        border-color: rgba(15, 23, 42, 0.15) !important;
+    }
+
+    /* Tab Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 6px !important;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: rgba(255, 255, 255, 0.3) !important;
+        border: 1px solid rgba(15, 23, 42, 0.05) !important;
+        color: #475569 !important;
+        border-radius: 6px 6px 0 0 !important;
+        padding: 10px 18px !important;
+        font-weight: 600 !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: rgba(14, 165, 233, 0.12) !important;
+        color: #0369A1 !important;
+        border-color: rgba(14, 165, 233, 0.3) rgba(14, 165, 233, 0.3) transparent rgba(14, 165, 233, 0.3) !important;
+    }
+
+    /* Table Styling */
+    .stTable table {
+        color: #1E293B !important;
+    }
+    .stTable th {
+        background-color: rgba(14, 165, 233, 0.05) !important;
+        color: #0F172A !important;
+    }
+    .stTable td {
+        border-bottom: 1px solid rgba(15, 23, 42, 0.05) !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
