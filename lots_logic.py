@@ -37,10 +37,22 @@ class LotsLogic:
 
     def get_fixed_stars(self, chart, trans_planets):
         """Checks for conjunctions with major fixed stars."""
-        # 2026 Epoch (Approximate modern positions)
+        # Classical fixed stars referenced by Lilly (approximate 2026 epoch positions)
         stars = {
-            'Regulus (軒轅十四)': 150.1, 
-            'Spica (角宿一)': 204.0     
+            'Algol (大陵五)': 56.52,               # ~26° Taurus - malefic
+            'Aldebaran (畢宿五)': 70.10,            # ~10° Gemini - Royal Star
+            'Rigel (參宿七)': 77.12,                # ~17° Gemini
+            'Sirius (天狼星)': 104.38,              # ~14° Cancer
+            'Castor (北河二)': 110.47,              # ~20° Cancer
+            'Pollux (北河三)': 113.46,              # ~23° Cancer
+            'Regulus (軒轅十四)': 150.32,            # ~0° Virgo - Royal Star
+            'Vindemiatrix (太微左垣四)': 190.30,     # ~10° Libra
+            'Spica (角宿一)': 204.15,               # ~24° Libra - benefic
+            'Arcturus (大角星)': 204.47,             # ~24° Libra
+            'Antares (心宿二)': 250.08,             # ~10° Sagittarius - Royal Star
+            'Vega (織女星)': 285.47,                # ~15° Capricorn
+            'Fomalhaut (北落師門)': 334.22,          # ~4° Pisces - Royal Star
+            'Scheat (室宿二)': 359.62,              # ~29° Pisces - malefic
         }
         
         findings = []

@@ -8,6 +8,17 @@ import pandas as pd
 from geopy.geocoders import ArcGIS
 from timezonefinder import TimezoneFinder
 import pytz
+import functools
+
+@functools.lru_cache(maxsize=128)
+def _cached_geocode(location_name: str):
+    """Cached geocoding to avoid repeated API calls."""
+    geolocator = ArcGIS()
+    try:
+        location = geolocator.geocode(location_name, timeout=10)
+        return (location.latitude, location.longitude) if location else None
+    except Exception:
+        return None
 
 # Modular Imports
 from dignities_logic import DignitiesLogic
@@ -82,21 +93,17 @@ class AstrologyLogic:
             tz_name = self.tf.timezone_at(lat=lat, lng=lon)
             if tz_name:
                 tz = pytz.timezone(tz_name)
-                # Get offset for NOW
-                now = datetime.now(pytz.utc)
+                # Get offset for NOW using a naive datetime
+                now = datetime.now()
                 offset_seconds = tz.utcoffset(now).total_seconds()
                 return tz_name, offset_seconds / 3600.0
             return None, None
-        except Exception:
+        except Exception as e:
+            print(f"Error in get_timezone_info: {e}")
             return None, None
 
     def get_location_coordinates(self, location_name):
-        try:
-            geolocator = ArcGIS()
-            location = geolocator.geocode(location_name, timeout=10)
-            return (location.latitude, location.longitude) if location else None
-        except Exception:
-            return None
+        return _cached_geocode(location_name)
 
     def degree_to_dms(self, degree):
         d = int(degree)
@@ -176,3 +183,49 @@ class AstrologyLogic:
 
     def get_firdaria_data(self, birth_dt_str, is_day, current_date=None):
         return self.time_lords.get_firdaria_data(birth_dt_str, is_day, current_date)
+
+    def calculate_moon_voc(self, chart):
+        moon = chart.get(const.MOON)
+        t_leave = (30 - (moon.lon % 30)) / moon.lonspeed if moon.lonspeed != 0 else 0
+        moon_sign_idx = int(moon.lon // 30)
+        moon_sign = self.TRANS_SIGNS.get(const.LIST_SIGNS[moon_sign_idx], str(moon_sign_idx))
+        moon_degree = moon.lon % 30
+        
+        next_aspect = None
+        min_t = float('inf')
+        
+        major_angles = {0: 'Conjunction', 60: 'Sextile', 90: 'Square', 120: 'Trine', 180: 'Opposition'}
+        planets_to_check = [const.SUN, const.MERCURY, const.VENUS, const.MARS, const.JUPITER, const.SATURN]
+        
+        for p_id in planets_to_check:
+            planet = chart.get(p_id)
+            rel_speed = planet.lonspeed - moon.lonspeed
+            if rel_speed >= 0: continue
+            
+            rel_lon = (planet.lon - moon.lon) % 360
+            max_orb = (self.aspects.ORBS.get(const.MOON, 12.0) + self.aspects.ORBS.get(p_id, 0)) / 2.0
+            
+            for angle, name in major_angles.items():
+                targets = [angle] if angle in [0, 180] else [angle, 360 - angle]
+                for T in targets:
+                    dist = (rel_lon - T) % 360
+                    t_perfect = dist / abs(rel_speed)
+                    
+                    if 0 < t_perfect < t_leave:
+                        if dist <= max_orb:
+                            if t_perfect < min_t:
+                                min_t = t_perfect
+                                degree_to_exact = t_perfect * moon.lonspeed
+                                next_aspect = {
+                                    'planet': self.TRANS_PLANETS.get(p_id, p_id),
+                                    'type': self.TRANS_ASPECTS.get(name, name),
+                                    'degree_to_exact': round(degree_to_exact, 2)
+                                }
+                                
+        return {
+            'is_voc': next_aspect is None,
+            'moon_sign': moon_sign,
+            'moon_degree': round(moon_degree, 2),
+            'next_aspect': next_aspect
+        }
+

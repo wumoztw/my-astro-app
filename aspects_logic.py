@@ -33,11 +33,30 @@ class AspectsLogic:
                     if abs(diff - angle) <= max_orb:
                         p1_sym = planet_glyphs.get(p1_id, '')
                         p2_sym = planet_glyphs.get(p2_id, '')
+                        
+                        # Determine applying vs separating
+                        if abs(p1.lonspeed) > abs(p2.lonspeed):
+                            faster, slower = p1, p2
+                        else:
+                            faster, slower = p2, p1
+                            
+                        # Simulate small forward step
+                        f_next = faster.lon + faster.lonspeed * 0.01
+                        s_next = slower.lon + slower.lonspeed * 0.01
+                        diff_next_raw = abs(f_next - s_next)
+                        if diff_next_raw > 180: diff_next_raw = 360 - diff_next_raw
+                        diff_next = abs(diff_next_raw - angle)
+                        
+                        diff_now = abs(diff - angle)
+                        is_applying = diff_next < diff_now
+                        apply_str = '入相位 (Applying)' if is_applying else '離相位 (Separating)'
+                        
                         aspects.append({
                             'p1': f"{p1_sym} {trans_planets.get(p1_id, p1_id)}",
                             'p2': f"{p2_sym} {trans_planets.get(p2_id, p2_id)}",
                             'aspect': trans_aspects.get(name, name),
-                            'orb': f"{round(abs(diff - angle), 2)}°",
+                            'orb': f"{round(diff_now, 2)}°",
+                            'applying': apply_str,
                             'reception': self.check_reception(p1_id, p1.lon, p2_id, p2.lon, trans_planets)
                         })
         return aspects
@@ -60,7 +79,54 @@ class AspectsLogic:
         if (p1_in_p2_dom or p1_in_p2_exalt) and (p2_in_p1_dom or p2_in_p1_exalt):
             return "互容 (Mutual Reception)"
         elif p1_in_p2_dom or p1_in_p2_exalt:
-            return f"{trans_planets.get(p1_id)} 接納 {trans_planets.get(p2_id)}"
-        elif p2_in_p1_dom or p2_in_p1_exalt:
             return f"{trans_planets.get(p2_id)} 接納 {trans_planets.get(p1_id)}"
+        elif p2_in_p1_dom or p2_in_p1_exalt:
+            return f"{trans_planets.get(p1_id)} 接納 {trans_planets.get(p2_id)}"
         return ""
+
+    def get_antiscia(self, chart, trans_planets):
+        """Calculates Antiscia and Contra-Antiscia contacts."""
+        findings = []
+        planets = [
+            const.SUN, const.MOON, const.MERCURY, 
+            const.VENUS, const.MARS, const.JUPITER, const.SATURN
+        ]
+        
+        antiscia = {}
+        contra = {}
+        for p_id in planets:
+            lon = chart.get(p_id).lon
+            antiscia[p_id] = (180 - lon) % 360
+            contra[p_id] = (360 - lon) % 360
+            
+        for i in range(len(planets)):
+            for j in range(i + 1, len(planets)):
+                p1_id, p2_id = planets[i], planets[j]
+                p1, p2 = chart.get(p1_id), chart.get(p2_id)
+                
+                # Check Antiscion
+                dist_ant = abs(antiscia[p1_id] - p2.lon)
+                if dist_ant > 180: dist_ant = 360 - dist_ant
+                
+                if dist_ant <= 1.5:
+                    findings.append({
+                        'p1': trans_planets.get(p1_id),
+                        'p2': trans_planets.get(p2_id),
+                        'type': '反射點 (Antiscion)',
+                        'orb': f"{round(dist_ant, 2)}°"
+                    })
+                    
+                # Check Contra-Antiscion
+                dist_contra = abs(contra[p1_id] - p2.lon)
+                if dist_contra > 180: dist_contra = 360 - dist_contra
+                
+                if dist_contra <= 1.5:
+                    findings.append({
+                        'p1': trans_planets.get(p1_id),
+                        'p2': trans_planets.get(p2_id),
+                        'type': '對稱點 (Contra-Antiscion)',
+                        'orb': f"{round(dist_contra, 2)}°"
+                    })
+                    
+        return findings
+

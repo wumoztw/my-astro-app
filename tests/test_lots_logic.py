@@ -1,27 +1,8 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 import sys
 
-# Mock swisseph and flatlib before importing LotsLogic
-mock_swe = MagicMock()
-mock_flatlib = MagicMock()
-mock_const = MagicMock()
-
-# Setup mock constants
-mock_const.SUN = 'Sun'
-mock_const.MOON = 'Moon'
-mock_const.MERCURY = 'Mercury'
-mock_const.VENUS = 'Venus'
-mock_const.MARS = 'Mars'
-mock_const.JUPITER = 'Jupiter'
-mock_const.SATURN = 'Saturn'
-mock_flatlib.const = mock_const
-
-sys.modules['swisseph'] = mock_swe
-sys.modules['flatlib'] = mock_flatlib
-sys.modules['flatlib.const'] = mock_const
-
-# Now import LotsLogic
+from flatlib import const
 from lots_logic import LotsLogic
 
 class TestLotsLogic(unittest.TestCase):
@@ -46,33 +27,23 @@ class TestLotsLogic(unittest.TestCase):
             'Saturn': MagicMock(lon=0)
         }.get(p_id, MagicMock(lon=0))
 
-    @patch('lots_logic.swe')
-    def test_get_fixed_stars_success(self, mock_swe_local):
-        # Mock swisseph.fixstar2_ut return value
-        # returns (data, name) where data is [lon, lat, ...]
-        mock_swe_local.fixstar2_ut.side_effect = lambda name, jd: (
-            ([150.1, 0, 0, 0, 0, 0], 'Regulus') if name == 'Regulus' else
-            ([204.0, 0, 0, 0, 0, 0], 'Spica')
-        )
-
+    def test_get_fixed_stars_success(self):
+        # Sun at 150.5 is within 1.5 degrees of Regulus (150.32)
         trans_planets = {'Sun': '太陽', 'Moon': '月亮'}
         findings = self.logic.get_fixed_stars(self.mock_chart, trans_planets)
 
-        # Sun at 150.5 is within 1.5 degrees of Regulus (150.1)
         self.assertTrue(any(f['star'] == 'Regulus (軒轅十四)' and f['planet'] == '太陽' for f in findings))
-        mock_swe_local.fixstar2_ut.assert_any_call('Regulus', 2461041.5)
 
-    @patch('lots_logic.swe')
-    def test_get_fixed_stars_fallback(self, mock_swe_local):
-        # Mock swisseph.fixstar2_ut to raise an exception
-        mock_swe_local.fixstar2_ut.side_effect = Exception("File not found")
+    def test_get_fixed_stars_no_match(self):
+        # Set all planets to 15° Aries (15.0°) - no fixed star exists near 15° Aries
+        self.sun.lon = 15.0
+        self.moon.lon = 15.0
+        self.mock_chart.get.side_effect = lambda p_id: MagicMock(lon=15.0)
 
-        trans_planets = {'Sun': '太陽', 'Moon': '月亮'}
-        # Even with exception, it should use fallback values
-        # Sun at 150.5 is within 1.5 degrees of fallback Regulus (150.1)
+        trans_planets = {'Sun': '太陽', 'Moon': '月亮', 'Mercury': '水星', 'Venus': '金星', 'Mars': '火星', 'Jupiter': '木星', 'Saturn': '土星'}
         findings = self.logic.get_fixed_stars(self.mock_chart, trans_planets)
 
-        self.assertTrue(any(f['star'] == 'Regulus (軒轅十四)' and f['planet'] == '太陽' for f in findings))
+        self.assertEqual(len(findings), 0)
 
 if __name__ == '__main__':
     unittest.main()

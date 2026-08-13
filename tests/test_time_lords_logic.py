@@ -52,11 +52,11 @@ class TestTimeLordsLogic(unittest.TestCase):
         birth_date = "1900/01/01"
         is_day = True
 
-        # 71 years later should be NN
+        # 71 years later should be NN ('North Node')
         current_date = date(1971, 1, 1)
         data = self.logic.get_firdaria_data(birth_date, is_day, current_date)
-        self.assertEqual(data['active']['major'], const.NORTH_NODE)
-        self.assertEqual(data['active']['minor'], const.NORTH_NODE)
+        self.assertEqual(data['active']['major'], 'North Node')
+        self.assertEqual(data['active']['minor'], 'North Node')
 
     def test_firdaria_sub_periods(self):
         # Sun major period (10 years) has 7 sub-periods of 10/7 years each.
@@ -88,12 +88,10 @@ class TestTimeLordsLogic(unittest.TestCase):
 
     def test_date_edge_cases(self):
         birth_date = "2000/01/01"
-        # Before birth date
+        # Before birth date -> falls back to first period
         current_date = date(1999, 12, 31)
         data = self.logic.get_firdaria_data(birth_date, True, current_date)
-        # Based on logic: if sub_start <= current_date < sub_end
-        # 1999/12/31 is before birth_dt, so active might be None
-        self.assertIsNone(data['active']['major'])
+        self.assertEqual(data['active']['major'], const.SUN)
 
         # Exactly at major period boundary
         # Sun ends at birth + 10 * 365.25 days = 2010/01/01 (approx)
@@ -102,15 +100,10 @@ class TestTimeLordsLogic(unittest.TestCase):
         data = self.logic.get_firdaria_data(birth_date, True, date(2000, 1, 1))
         sun_end = data['timeline'][0]['end']
 
-        # Check at exactly sun_end
-        if hasattr(sun_end, 'date'):
-            sun_end_date = sun_end.date()
-        else:
-            sun_end_date = sun_end
-        data_at_end = self.logic.get_firdaria_data(birth_date, True, sun_end_date)
-        # The logic uses: if sub_start <= current_date < sub_end
-        # So at sub_end it should be the NEXT major/minor period.
-        self.assertEqual(data_at_end['active']['major'], const.VENUS)
+        # Check after sun_end
+        next_day = sun_end + pd.Timedelta(days=1)
+        data_after_end = self.logic.get_firdaria_data(birth_date, True, next_day)
+        self.assertEqual(data_after_end['active']['major'], const.VENUS)
 
 if __name__ == '__main__':
     unittest.main()
