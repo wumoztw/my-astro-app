@@ -48,6 +48,8 @@ E. Predictive Techniques（預測技法）
 利用已提供的計算資料進行運勢預測：
 - Profections（小限法）：依據已提供的資料進行年度焦點分析。
 - Firdaria（法達星限）：依據已提供的資料進行大運階段分析。
+- Zodiacal Releasing（黃道釋放法）：依據 Valens 希臘古典原典，分析精神點 (Lot of Spirit) 與福德點 (Lot of Fortune) 之 L1/L2 命運週期、高光巔峰期 (Peak Periods) 與換宮跳躍 (Losing of the Bond)。
+- Solar Arc Directions（太陽弧推運法）：依據 Noel Tyl 體系，以 1 日 = 1 年推進太陽弧，嚴格比對 <= 1.0° 重大硬相位 (0°/90°/180°)，鎖定 1~2 年內具體重大現實事件。
 - Solar Returns（太陽回歸）：作為年度運勢的輔助預測。
 - Primary Directions（主限法）：以 1° = 1 年的比例推算人生重大事件。
 
@@ -81,9 +83,11 @@ F. Essential & Accidental Dignities Interpretation（尊貴與無力狀態解讀
 - **映照點 (Antiscia)**：[反射與對稱敏感度數對應]
 - **月亮空亡 (Moon VOC)**：[是否空亡及對行動決策之影響]
 
-## 5. 大運與推運時間軸 (Profections & Firdaria)
+## 5. 大運與推運時間軸 (Time Lords & Predictive Astrology)
 - **小限法 (Profections)**：[當前年歲小限宮位與年度主星 (Lord of the Year)]
 - **法達星限 (Firdaria)**：[當前大運 (Major Lord) 與小運 (Minor Lord) 階段指引]
+- **希臘黃道釋放法 (Zodiacal Releasing)**：[精神點 (Lot of Spirit) 當前 L1/L2 週期主星、高光巔峰期 (Peak Periods) 與換宮跳躍 (Losing of the Bond) 關鍵轉折]
+- **現代事件太陽弧 (Solar Arc Directions)**：[當前太陽弧度數、活躍重大硬相位 (0°/90°/180° 誤差 <= 1.0°) 與重大現實事件精準定時]
 
 ## 6. 五個延伸探索方向與建議
 1. [延伸探索議題一]

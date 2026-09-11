@@ -249,6 +249,8 @@ if generate_btn or horary_btn:
         aspects = logic.get_aspects(chart)
         is_day = logic.is_day_birth(chart, houses)
         f_data = logic.get_firdaria_data(birth_date_str, is_day, current_date=target_date)
+        zr_data = logic.calculate_zodiacal_releasing(chart, is_day, birth_date_str, current_date=target_date)
+        sa_data = logic.calculate_solar_arcs(chart, birth_date_str, birth_time_str, offset_str, final_lat, final_lon, target_date=target_date)
         lots = logic.calculate_lots(chart, houses, is_day)
         fixed_stars = logic.get_fixed_stars(chart)
 
@@ -335,12 +337,33 @@ if generate_btn or horary_btn:
                     md += f"| {major_name} | {minor_name} | {start_str} | {end_str} |\n"
             md += "\n"
 
+            # Zodiacal Releasing (ZR)
+            act_l1 = zr_data.get('spirit', {}).get('active_l1', {})
+            act_l2 = zr_data.get('spirit', {}).get('active_l2', {})
+            md += "### 希臘黃道釋放法 (Zodiacal Releasing - 精神點事業運)\n"
+            md += f"- 當前 L1 主運：{act_l1.get('sign_name', '')} ({act_l1.get('ruler_name', '')}) 期間：{act_l1.get('start_date', '')} ~ {act_l1.get('end_date', '')} ｜ 巔峰屬性：{act_l1.get('peak_type', '普通時期')}\n"
+            md += f"- 當前 L2 子運：{act_l2.get('sign_name', '')} ({act_l2.get('ruler_name', '')}) 期間：{act_l2.get('start_date', '')} ~ {act_l2.get('end_date', '')} ｜ 巔峰屬性：{act_l2.get('peak_type', '普通時期')}\n"
+            if act_l2.get('is_lb'):
+                md += f"- ⚠️ **注意**：當前處於換宮跳躍 (Losing of the Bond) 關鍵轉折大變動期！\n"
+            md += "\n"
+
+            # Solar Arc Directions (SAD)
+            md += "### 現代事件占星：太陽弧推運 (Solar Arc Directions)\n"
+            md += f"- 推進太陽弧度數：{sa_data.get('solar_arc_str', '')} (實歲 {sa_data.get('age_years', 0)} 歲)\n"
+            sa_aspects = sa_data.get('active_aspects', [])
+            if sa_aspects:
+                md += f"- 當前活躍事件硬相位 (容許度 <= 1.0°)：\n"
+                for sa_asp in sa_aspects:
+                    sig = f" ➔ {sa_asp['significance']}" if sa_asp.get('significance') else ""
+                    md += f"  * [SA {sa_asp['sa_planet_name']}] {sa_asp['aspect']} [Natal {sa_asp['natal_planet_name']}] (誤差 {sa_asp['orb_str']}){sig}\n"
+            else:
+                md += "- 目前無容許度 <= 1.0° 之重大事件硬相位。\n"
+            md += "\n"
+
         md += "---\n\n"
         md += "## 🤖 AI 自動解析已就緒\n"
         report_type = "本命盤" if st.session_state.chart_type == 'natal' else "卜卦占星盤"
         md += f"目前的分析模式為：**{report_type}**。請點擊側邊欄的「🚀 啟動 AI 深度解析」開始互動。\n\n"
-
-
 
         st.session_state.report_md = md
         st.session_state.report_data = {
@@ -352,6 +375,8 @@ if generate_btn or horary_btn:
             'aspects': aspects,
             'prof_info': prof_info,
             'f_data': f_data,
+            'zr_data': zr_data,
+            'sa_data': sa_data,
             'is_day': is_day,
             'lots': lots,
             'fixed_stars': fixed_stars
@@ -411,7 +436,7 @@ if st.session_state.report_data:
     
     # --- UI Layout ---
     # Define tabs dynamically
-    tabs_list = ['行星與本質力量', '相位與接納', '特殊點位與恆星', '法達星限與小限']
+    tabs_list = ['行星與本質力量', '相位與接納', '特殊點位與恆星', '推運時間軸 (法達/小限/ZR/太陽弧)']
     if st.session_state.get('ai_analysis_triggered'):
         tabs_list.append('✨ AI 深度解析報告')
     
@@ -500,6 +525,58 @@ if st.session_state.report_data:
                         '結束日期': minor['end'].strftime('%Y/%m/%d')
                     })
             st.table(pd.DataFrame(f_rows))
+        st.markdown("---")
+
+        # --- Zodiacal Releasing (ZR) Section ---
+        st.subheader("希臘黃道釋放法 (Zodiacal Releasing - 精神點)")
+        zr = d.get('zr_data', {}).get('spirit', {})
+        if zr:
+            act_l1 = zr.get('active_l1', {})
+            act_l2 = zr.get('active_l2', {})
+            z_col1, z_col2 = st.columns(2)
+            with z_col1:
+                st.markdown(f"**L1 主運**：`{act_l1.get('sign_name')}` ({act_l1.get('ruler_name')})")
+                st.caption(f"區間：{act_l1.get('start_date')} ~ {act_l1.get('end_date')} ｜ {act_l1.get('peak_type', '普通時期')}")
+            with z_col2:
+                st.markdown(f"**L2 子運**：`{act_l2.get('sign_name')}` ({act_l2.get('ruler_name')})")
+                st.caption(f"區間：{act_l2.get('start_date')} ~ {act_l2.get('end_date')} ｜ {act_l2.get('peak_type', '普通時期')}")
+            if act_l2.get('is_lb'):
+                st.warning("⚠️ 當前處於換宮跳躍 (Losing of the Bond) 關鍵轉折大變動期！")
+
+            with st.expander("查看黃道釋放法 L1 完整時間軸"):
+                l1_list = []
+                for p in zr.get('l1_periods', []):
+                    l1_list.append({
+                        '星座': p['sign_name'],
+                        '主星': p['ruler_name'],
+                        '黃道年數': p['years'],
+                        '開始時間': p['start_date'],
+                        '結束時間': p['end_date'],
+                        '巔峰屬性': p['peak_type']
+                    })
+                st.table(pd.DataFrame(l1_list))
+        st.markdown("---")
+
+        # --- Solar Arc Directions (SAD) Section ---
+        st.subheader("現代事件占星：太陽弧推運 (Solar Arc Directions)")
+        sa = d.get('sa_data', {})
+        if sa:
+            st.info(f"**推進太陽弧**：`{sa.get('solar_arc_str')}` (當前年齡：{sa.get('age_years')} 歲)")
+            sa_aspects = sa.get('active_aspects', [])
+            if sa_aspects:
+                st.markdown("**當前活躍重大硬相位 (0°/90°/180°，誤差 <= 1.0°)**：")
+                sa_rows = []
+                for asp in sa_aspects:
+                    sa_rows.append({
+                        '推運星 (SA)': asp['sa_planet_name'],
+                        '相位': asp['aspect'],
+                        '本命星 (Natal)': asp['natal_planet_name'],
+                        '誤差': asp['orb_str'],
+                        '核心事件象徵': asp.get('significance', '重大人生結構重組')
+                    })
+                st.table(pd.DataFrame(sa_rows))
+            else:
+                st.write("目前無容許度 <= 1.0° 之重大事件硬相位（處於相對穩定期）。")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Tab 5: AI Analysis (Dynamic Chat)

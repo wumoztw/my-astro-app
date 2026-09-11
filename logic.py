@@ -25,6 +25,8 @@ from dignities_logic import DignitiesLogic
 from aspects_logic import AspectsLogic
 from lots_logic import LotsLogic
 from time_lords_logic import TimeLordsLogic
+from zodiacal_releasing_logic import ZodiacalReleasingLogic
+from solar_arc_logic import SolarArcLogic
 import streamlit as st
 import os
 
@@ -85,6 +87,8 @@ class AstrologyLogic:
         self.aspects = AspectsLogic()
         self.lots = LotsLogic()
         self.time_lords = TimeLordsLogic()
+        self.zodiacal_releasing = ZodiacalReleasingLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
+        self.solar_arc = SolarArcLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.tf = TimezoneFinder()
 
     def get_timezone_info(self, lat, lon):
@@ -244,4 +248,15 @@ class AstrologyLogic:
             'moon_degree': round(moon_degree, 2),
             'next_aspect': next_aspect
         }
+
+    def calculate_zodiacal_releasing(self, chart, is_day: bool, birth_dt_str: str, current_date=None):
+        """計算黃道釋放法 (Zodiacal Releasing) 時間軸與當前大運"""
+        return self.zodiacal_releasing.calculate_zr(chart, is_day, birth_dt_str, current_date)
+
+    def calculate_solar_arcs(self, chart, birth_dt_str: str, birth_time_str: str, utc_offset_str: str, lat: float, lon: float, target_date=None, max_orb: float = 1.0):
+        """計算太陽弧推運法 (Solar Arc Directions) 當前活躍硬相位與事件象徵"""
+        return self.solar_arc.calculate_active_solar_arcs(
+            chart, birth_dt_str, birth_time_str, utc_offset_str, lat, lon, target_date, max_orb
+        )
+
 
