@@ -111,12 +111,18 @@ class AstrologyLogic:
         s = int((degree - d - m/60) * 3600)
         return d, m, s
 
-    def calculate_equal_houses(self, asc_lon):
+    def calculate_whole_sign_houses(self, asc_lon):
+        """
+        古典占星整宮制 (Whole Sign House, WSH)
+        上升點所在之星座，整座 (0°00' - 30°00') 即為第一宮 (命宮)。
+        之後各星座依序為第 2 至第 12 宮。
+        """
+        asc_sign_idx = int(asc_lon // 30)
         houses = []
         for i in range(12):
-            house_lon = (asc_lon + i * 30) % 360
-            sign_idx = int(house_lon // 30)
-            sign_const = const.LIST_SIGNS[sign_idx]
+            curr_sign_idx = (asc_sign_idx + i) % 12
+            house_lon = curr_sign_idx * 30.0
+            sign_const = const.LIST_SIGNS[curr_sign_idx]
             house_id = i + 1
             ruler_const = self.dignities.RULERS.get(sign_const)
             houses.append({
@@ -124,20 +130,30 @@ class AstrologyLogic:
                 'id_str': self.TRANS_HOUSES.get(house_id, f"第{house_id}宮"),
                 'lon': house_lon,
                 'sign': self.TRANS_SIGNS.get(sign_const, sign_const),
-                'degree': house_lon % 30,
+                'degree': 0.0,
                 'ruler': self.TRANS_PLANETS.get(ruler_const, ruler_const)
             })
         return houses
+
+    def calculate_equal_houses(self, asc_lon):
+        """向後相容包裝：預設採用古典整宮制 (Whole Sign)"""
+        return self.calculate_whole_sign_houses(asc_lon)
 
     def get_house_of_lon(self, lon, houses):
         h1_lon = houses[0]['lon']
         diff = (lon - h1_lon) % 360
         return int(diff // 30) + 1
 
-    def is_day_birth(self, chart, houses):
+    def is_day_birth(self, chart, houses=None):
+        """
+        古典天體力學日夜盤判定 (Diurnal vs Nocturnal Sect)
+        當太陽位於上升點至下降點之間的地平線上方時為日間盤 (Day Chart)。
+        天體周日視運動中，已升起但尚未落下的黃經弧度滿足 0 <= (asc.lon - sun.lon) % 360 <= 180。
+        """
         sun = chart.get(const.SUN)
-        house_num = self.get_house_of_lon(sun.lon, houses)
-        return 7 <= house_num <= 12
+        asc = chart.get(const.ASC)
+        diff_above = (asc.lon - sun.lon) % 360
+        return 0 <= diff_above <= 180
 
     def get_planets_data(self, chart, houses):
         planets = [const.SUN, const.MOON, const.MERCURY, const.VENUS, const.MARS, const.JUPITER, const.SATURN]

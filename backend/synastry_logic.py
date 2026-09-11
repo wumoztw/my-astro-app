@@ -162,8 +162,8 @@ class SynastryLogic:
         """
         綜合生成雙人古典合盤報告數據
         """
-        chart_a = Chart(dt_a, pos_a)
-        chart_b = Chart(dt_b, pos_b)
+        chart_a = Chart(dt_a, pos_a, hsys=const.HOUSES_WHOLE_SIGN)
+        chart_b = Chart(dt_b, pos_b, hsys=const.HOUSES_WHOLE_SIGN)
         
         overlays_b_in_a = self.calculate_house_overlays(chart_a, chart_b)
         overlays_a_in_b = self.calculate_house_overlays(chart_b, chart_a)

@@ -225,7 +225,7 @@ if generate_btn or horary_btn:
         
         dt = Datetime(birth_date_str, birth_time_str, offset_str)
         pos = GeoPos(final_lat, final_lon)
-        chart = Chart(dt, pos)
+        chart = Chart(dt, pos, hsys=const.HOUSES_WHOLE_SIGN)
         
         # Calculations
         asc = chart.get(const.ASC)
@@ -239,7 +239,7 @@ if generate_btn or horary_btn:
         sun_deg, sun_min, _ = logic.degree_to_dms(sun_p.lon % 30)
         moon_deg, moon_min, _ = logic.degree_to_dms(moon_p.lon % 30)
 
-        houses = logic.calculate_equal_houses(asc.lon)
+        houses = logic.calculate_whole_sign_houses(asc.lon)
         planets_data = logic.get_planets_data(chart, houses)
 
         # Determine target date for progressions and time lords based on system time
