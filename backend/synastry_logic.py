@@ -176,5 +176,81 @@ class SynastryLogic:
             'b_in_a_overlays': overlays_b_in_a,
             'a_in_b_overlays': overlays_a_in_b,
             'cross_aspects': cross_asp,
-            'receptions': receptions
+            'receptions': receptions,
+            'resonance_scores': self.calculate_synastry_resonance_score(chart_a, chart_b, cross_asp, receptions)
+        }
+
+    def calculate_synastry_resonance_score(self, chart_a: Chart, chart_b: Chart, cross_aspects=None, receptions=None) -> dict:
+        """
+        計算古典合盤關係能量量化指數 (Synastry Quantitative Resonance Score)
+        依據古典吉凶星、互容接納、日月調和與跨盤交角加權。
+        """
+        if cross_aspects is None:
+            cross_aspects = self.calculate_cross_aspects(chart_a, chart_b)
+        if receptions is None:
+            receptions = self.check_classical_reception(chart_a, chart_b)
+
+        # 基礎起始分 60 分
+        biz_score = 60.0
+        love_score = 60.0
+        tension_score = 15.0
+        highlights = []
+
+        # 1. 互容接納加分
+        num_receptions = len(receptions)
+        if num_receptions > 0:
+            rec_bonus = min(num_receptions * 8.0, 24.0)
+            biz_score += rec_bonus
+            love_score += rec_bonus
+            highlights.append(f"✨ 具備 {num_receptions} 組古典接納互容，彼此願意包容並形成利益或情感綁定 (+{int(rec_bonus)}分)")
+
+        # 2. 跨盤相位加權
+        benefics = ['Venus', 'Jupiter', 'Sun']
+        malefics = ['Mars', 'Saturn']
+
+        for asp in cross_aspects:
+            p_a = asp.get('planet_a')
+            p_b = asp.get('planet_b')
+            ang = asp.get('angle')
+            orb = asp.get('orb', 5.0)
+            orb_factor = max(0.2, (6.0 - orb) / 6.0)
+
+            # 日月和諧 (高契合度)
+            if (p_a in ['Sun', 'Moon']) and (p_b in ['Sun', 'Moon']):
+                if ang in [0, 60, 120]:
+                    love_score += 15.0 * orb_factor
+                    biz_score += 10.0 * orb_factor
+                    highlights.append(f"☀️🌙 日月形成 {asp.get('aspect_name')}，心理與精神共鳴深刻")
+                elif ang in [90, 180]:
+                    tension_score += 12.0 * orb_factor
+                    highlights.append(f"⚡ 日月形成 {asp.get('aspect_name')}，生活習性或意志存在摩擦")
+
+            # 吉星加持 (金星、木星)
+            if p_a in benefics and p_b in benefics:
+                if ang in [0, 60, 120]:
+                    biz_score += 8.0 * orb_factor
+                    love_score += 10.0 * orb_factor
+
+            # 水星 (商務溝通契合)
+            if (p_a == 'Mercury' or p_b == 'Mercury') and ang in [0, 60, 120]:
+                biz_score += 8.0 * orb_factor
+
+            # 凶星張力 (火星、土星刑沖)
+            if (p_a in malefics or p_b in malefics) and ang in [90, 180]:
+                tension_score += 10.0 * orb_factor
+                biz_score -= 5.0 * orb_factor
+                love_score -= 6.0 * orb_factor
+                highlights.append(f"⚠️ {p_a} 與 {p_b} 形成 {asp.get('aspect_name')}，需預防權力衝突或冷戰")
+
+        # 邊界保護 20 ~ 98 分
+        biz_final = max(25, min(98, round(biz_score, 1)))
+        love_final = max(25, min(98, round(love_score, 1)))
+        tension_final = max(10, min(95, round(tension_score, 1)))
+
+        return {
+            'business_harmony_score': biz_final,
+            'romantic_harmony_score': love_final,
+            'tension_index': tension_final,
+            'highlights': highlights[:5],
+            'summary': f"事業協同指數：{biz_final} 分 | 情感黏著指數：{love_final} 分 | 關係張力指數：{tension_final} 分"
         }

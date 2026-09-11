@@ -7,16 +7,42 @@ class LotsLogic:
         sun = chart.get(const.SUN)
         moon = chart.get(const.MOON)
         
-        # Part of Fortune: Asc + Moon - Sun (Day), Asc + Sun - Moon (Night)
+        mercury = chart.get(const.MERCURY)
+        venus = chart.get(const.VENUS)
+        mars = chart.get(const.MARS)
+        jupiter = chart.get(const.JUPITER)
+
+        # Part of Fortune & Spirit (幸運點與精神點)
         if is_day:
             pof_lon = (asc.lon + moon.lon - sun.lon) % 360
             pos_lon = (asc.lon + sun.lon - moon.lon) % 360
         else:
             pof_lon = (asc.lon + sun.lon - moon.lon) % 360
             pos_lon = (asc.lon + moon.lon - sun.lon) % 360
-            
+
+        # Hermetic Lots (希臘赫密斯重要阿拉伯點)
+        if is_day:
+            nec_lon = (asc.lon + pof_lon - mercury.lon) % 360
+            eros_lon = (asc.lon + venus.lon - pos_lon) % 360
+            courage_lon = (asc.lon + pof_lon - mars.lon) % 360
+            vic_lon = (asc.lon + jupiter.lon - pos_lon) % 360
+        else:
+            nec_lon = (asc.lon + mercury.lon - pof_lon) % 360
+            eros_lon = (asc.lon + pos_lon - venus.lon) % 360
+            courage_lon = (asc.lon + mars.lon - pof_lon) % 360
+            vic_lon = (asc.lon + pos_lon - jupiter.lon) % 360
+
+        raw_lots = [
+            ("幸運點 (Lot of Fortune)", pof_lon, "物質資源、體質健康與客觀境遇"),
+            ("精神點 (Lot of Spirit)", pos_lon, "人生志業、自覺意識與事業方向"),
+            ("必要點 (Lot of Necessity)", nec_lon, "命運考驗、現實束縛與逆境突破"),
+            ("愛情點 (Lot of Eros)", eros_lon, "情感吸引、內在慾望與心靈契合"),
+            ("勇氣點 (Lot of Courage)", courage_lon, "冒險決策、魄力開拓與主動進擊"),
+            ("勝利點 (Lot of Victory)", vic_lon, "名譽成就、競爭勝出與崇高追求"),
+        ]
+
         lots = []
-        for name, lon in [("幸運點 (Fortune)", pof_lon), ("精神點 (Spirit)", pos_lon)]:
+        for name, lon, desc in raw_lots:
             sign_idx = int(lon // 30)
             sign_deg = lon % 30
             d = int(sign_deg)
@@ -30,8 +56,10 @@ class LotsLogic:
             lots.append({
                 'name': name,
                 'sign': trans_signs.get(const.LIST_SIGNS[sign_idx]),
-                'degree': f"{d}°{m}'",
-                'house': trans_houses.get(house_num, f"第{house_num}宮")
+                'degree': f"{d}°{m:02d}'",
+                'house': trans_houses.get(house_num, f"第{house_num}宮"),
+                'description': desc,
+                'lon': round(lon, 2)
             })
         return lots
 

@@ -27,6 +27,7 @@ from lots_logic import LotsLogic
 from time_lords_logic import TimeLordsLogic
 from zodiacal_releasing_logic import ZodiacalReleasingLogic
 from solar_arc_logic import SolarArcLogic
+from almuten_logic import AlmutenLogic
 import streamlit as st
 import os
 
@@ -89,17 +90,42 @@ class AstrologyLogic:
         self.time_lords = TimeLordsLogic()
         self.zodiacal_releasing = ZodiacalReleasingLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.solar_arc = SolarArcLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
+        self.almuten = AlmutenLogic(self.dignities, self.TRANS_PLANETS, self.TRANS_SIGNS)
         self.tf = TimezoneFinder()
 
-    def get_timezone_info(self, lat, lon):
-        """Returns (timezone_name, utc_offset_hours) for given coordinates."""
+    def get_timezone_info(self, lat, lon, dt=None):
+        """
+        Returns (timezone_name, utc_offset_hours) for given coordinates.
+        If dt (datetime, date, or str) is provided, calculates the historical UTC offset
+        accounting for Daylight Saving Time (DST) at that specific historical point in time.
+        """
         try:
             tz_name = self.tf.timezone_at(lat=lat, lng=lon)
             if tz_name:
                 tz = pytz.timezone(tz_name)
-                # Get offset for NOW using a naive datetime
-                now = datetime.now()
-                offset_seconds = tz.utcoffset(now).total_seconds()
+                ref_dt = None
+                if dt is not None:
+                    if isinstance(dt, str):
+                        for fmt in ("%Y/%m/%d %H:%M", "%Y-%m-%d %H:%M", "%Y/%m/%d", "%Y-%m-%d"):
+                            try:
+                                ref_dt = datetime.strptime(dt.strip(), fmt)
+                                break
+                            except Exception:
+                                pass
+                    elif isinstance(dt, datetime):
+                        ref_dt = dt
+                    elif isinstance(dt, date):
+                        ref_dt = datetime(dt.year, dt.month, dt.day, 12, 0)
+
+                if ref_dt is None:
+                    ref_dt = datetime.now()
+
+                try:
+                    localized = tz.localize(ref_dt)
+                    offset_seconds = localized.utcoffset().total_seconds()
+                except Exception:
+                    offset_seconds = tz.utcoffset(ref_dt).total_seconds()
+
                 return tz_name, offset_seconds / 3600.0
             return None, None
         except Exception as e:
@@ -258,5 +284,9 @@ class AstrologyLogic:
         return self.solar_arc.calculate_active_solar_arcs(
             chart, birth_dt_str, birth_time_str, utc_offset_str, lat, lon, target_date, max_orb
         )
+
+    def calculate_almuten(self, chart, houses, is_day: bool):
+        """計算古典全盤總御星 (Almuten Figuris / Lord of Geniture)"""
+        return self.almuten.calculate_almuten_figuris(chart, houses, is_day)
 
 
