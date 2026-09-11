@@ -242,7 +242,6 @@ class ZodiacalReleasingLogic:
                 'end_date': cur_l1_end.strftime('%Y/%m/%d'),
                 'is_peak': is_peak,
                 'peak_type': peak_type,
-                'l2_periods': l2_periods
             }
             l1_periods.append(l1_info)
 
