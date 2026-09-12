@@ -483,9 +483,9 @@ if st.session_state.report_data:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("十二宮位表")
         df_h = pd.DataFrame(d['houses'])
-        df_h_disp = df_h[['id_str', 'sign', 'ruler']].copy()
-        df_h_disp.columns = ['宮位名稱', '對應星座', '宮位主星']
-        st.table(df_h_disp)
+        col_map_h = {'id_str': '宮位名稱', 'sign': '對應星座', 'ruler': '宮位主星'}
+        cols_h = [c for c in col_map_h if c in df_h.columns]
+        st.table(df_h[cols_h].rename(columns=col_map_h))
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Tab 2: Aspects
@@ -494,8 +494,16 @@ if st.session_state.report_data:
         st.subheader("行星相位與接納關係")
         if d['aspects']:
             df_a = pd.DataFrame(d['aspects'])
-            df_a.columns = ['行星 1', '行星 2', '相位類型', '誤差', '接納關係']
-            st.table(df_a)
+            col_map_a = {
+                'p1': '行星 1',
+                'p2': '行星 2',
+                'aspect': '相位類型',
+                'orb': '誤差',
+                'applying': '入/離相位',
+                'reception': '接納關係'
+            }
+            cols_a = [c for c in col_map_a if c in df_a.columns]
+            st.table(df_a[cols_a].rename(columns=col_map_a))
         else:
             st.write("目前無顯著相位。")
         st.markdown("</div>", unsafe_allow_html=True)
@@ -503,18 +511,27 @@ if st.session_state.report_data:
     # Tab 3: Lots & Stars
     with all_tabs[2]:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-        st.subheader("希臘點 (Lots)")
-        df_l = pd.DataFrame(d['lots'])
-        df_l.columns = ['點位名稱', '星座', '度數', '宮位']
-        st.table(df_l)
+        st.subheader("希臘阿拉伯點 (Lots)")
+        if d.get('lots'):
+            df_l = pd.DataFrame(d['lots'])
+            col_map_l = {
+                'name': '點位名稱',
+                'sign': '星座',
+                'degree': '度數',
+                'house': '宮位',
+                'description': '象徵意義'
+            }
+            cols_l = [c for c in col_map_l if c in df_l.columns]
+            st.table(df_l[cols_l].rename(columns=col_map_l))
         st.markdown("</div>", unsafe_allow_html=True)
         
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("重要恆星合相 (Fixed Stars)")
         if d['fixed_stars']:
             df_s = pd.DataFrame(d['fixed_stars'])
-            df_s.columns = ['行星', '恆星', '誤差']
-            st.table(df_s)
+            col_map_s = {'planet': '行星', 'star': '恆星', 'orb': '誤差'}
+            cols_s = [c for c in col_map_s if c in df_s.columns]
+            st.table(df_s[cols_s].rename(columns=col_map_s))
         else:
             st.write("目前無行星與重要恆星合相。")
         st.markdown("</div>", unsafe_allow_html=True)
