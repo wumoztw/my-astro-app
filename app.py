@@ -650,9 +650,37 @@ if st.session_state.report_data:
                 st.caption(f"生活重心：{p_moon.get('theme', '')}")
                 st.caption(f"預計換座剩餘：約 {p_moon.get('months_left_in_sign', 0)} 個月")
             with sp_col2:
-                st.markdown(f"**🌗 30 年月相週期**：`{l_phase.get('phase_name', '')}`")
+                st.markdown(f"**🌗 30 年月相大週期**：`{l_phase.get('phase_name', '')}`")
                 st.caption(f"人生階段：【{l_phase.get('stage', '')}】(日月角距 {l_phase.get('angle_str', '')})")
                 st.caption(f"{l_phase.get('desc', '')}")
+
+            # 30 年次限月相視覺進度軸
+            angle_val = l_phase.get('angle', 0.0)
+            progress_ratio = min(1.0, max(0.0, angle_val / 360.0))
+            cycle_year = round(progress_ratio * 29.5, 1)
+            st.progress(progress_ratio, text=f"30年月相進程：{round(progress_ratio * 100, 1)}% (約第 {cycle_year} 年 / 29.5 年週期)")
+
+            phase_stages = [
+                ("新月", "🌑", "0°~45°", "播種期"),
+                ("蛾眉月", "🌒", "45°~90°", "萌芽期"),
+                ("上弦月", "🌓", "90°~135°", "突破期"),
+                ("盈凸月", "🌔", "135°~180°", "精進期"),
+                ("滿月", "🌕", "180°~225°", "巔峰期"),
+                ("散播月", "🌖", "225°~270°", "分享期"),
+                ("下弦月", "🌗", "270°~315°", "重組期"),
+                ("香脂月", "🌘", "315°~360°", "休整期")
+            ]
+            cur_pname = l_phase.get('phase_name', '')
+            badges_html = "<div style='display: flex; justify-content: space-between; margin-top: 4px; margin-bottom: 12px; gap: 4px; overflow-x: auto;'>"
+            for name, icon, deg_range, stage in phase_stages:
+                is_active = (name in cur_pname)
+                bg_col = "#1E293B" if is_active else "#F1F5F9"
+                text_col = "#38BDF8" if is_active else "#475569"
+                border = "2px solid #38BDF8" if is_active else "1px solid #CBD5E1"
+                badges_html += f"<div style='flex: 1; min-width: 65px; text-align: center; background: {bg_col}; color: {text_col}; border: {border}; border-radius: 6px; padding: 6px 2px; font-size: 11px;'>"
+                badges_html += f"<div style='font-size: 16px; margin-bottom: 2px;'>{icon}</div><b>{stage}</b><div style='font-size: 9px; opacity: 0.8;'>{deg_range}</div></div>"
+            badges_html += "</div>"
+            st.markdown(badges_html, unsafe_allow_html=True)
             
             sp_aspects = sp.get('active_aspects', [])
             if sp_aspects:
