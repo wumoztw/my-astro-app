@@ -29,6 +29,8 @@ from zodiacal_releasing_logic import ZodiacalReleasingLogic
 from solar_arc_logic import SolarArcLogic
 from almuten_logic import AlmutenLogic
 from secondary_progressions_logic import SecondaryProgressionsLogic
+from tertiary_progressions_logic import TertiaryProgressionsLogic
+from thematic_reports_logic import ThematicReportsLogic
 import streamlit as st
 import os
 
@@ -93,6 +95,8 @@ class AstrologyLogic:
         self.solar_arc = SolarArcLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.almuten = AlmutenLogic(self.dignities, self.TRANS_PLANETS, self.TRANS_SIGNS)
         self.secondary_progressions = SecondaryProgressionsLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
+        self.tertiary_progressions = TertiaryProgressionsLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
+        self.thematic_reports = ThematicReportsLogic()
         self.tf = TimezoneFinder()
 
     def get_timezone_info(self, lat, lon, dt=None):
@@ -296,5 +300,12 @@ class AstrologyLogic:
         return self.secondary_progressions.calculate_secondary_progressions(
             chart, houses, birth_dt_str, birth_time_str, utc_offset_str, lat, lon, target_date
         )
+
+    def calculate_tertiary_progressions(self, chart, houses, birth_dt_str: str, birth_time_str: str, utc_offset_str: str, lat: float, lon: float, target_date=None):
+        """計算三限推運法 (Tertiary Progressions 一日一月) 月亮、2.5年月相與當月活躍相位"""
+        return self.tertiary_progressions.calculate_tertiary_progressions(
+            chart, houses, birth_dt_str, birth_time_str, utc_offset_str, lat, lon, target_date
+        )
+
 
 

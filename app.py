@@ -11,7 +11,8 @@ import importlib
 for _mod_name in (
     'logic', 'dignities_logic', 'aspects_logic', 'lots_logic', 
     'time_lords_logic', 'zodiacal_releasing_logic', 'solar_arc_logic', 
-    'almuten_logic', 'secondary_progressions_logic', 'horary_prompt', 'natal_prompt', 'ai_logic'
+    'almuten_logic', 'secondary_progressions_logic', 'tertiary_progressions_logic',
+    'thematic_reports_logic', 'horary_prompt', 'natal_prompt', 'ai_logic'
 ):
     if _mod_name in sys.modules:
         try:
@@ -23,6 +24,7 @@ for _mod_name in (
 from logic import AstrologyLogic
 from horary_prompt import HORARY_SYSTEM_PROMPT
 from natal_prompt import NATAL_SYSTEM_PROMPT
+from thematic_reports_logic import ThematicReportsLogic
 from ai_logic import AIAssistant
 
 import streamlit.components.v1 as components
@@ -271,6 +273,7 @@ if generate_btn or horary_btn:
         zr_data = logic.calculate_zodiacal_releasing(chart, is_day, birth_date_str, current_date=target_date) if hasattr(logic, 'calculate_zodiacal_releasing') else {}
         sa_data = logic.calculate_solar_arcs(chart, birth_date_str, birth_time_str, offset_str, final_lat, final_lon, target_date=target_date) if hasattr(logic, 'calculate_solar_arcs') else {}
         sec_prog_data = logic.calculate_secondary_progressions(chart, houses, birth_date_str, birth_time_str, offset_str, final_lat, final_lon, target_date=target_date) if hasattr(logic, 'calculate_secondary_progressions') else {}
+        tert_prog_data = logic.calculate_tertiary_progressions(chart, houses, birth_date_str, birth_time_str, offset_str, final_lat, final_lon, target_date=target_date) if hasattr(logic, 'calculate_tertiary_progressions') else {}
         lots = logic.calculate_lots(chart, houses, is_day)
         fixed_stars = logic.get_fixed_stars(chart)
 
@@ -400,6 +403,25 @@ if generate_btn or horary_btn:
                         md += f"  * {spa['prog_planet']} {spa['aspect']} {spa['natal_planet']} (誤差 {spa['orb_str']}，{spa['duration']})\n"
                 md += "\n"
 
+            # Tertiary Progressions (一日一月)
+            if tert_prog_data:
+                md += "### 三限推運法 (Tertiary Progressions 一日一月)\n"
+                md += f"- 當前實歲年齡：{tert_prog_data.get('age_years', 0)} 歲 (三限星曆時間：{tert_prog_data.get('tertiary_ephemeris_date', '')})\n"
+                t_moon = tert_prog_data.get('tertiary_moon', {})
+                if t_moon:
+                    md += f"- 🌙 三限月亮焦點：{t_moon.get('sign', '')} {t_moon.get('degree_str', '')} (落入本命 {t_moon.get('house_str', '')})\n"
+                    md += f"  * 預計換宮剩餘：約 {t_moon.get('weeks_left_in_sign', 0)} 週 ({t_moon.get('days_left_in_sign', 0)} 天)\n"
+                    md += f"  * 當月生活重心：{t_moon.get('theme', '')}\n"
+                tl_phase = tert_prog_data.get('lunar_phase', {})
+                if tl_phase:
+                    md += f"- 🌗 三限 2.5 年月相週期：{tl_phase.get('phase_name', '')} (第 {tl_phase.get('cycle_month', 0)} 個月，【{tl_phase.get('stage', '')}】)\n"
+                tp_asps = tert_prog_data.get('active_aspects', [])
+                if tp_asps:
+                    md += "- 當月活躍三限對本命相位：\n"
+                    for tpa in tp_asps[:5]:
+                        md += f"  * {tpa['prog_planet']} {tpa['aspect']} {tpa['natal_planet']} (誤差 {tpa['orb_str']}，{tpa['duration']})\n"
+                md += "\n"
+
         md += "---\n\n"
         md += "## 🤖 AI 自動解析已就緒\n"
         report_type = "本命盤" if st.session_state.chart_type == 'natal' else "卜卦占星盤"
@@ -418,6 +440,7 @@ if generate_btn or horary_btn:
             'zr_data': zr_data,
             'sa_data': sa_data,
             'sec_prog_data': sec_prog_data,
+            'tert_prog_data': tert_prog_data,
             'is_day': is_day,
             'lots': lots,
             'fixed_stars': fixed_stars
@@ -457,6 +480,25 @@ if st.session_state.report_data and ai_assistant.is_configured:
                     f"{st.session_state.report_md}"
                 )
                 st.session_state.chat_history = [{"role": "user", "content": initial_user_msg}]
+
+            st.markdown("---")
+            st.markdown("🎯 **三大專題深度診斷**")
+            thm_col1, thm_col2, thm_col3 = st.columns(3)
+            with thm_col1:
+                if st.button("💼 事業", use_container_width=True, help="事業職涯、貴人格局與天命專題"):
+                    st.session_state.ai_analysis_triggered = True
+                    p_msg = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "career")
+                    st.session_state.chat_history = [{"role": "user", "content": p_msg}]
+            with thm_col2:
+                if st.button("💰 財富", use_container_width=True, help="財富資產、正偏財與投資避坑專題"):
+                    st.session_state.ai_analysis_triggered = True
+                    p_msg = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "wealth")
+                    st.session_state.chat_history = [{"role": "user", "content": p_msg}]
+            with thm_col3:
+                if st.button("❤️ 婚戀", use_container_width=True, help="婚戀桃花、伴侶原型與關係經營專題"):
+                    st.session_state.ai_analysis_triggered = True
+                    p_msg = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "romance")
+                    st.session_state.chat_history = [{"role": "user", "content": p_msg}]
 
 # --- UI Layout ---
 if st.session_state.report_data:
@@ -697,6 +739,58 @@ if st.session_state.report_data:
                 st.table(pd.DataFrame(sp_rows))
             else:
                 st.write("目前無容許度內之活躍次限對本命相位。")
+            st.markdown("---")
+
+            # --- Tertiary Progressions (一日一月) Section ---
+            st.subheader("三限推運法 (Tertiary Progressions - 一日一月)")
+            st.caption("推進法則：以地球自轉一日對應熱帶月（約 27.32 日），精準捕捉以「月份/週」為尺度的生活場景轉移與情緒心理焦點。")
+            tp = d.get('tert_prog_data', {})
+            if tp:
+                t_moon = tp.get('tertiary_moon', {})
+                tl_phase = tp.get('lunar_phase', {})
+                
+                tp_col1, tp_col2 = st.columns(2)
+                with tp_col1:
+                    st.markdown(f"**🌙 三限月亮當月焦點**：`{t_moon.get('sign', '')} {t_moon.get('degree_str', '')}` ({t_moon.get('house_str', '')})")
+                    st.caption(f"當月生活重心：{t_moon.get('theme', '')}")
+                    st.caption(f"預計換宮剩餘：約 {t_moon.get('weeks_left_in_sign', 0)} 週 ({t_moon.get('days_left_in_sign', 0)} 天)")
+                with tp_col2:
+                    st.markdown(f"**🌗 2.5 年月相週期**：`{tl_phase.get('phase_name', '')}`")
+                    st.caption(f"階段進程：【{tl_phase.get('stage', '')}】(第 {tl_phase.get('cycle_month', 0)} 個月 / 29.5 個月週期)")
+                    st.caption(f"{tl_phase.get('desc', '')}")
+
+                # 2.5 年三限月相進度軸
+                t_angle_val = tl_phase.get('angle', 0.0)
+                t_prog_ratio = min(1.0, max(0.0, t_angle_val / 360.0))
+                st.progress(t_prog_ratio, text=f"2.5年月相循環：{round(t_prog_ratio * 100, 1)}% (約第 {tl_phase.get('cycle_month', 0)} 個月 / 29.5 個月週期)")
+
+                cur_tpname = tl_phase.get('phase_name', '')
+                tp_badges_html = "<div style='display: flex; justify-content: space-between; margin-top: 4px; margin-bottom: 12px; gap: 4px; overflow-x: auto;'>"
+                for name, icon, deg_range, stage in phase_stages:
+                    is_active = (name in cur_tpname)
+                    bg_col = "#1E293B" if is_active else "#F1F5F9"
+                    text_col = "#38BDF8" if is_active else "#475569"
+                    border = "2px solid #38BDF8" if is_active else "1px solid #CBD5E1"
+                    tp_badges_html += f"<div style='flex: 1; min-width: 65px; text-align: center; background: {bg_col}; color: {text_col}; border: {border}; border-radius: 6px; padding: 6px 2px; font-size: 11px;'>"
+                    tp_badges_html += f"<div style='font-size: 16px; margin-bottom: 2px;'>{icon}</div><b>{stage}</b><div style='font-size: 9px; opacity: 0.8;'>{deg_range}</div></div>"
+                tp_badges_html += "</div>"
+                st.markdown(tp_badges_html, unsafe_allow_html=True)
+
+                tp_aspects = tp.get('active_aspects', [])
+                if tp_aspects:
+                    st.markdown("**當月活躍三限相位 (對本命盤，持續約 2~4 週)**：")
+                    tp_rows = []
+                    for asp in tp_aspects:
+                        tp_rows.append({
+                            '三限星 (Tert)': asp['prog_planet'],
+                            '相位': asp['aspect'],
+                            '本命星 (Natal)': asp['natal_planet'],
+                            '誤差': asp['orb_str'],
+                            '持續引動期': asp['duration']
+                        })
+                    st.table(pd.DataFrame(tp_rows))
+                else:
+                    st.write("目前無容許度內之活躍三限對本命相位。")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Tab 5: AI Analysis (Dynamic Chat)
