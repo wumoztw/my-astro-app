@@ -11,7 +11,7 @@ import importlib
 for _mod_name in (
     'logic', 'dignities_logic', 'aspects_logic', 'lots_logic', 
     'time_lords_logic', 'zodiacal_releasing_logic', 'solar_arc_logic', 
-    'almuten_logic', 'horary_prompt', 'natal_prompt', 'ai_logic'
+    'almuten_logic', 'secondary_progressions_logic', 'horary_prompt', 'natal_prompt', 'ai_logic'
 ):
     if _mod_name in sys.modules:
         try:
@@ -270,6 +270,7 @@ if generate_btn or horary_btn:
         f_data = logic.get_firdaria_data(birth_date_str, is_day, current_date=target_date)
         zr_data = logic.calculate_zodiacal_releasing(chart, is_day, birth_date_str, current_date=target_date) if hasattr(logic, 'calculate_zodiacal_releasing') else {}
         sa_data = logic.calculate_solar_arcs(chart, birth_date_str, birth_time_str, offset_str, final_lat, final_lon, target_date=target_date) if hasattr(logic, 'calculate_solar_arcs') else {}
+        sec_prog_data = logic.calculate_secondary_progressions(chart, houses, birth_date_str, birth_time_str, offset_str, final_lat, final_lon, target_date=target_date) if hasattr(logic, 'calculate_secondary_progressions') else {}
         lots = logic.calculate_lots(chart, houses, is_day)
         fixed_stars = logic.get_fixed_stars(chart)
 
@@ -379,6 +380,26 @@ if generate_btn or horary_btn:
                 md += "- 目前無容許度 <= 1.0° 之重大事件硬相位。\n"
             md += "\n"
 
+            # Secondary Progressions (一日一年)
+            if sec_prog_data:
+                md += "### 次限推運法 (Secondary Progressions 一日一年)\n"
+                md += f"- 當前實歲年齡：{sec_prog_data.get('age_years', 0)} 歲 (次限推進日期：{sec_prog_data.get('progressed_date', '')})\n"
+                p_moon = sec_prog_data.get('progressed_moon', {})
+                if p_moon:
+                    md += f"- 🌙 次限月亮：{p_moon.get('sign', '')} {p_moon.get('degree_str', '')} (落入本命 {p_moon.get('house_str', '')})\n"
+                    md += f"  * 預計換座剩餘：約 {p_moon.get('months_left_in_sign', 0)} 個月\n"
+                    md += f"  * 當前生活重心：{p_moon.get('theme', '')}\n"
+                l_phase = sec_prog_data.get('lunar_phase', {})
+                if l_phase:
+                    md += f"- 🌗 次限 30 年月相週期：{l_phase.get('phase_name', '')} (日月角距 {l_phase.get('angle_str', '')}，{l_phase.get('stage', '')})\n"
+                    md += f"  * 生命階段象徵：{l_phase.get('desc', '')}\n"
+                sp_asps = sec_prog_data.get('active_aspects', [])
+                if sp_asps:
+                    md += "- 當前活躍次限對本命相位：\n"
+                    for spa in sp_asps[:5]:
+                        md += f"  * {spa['prog_planet']} {spa['aspect']} {spa['natal_planet']} (誤差 {spa['orb_str']}，{spa['duration']})\n"
+                md += "\n"
+
         md += "---\n\n"
         md += "## 🤖 AI 自動解析已就緒\n"
         report_type = "本命盤" if st.session_state.chart_type == 'natal' else "卜卦占星盤"
@@ -396,6 +417,7 @@ if generate_btn or horary_btn:
             'f_data': f_data,
             'zr_data': zr_data,
             'sa_data': sa_data,
+            'sec_prog_data': sec_prog_data,
             'is_day': is_day,
             'lots': lots,
             'fixed_stars': fixed_stars
@@ -613,6 +635,40 @@ if st.session_state.report_data:
                 st.table(pd.DataFrame(sa_rows))
             else:
                 st.write("目前無容許度 <= 1.0° 之重大事件硬相位（處於相對穩定期）。")
+        st.markdown("---")
+
+        # --- Secondary Progressions (一日一年) Section ---
+        st.subheader("次限推運法 (Secondary Progressions - 一日一年)")
+        sp = d.get('sec_prog_data', {})
+        if sp:
+            p_moon = sp.get('progressed_moon', {})
+            l_phase = sp.get('lunar_phase', {})
+            
+            sp_col1, sp_col2 = st.columns(2)
+            with sp_col1:
+                st.markdown(f"**🌙 次限月亮焦點**：`{p_moon.get('sign', '')} {p_moon.get('degree_str', '')}` ({p_moon.get('house_str', '')})")
+                st.caption(f"生活重心：{p_moon.get('theme', '')}")
+                st.caption(f"預計換座剩餘：約 {p_moon.get('months_left_in_sign', 0)} 個月")
+            with sp_col2:
+                st.markdown(f"**🌗 30 年月相週期**：`{l_phase.get('phase_name', '')}`")
+                st.caption(f"人生階段：【{l_phase.get('stage', '')}】(日月角距 {l_phase.get('angle_str', '')})")
+                st.caption(f"{l_phase.get('desc', '')}")
+            
+            sp_aspects = sp.get('active_aspects', [])
+            if sp_aspects:
+                st.markdown("**當前活躍次限相位 (對本命盤)**：")
+                sp_rows = []
+                for asp in sp_aspects:
+                    sp_rows.append({
+                        '次限星 (Prog)': asp['prog_planet'],
+                        '相位': asp['aspect'],
+                        '本命星 (Natal)': asp['natal_planet'],
+                        '誤差': asp['orb_str'],
+                        '持續引動期': asp['duration']
+                    })
+                st.table(pd.DataFrame(sp_rows))
+            else:
+                st.write("目前無容許度內之活躍次限對本命相位。")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Tab 5: AI Analysis (Dynamic Chat)

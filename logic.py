@@ -28,6 +28,7 @@ from time_lords_logic import TimeLordsLogic
 from zodiacal_releasing_logic import ZodiacalReleasingLogic
 from solar_arc_logic import SolarArcLogic
 from almuten_logic import AlmutenLogic
+from secondary_progressions_logic import SecondaryProgressionsLogic
 import streamlit as st
 import os
 
@@ -91,6 +92,7 @@ class AstrologyLogic:
         self.zodiacal_releasing = ZodiacalReleasingLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.solar_arc = SolarArcLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.almuten = AlmutenLogic(self.dignities, self.TRANS_PLANETS, self.TRANS_SIGNS)
+        self.secondary_progressions = SecondaryProgressionsLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.tf = TimezoneFinder()
 
     def get_timezone_info(self, lat, lon, dt=None):
@@ -288,5 +290,11 @@ class AstrologyLogic:
     def calculate_almuten(self, chart, houses, is_day: bool):
         """計算古典全盤總御星 (Almuten Figuris / Lord of Geniture)"""
         return self.almuten.calculate_almuten_figuris(chart, houses, is_day)
+
+    def calculate_secondary_progressions(self, chart, houses, birth_dt_str: str, birth_time_str: str, utc_offset_str: str, lat: float, lon: float, target_date=None):
+        """計算次限推運法 (Secondary Progressions 一日一年) 月亮、30年月相與活躍相位"""
+        return self.secondary_progressions.calculate_secondary_progressions(
+            chart, houses, birth_dt_str, birth_time_str, utc_offset_str, lat, lon, target_date
+        )
 
 
