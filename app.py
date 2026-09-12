@@ -4,6 +4,21 @@ import os
 from datetime import datetime, date, timedelta, timezone
 from flatlib import const
 
+import sys
+import importlib
+
+# Ensure fresh module reloading in Streamlit Cloud when git updates
+for _mod_name in (
+    'logic', 'dignities_logic', 'aspects_logic', 'lots_logic', 
+    'time_lords_logic', 'zodiacal_releasing_logic', 'solar_arc_logic', 
+    'almuten_logic', 'horary_prompt', 'natal_prompt', 'ai_logic'
+):
+    if _mod_name in sys.modules:
+        try:
+            importlib.reload(sys.modules[_mod_name])
+        except Exception:
+            pass
+
 # Modular Imports
 from logic import AstrologyLogic
 from horary_prompt import HORARY_SYSTEM_PROMPT
@@ -239,7 +254,11 @@ if generate_btn or horary_btn:
         sun_deg, sun_min, _ = logic.degree_to_dms(sun_p.lon % 30)
         moon_deg, moon_min, _ = logic.degree_to_dms(moon_p.lon % 30)
 
-        houses = logic.calculate_whole_sign_houses(asc.lon)
+        if hasattr(logic, 'calculate_whole_sign_houses'):
+            houses = logic.calculate_whole_sign_houses(asc.lon)
+        else:
+            houses = logic.calculate_equal_houses(asc.lon)
+
         planets_data = logic.get_planets_data(chart, houses)
 
         # Determine target date for progressions and time lords based on system time
@@ -249,8 +268,8 @@ if generate_btn or horary_btn:
         aspects = logic.get_aspects(chart)
         is_day = logic.is_day_birth(chart, houses)
         f_data = logic.get_firdaria_data(birth_date_str, is_day, current_date=target_date)
-        zr_data = logic.calculate_zodiacal_releasing(chart, is_day, birth_date_str, current_date=target_date)
-        sa_data = logic.calculate_solar_arcs(chart, birth_date_str, birth_time_str, offset_str, final_lat, final_lon, target_date=target_date)
+        zr_data = logic.calculate_zodiacal_releasing(chart, is_day, birth_date_str, current_date=target_date) if hasattr(logic, 'calculate_zodiacal_releasing') else {}
+        sa_data = logic.calculate_solar_arcs(chart, birth_date_str, birth_time_str, offset_str, final_lat, final_lon, target_date=target_date) if hasattr(logic, 'calculate_solar_arcs') else {}
         lots = logic.calculate_lots(chart, houses, is_day)
         fixed_stars = logic.get_fixed_stars(chart)
 
