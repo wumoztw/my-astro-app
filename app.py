@@ -80,8 +80,8 @@ st.markdown("""
     h1, h2, h3 {
         color: #212529 !important;
     }
-    .stMarkdown, p, span, div {
-        color: #212529 !important;
+    .stMarkdown, p {
+        color: #212529;
     }
     
     /* Simple Container */
@@ -652,31 +652,226 @@ if st.session_state.report_data:
             p = ha.get('perfection', {})
             t = ha.get('timing', {})
             mf = ha.get('moon_flow', {})
-            
+
+            # Helper to retrieve planet real positions and dignities
+            def get_p_meta(p_name_or_id):
+                for pl in d.get('planets', []):
+                    if pl.get('name') == p_name_or_id or pl.get('id') == p_name_or_id:
+                        ret_mark = " ⚠️逆行" if pl.get('retro') else ""
+                        dig_list = pl.get('dignity', {}).get('list', [])
+                        dig_str = ", ".join(dig_list) if dig_list else "遊走 (Peregrine)"
+                        return {
+                            'name': pl.get('name', p_name_or_id),
+                            'symbol': pl.get('symbol', '🪐'),
+                            'pos': f"{pl.get('sign', '')} {pl.get('degree_str', '')}{ret_mark}",
+                            'house': f"第 {pl.get('house_num', pl.get('house', ''))} 宮",
+                            'dignity': f"力量：{dig_str} (計分: {pl.get('dignity', {}).get('score', 0)})"
+                        }
+                return {
+                    'name': p_name_or_id,
+                    'symbol': '🪐',
+                    'pos': '位置已排盤',
+                    'house': '',
+                    'dignity': ''
+                }
+
+            p1_meta = get_p_meta(c.get('querent_planet_name', ''))
+            pq_meta = get_p_meta(c.get('quesited_planet_name', ''))
+            pm_meta = get_p_meta('月亮')
+
+            # -------------------------------------------------------------
+            # 1. 頂部問事對焦與三大徵象星全景卡片
+            # -------------------------------------------------------------
             st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-            st.subheader("🔮 卜卦檢意與所問事項鎖定 (William Lilly 1647)")
+            st.subheader("🎯 占卜議題與三大主徵象星對焦")
             
-            # Question & Target House Banner
-            q_cols = st.columns([3, 1])
-            with q_cols[0]:
-                st.markdown(f"**占卜問題**：`{c.get('question', st.session_state.get('horary_question', ''))}`")
-                st.caption(f"匹配關鍵字：`{c.get('matched_keyword', '')}` ➔ 鎖定 **第 {c.get('quesited_house', 7)} 宮**（{c.get('house_meaning', '')}）")
-            with q_cols[1]:
-                if st.button("🔄 重新分析問題", use_container_width=True):
-                    st.rerun()
+            cur_q_text = c.get('question', st.session_state.get('horary_question', '這件事會成功嗎？'))
+            target_h_num = c.get('quesited_house', 7)
+            target_h_desc = c.get('house_meaning', '合作/關係/對方')
+            target_kw = c.get('matched_keyword', '通用議題')
             
-            # Querent vs Quesited significators cards
+            st.markdown(f"""
+            <div style='background: #F1F5F9; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; border-left: 4px solid #3B82F6;'>
+                <div style='font-size: 13px; color: #64748B; margin-bottom: 2px;'>當前占卜問題</div>
+                <div style='font-size: 19px; font-weight: 800; color: #0F172A; margin-bottom: 6px;'>「{cur_q_text}」</div>
+                <div style='font-size: 13px; color: #334155;'>
+                    🎯 智能對焦領域：<b>第 {target_h_num} 宮（{target_h_desc}）</b> ｜ 匹配關鍵字：<span style='background:#E2E8F0; padding:2px 8px; border-radius:4px; font-weight:600;'>{target_kw}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
             sig_col1, sig_col2, sig_col3 = st.columns(3)
             with sig_col1:
-                st.markdown(f"<div class='summary-card'><div class='summary-title'>問卜者 (Lord 1)</div><div class='summary-value'>{c.get('querent_planet_name', '')}</div><div style='font-size:12px;color:#666;'>第 1 宮主星</div></div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,0.05); height:100%;'>
+                    <div style='font-size:11px; font-weight:700; color:#2563EB; margin-bottom:4px;'>🙋‍♂️ 問卜者代表 (Lord 1)</div>
+                    <div style='font-size:1.3rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{p1_meta['symbol']} {p1_meta['name']}</div>
+                    <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{p1_meta['pos']}</b>（{p1_meta['house']}）</div>
+                    <div style='font-size:12px; color:#64748B;'>⚡ {p1_meta['dignity']}</div>
+                </div>
+                """, unsafe_allow_html=True)
             with sig_col2:
-                st.markdown(f"<div class='summary-card'><div class='summary-title'>所問事項 (Lord Q)</div><div class='summary-value'>{c.get('quesited_planet_name', '')}</div><div style='font-size:12px;color:#666;'>第 {c.get('quesited_house', 7)} 宮主星</div></div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,0.05); height:100%;'>
+                    <div style='font-size:11px; font-weight:700; color:#D97706; margin-bottom:4px;'>🎯 所問事項代表 (Lord Q)</div>
+                    <div style='font-size:1.3rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{pq_meta['symbol']} {pq_meta['name']}</div>
+                    <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{pq_meta['pos']}</b>（{pq_meta['house']}）</div>
+                    <div style='font-size:12px; color:#64748B;'>⚡ {pq_meta['dignity']}</div>
+                </div>
+                """, unsafe_allow_html=True)
             with sig_col3:
-                st.markdown(f"<div class='summary-card'><div class='summary-title'>共同徵象星 (Co-Sig)</div><div class='summary-value'>{c.get('co_significator_name', '月亮')}</div><div style='font-size:12px;color:#666;'>推動事態發展</div></div>", unsafe_allow_html=True)
-            
+                st.markdown(f"""
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,0.05); height:100%;'>
+                    <div style='font-size:11px; font-weight:700; color:#059669; margin-bottom:4px;'>🌙 事態推進總發動機 (Co-Sig)</div>
+                    <div style='font-size:1.3rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{pm_meta['symbol']} {pm_meta['name']}</div>
+                    <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{pm_meta['pos']}</b>（{pm_meta['house']}）</div>
+                    <div style='font-size:12px; color:#64748B;'>{'⚠️ 空亡（事無進展）' if mf.get('is_voc') else '✅ 動能充沛（持續推動中）'}</div>
+                </div>
+                """, unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-            # Radicality & Considerations Before Judgment
+            # -------------------------------------------------------------
+            # 2. 終局成事裁決高亮大卡片 (Executive Verdict)
+            # -------------------------------------------------------------
+            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+            st.subheader("🏆 終局成事裁決 (William Lilly 1647 原典診斷)")
+            
+            v_text = p.get('overall_verdict', '評估中')
+            v_desc = p.get('verdict_desc', '')
+            
+            if p.get('is_perfected') and "阻礙" not in v_text and "逆行" not in v_text:
+                v_bg = "#ECFDF5"
+                v_border = "#10B981"
+                v_title_color = "#065F46"
+                v_badge_bg = "#10B981"
+                v_badge_text = "#FFFFFF"
+                v_badge_label = "成事有望 (PERFECTED)"
+            elif "阻礙" in v_text or "逆行" in v_text:
+                v_bg = "#FEF2F2"
+                v_border = "#EF4444"
+                v_title_color = "#991B1B"
+                v_badge_bg = "#EF4444"
+                v_badge_text = "#FFFFFF"
+                v_badge_label = "阻礙變卦 (OBSTACLE)"
+            elif "考驗" in v_text or "互容" in v_text:
+                v_bg = "#FFFBEB"
+                v_border = "#F59E0B"
+                v_title_color = "#92400E"
+                v_badge_bg = "#F59E0B"
+                v_badge_text = "#FFFFFF"
+                v_badge_label = "克服考驗成事"
+            else:
+                v_bg = "#F8FAFC"
+                v_border = "#94A3B8"
+                v_title_color = "#334155"
+                v_badge_bg = "#64748B"
+                v_badge_text = "#FFFFFF"
+                v_badge_label = "缺乏推動力"
+
+            st.markdown(f"""
+            <div style='background: {v_bg}; border: 2px solid {v_border}; border-radius: 10px; padding: 18px 22px; margin-bottom: 20px;'>
+                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;'>
+                    <span style='font-size: 22px; font-weight: 800; color: {v_title_color};'>{v_text}</span>
+                    <span style='background: {v_badge_bg}; color: {v_badge_text}; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px;'>{v_badge_label}</span>
+                </div>
+                <div style='font-size: 15px; color: #1E293B; line-height: 1.6;'>{v_desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # -------------------------------------------------------------
+            # 3. 古典成事五大路徑結構化診斷總覽 (Executive Checklist)
+            # -------------------------------------------------------------
+            st.markdown("<h4 style='margin-bottom: 12px; color: #0F172A;'>📋 古典成事五大路徑檢測總覽</h4>", unsafe_allow_html=True)
+            
+            # Row 1: Direct Application
+            if p.get('direct_perfections'):
+                dp0 = p['direct_perfections'][0]
+                dp_color = "#16A34A" if "四分" not in dp0['aspect'] and "對分" not in dp0['aspect'] else "#D97706"
+                dp_bg = "#F0FDF4" if "四分" not in dp0['aspect'] and "對分" not in dp0['aspect'] else "#FFFBEB"
+                st.markdown(f"""
+                <div style='background:{dp_bg}; border:1px solid {dp_color}40; border-left:4px solid {dp_color}; border-radius:6px; padding:10px 14px; margin-bottom:8px;'>
+                    <b>1. 直接入相位 (Direct Application)</b>：<span style='color:{dp_color}; font-weight:bold;'>【成立】</span> {dp0['source']} 與 {dp0['target']} 呈 <b>{dp0['aspect']}</b>（當前交角誤差 {dp0['orb']}°，剩餘推進度數 <b>{dp0['delta_deg']}°</b>）
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-left:4px solid #94A3B8; border-radius:6px; padding:10px 14px; margin-bottom:8px; color:#475569;'>
+                    <b>1. 直接入相位 (Direct Application)</b>：<span>【無直接入相】</span> 雙方主星在當前星座內無主要入相位交角。
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Row 2: Translation of Light
+            if p.get('translation_of_light'):
+                tol0 = p['translation_of_light'][0]
+                st.markdown(f"""
+                <div style='background:#F0FDF4; border:1px solid #86EFAC; border-left:4px solid #16A34A; border-radius:6px; padding:10px 14px; margin-bottom:8px;'>
+                    <b>2. 光線傳遞 (Translation of Light)</b>：<span style='color:#16A34A; font-weight:bold;'>【成立 - 熱心貴人】</span> 第三方星體 <b>{tol0['translator']}</b> 從 {tol0['source']} 離相，奔向與 {tol0['receiver']} 成相，從中撮合！
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-left:4px solid #94A3B8; border-radius:6px; padding:10px 14px; margin-bottom:8px; color:#475569;'>
+                    <b>2. 光線傳遞 (Translation of Light)</b>：<span>【無光線傳遞】</span> 無第三方星體於雙方之間傳遞光線。
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Row 3: Collection of Light
+            if p.get('collection_of_light'):
+                col0 = p['collection_of_light'][0]
+                st.markdown(f"""
+                <div style='background:#F0FDF4; border:1px solid #86EFAC; border-left:4px solid #16A34A; border-radius:6px; padding:10px 14px; margin-bottom:8px;'>
+                    <b>3. 光線收集 (Collection of Light)</b>：<span style='color:#16A34A; font-weight:bold;'>【成立 - 權威仲裁】</span> 權威星體 <b>{col0['collector']}</b> 同時接納雙方入相位，機構/司法裁決協調成事！
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-left:4px solid #94A3B8; border-radius:6px; padding:10px 14px; margin-bottom:8px; color:#475569;'>
+                    <b>3. 光線收集 (Collection of Light)</b>：<span>【無光線收集】</span> 無高階星體同時接納雙方入相。
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Row 4: Mutual Reception
+            if p.get('reception_details'):
+                rec0 = p['reception_details'][0]
+                st.markdown(f"""
+                <div style='background:#EEF2FF; border:1px solid #C7D2FE; border-left:4px solid #6366F1; border-radius:6px; padding:10px 14px; margin-bottom:8px;'>
+                    <b>4. 古典廟旺互容 (Mutual Reception)</b>：<span style='color:#4F46E5; font-weight:bold;'>【成立 - 退讓妥協】</span> {rec0['reception_type']} ➔ 雙方願各退一步共同促成協議。
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-left:4px solid #94A3B8; border-radius:6px; padding:10px 14px; margin-bottom:8px; color:#475569;'>
+                    <b>4. 古典廟旺互容 (Mutual Reception)</b>：<span>【無互容】</span> 雙方主星未落入彼此廟旺尊貴位。
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Row 5: Prohibitions & Refranations
+            has_intervener = bool(p.get('prohibitions') or p.get('refranations'))
+            if has_intervener:
+                pro_msgs = []
+                if p.get('prohibitions'):
+                    for pro in p['prohibitions']:
+                        pro_msgs.append(f"⚠️ <b>阻礙截胡</b>：{pro['meaning']}")
+                if p.get('refranations'):
+                    for ref in p['refranations']:
+                        pro_msgs.append(f"⚠️ <b>逆行反悔</b>：{ref['meaning']}")
+                pro_text = "<br>".join(pro_msgs)
+                st.markdown(f"""
+                <div style='background:#FEF2F2; border:1px solid #FECACA; border-left:4px solid #DC2626; border-radius:6px; padding:10px 14px; margin-bottom:8px;'>
+                    <b>5. 阻礙截胡與反悔 (Prohibition & Refranation)</b>：<span style='color:#DC2626; font-weight:bold;'>【出現警示】</span><br>{pro_text}
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style='background:#F0FDF4; border:1px solid #86EFAC; border-left:4px solid #16A34A; border-radius:6px; padding:10px 14px; margin-bottom:8px;'>
+                    <b>5. 阻礙截胡與反悔 (Prohibition & Refranation)</b>：<span style='color:#16A34A; font-weight:bold;'>【路徑暢通】</span> 無第三方星體搶先截胡插隊，亦無主星逆行反悔。
+                </div>
+                """, unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # -------------------------------------------------------------
+            # 4. William Lilly 1647 盤體檢意審查 (Considerations Dashboard)
+            # -------------------------------------------------------------
             st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             st.subheader("⚖️ 盤體有效性檢驗 (Considerations Before Judgment)")
             asc_deg_f = (d['chart'].get(const.ASC).lon % 30) if 'chart' in d else 15.0
@@ -685,85 +880,30 @@ if st.session_state.report_data:
             is_m_voc = mf.get('is_voc', False)
             saturn_h = next((p_item['house_num'] for p_item in d['planets'] if p_item.get('id') == 'Saturn'), 0)
             
-            r_col1, r_col2 = st.columns(2)
-            with r_col1:
+            c_r1, c_r2, c_r3, c_r4 = st.columns(4)
+            with c_r1:
                 if is_early:
-                    st.warning(f"⚠️ 上升度數過早 ({round(asc_deg_f, 1)}° < 3°)：事件尚未成熟，變數仍多。")
+                    st.markdown(f"<div style='background:#FFFBEB;border:1px solid #FCD34D;border-radius:6px;padding:10px;text-align:center;'><b>上升過早</b><br><span style='color:#D97706;font-size:12px;'>{round(asc_deg_f,1)}° < 3° (事未成熟)</span></div>", unsafe_allow_html=True)
                 elif is_late:
-                    st.warning(f"⚠️ 上升度數過晚 ({round(asc_deg_f, 1)}° > 27°)：大局已定，木已成舟。")
+                    st.markdown(f"<div style='background:#FEF2F2;border:1px solid #FCA5A5;border-radius:6px;padding:10px;text-align:center;'><b>上升過晚</b><br><span style='color:#DC2626;font-size:12px;'>{round(asc_deg_f,1)}° > 27° (大局已定)</span></div>", unsafe_allow_html=True)
                 else:
-                    st.success(f"✅ 上升度數良好 ({round(asc_deg_f, 1)}°)：介於 3°~27° 之間，盤體健康適判。")
-                
-                if saturn_h in (1, 7):
-                    st.warning(f"⚠️ 土星落入第 {saturn_h} 宮：容易受外界阻力干擾或問卜者情緒焦慮。")
-                else:
-                    st.success(f"✅ 土星落入第 {saturn_h} 宮：無 1/7 宮干擾。")
-
-            with r_col2:
+                    st.markdown(f"<div style='background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:10px;text-align:center;'><b>上升度數良好</b><br><span style='color:#16A34A;font-size:12px;'>{round(asc_deg_f,1)}° (3°~27° 適判)</span></div>", unsafe_allow_html=True)
+            with c_r2:
                 if is_m_voc:
-                    st.warning("⚠️ 月亮空亡 (Void of Course)：月亮在換座前無入相位，事態恐無實質進展。")
+                    st.markdown("<div style='background:#FEF2F2;border:1px solid #FCA5A5;border-radius:6px;padding:10px;text-align:center;'><b>月亮空亡 (VOC)</b><br><span style='color:#DC2626;font-size:12px;'>換座前無入相 (動能停滯)</span></div>", unsafe_allow_html=True)
                 else:
-                    st.success("✅ 月亮運行順暢：具備實質入相位推動力。")
+                    st.markdown("<div style='background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:10px;text-align:center;'><b>月亮推進正常</b><br><span style='color:#16A34A;font-size:12px;'>具備實質入相發展動能</span></div>", unsafe_allow_html=True)
+            with c_r3:
+                if saturn_h == 1:
+                    st.markdown("<div style='background:#FFFBEB;border:1px solid #FCD34D;border-radius:6px;padding:10px;text-align:center;'><b>土星落入 1 宮</b><br><span style='color:#D97706;font-size:12px;'>問卜者焦慮或阻力沉重</span></div>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<div style='background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:10px;text-align:center;'><b>土星無落 1 宮</b><br><span style='color:#16A34A;font-size:12px;'>落第 {saturn_h} 宮 (問卜無受克)</span></div>", unsafe_allow_html=True)
+            with c_r4:
+                if saturn_h == 7:
+                    st.markdown("<div style='background:#FFFBEB;border:1px solid #FCD34D;border-radius:6px;padding:10px;text-align:center;'><b>土星落入 7 宮</b><br><span style='color:#D97706;font-size:12px;'>占斷研判易受干擾</span></div>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<div style='background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:10px;text-align:center;'><b>土星無落 7 宮</b><br><span style='color:#16A34A;font-size:12px;'>落第 {saturn_h} 宮 (客觀明朗)</span></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
-
-            # Overall Verdict & 5 Perfection Pathways
-            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-            st.subheader("🎯 古典成事五大路徑診斷 (Perfection of Matter)")
-            
-            # Big Verdict Banner
-            v_text = p.get('overall_verdict', '評估中')
-            v_color = "#16A34A" if p.get('is_perfected') and "阻礙" not in v_text and "逆行" not in v_text else ("#DC2626" if "無" in v_text else "#EA580C")
-            st.markdown(f"""
-            <div style='background-color: {v_color}15; border: 2px solid {v_color}; border-radius: 10px; padding: 18px; margin-bottom: 20px;'>
-                <div style='font-size: 22px; font-weight: bold; color: {v_color}; margin-bottom: 6px;'>
-                    {v_text}
-                </div>
-                <div style='font-size: 15px; color: #333;'>
-                    {p.get('verdict_desc', '')}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Five pathways detailed inspection
-            p_tabs = st.tabs(["1. 直接入相", "2. 光線傳遞", "3. 光線收集", "4. 古典互容", "5. 阻礙與反悔"])
-            with p_tabs[0]:
-                if p.get('direct_perfections'):
-                    for dp in p['direct_perfections']:
-                        st.info(f"✨ **{dp['type']}**：{dp['source']} 與 {dp['target']} 形成 **{dp['aspect']}**（當前交角誤差 {dp['orb']}°，剩餘推進度數 {dp['delta_deg']}°）")
-                else:
-                    st.write("雙方守護星目前無直接入相位。")
-            with p_tabs[1]:
-                if p.get('translation_of_light'):
-                    for tol in p['translation_of_light']:
-                        st.success(f"🤝 **光線傳遞成功**：第三方星體 **{tol['translator']}** 從 {tol['source']} 剛脫離相位，即將奔向與 {tol['target']} 成相！象徵有熱心貴人、中介或信使在雙方之間牽線撮合。")
-                else:
-                    st.write("目前無光線傳遞跡象。")
-            with p_tabs[2]:
-                if p.get('collection_of_light'):
-                    for col in p['collection_of_light']:
-                        st.success(f"⚖️ **光線收集成功**：權威星體 **{col['collector']}** 同時接納問卜者與事項雙方的入相位！象徵雙方透過共同長官、權威機構或仲裁法律達成和解。")
-                else:
-                    st.write("目前無光線收集跡象。")
-            with p_tabs[3]:
-                if p.get('reception_details'):
-                    for rec in p['reception_details']:
-                        st.markdown(f"**{rec['reception_type']}**：{rec['meaning']}")
-                else:
-                    st.write("雙方守護星之間無顯著廟旺互容。")
-            with p_tabs[4]:
-                has_obstacle = False
-                if p.get('prohibitions'):
-                    has_obstacle = True
-                    for pro in p['prohibitions']:
-                        st.error(f"⚠️ {pro['meaning']}")
-                if p.get('refranations'):
-                    has_obstacle = True
-                    for ref in p['refranations']:
-                        st.warning(f"⚠️ {ref['meaning']}")
-                if not has_obstacle:
-                    st.success("✅ 成相推進路徑清晰，無第三方星體搶先截胡 (Prohibition)，亦無逆行反悔 (Refranation)。")
-            st.markdown("</div>", unsafe_allow_html=True)
-
         else:
             st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             st.subheader("希臘阿拉伯點 (Lots)")
@@ -797,63 +937,137 @@ if st.session_state.report_data:
             ha = d.get('horary_analysis') or {}
             mf = ha.get('moon_flow', {})
             t = ha.get('timing', {})
-            
+
+            # -------------------------------------------------------------
+            # 1. 應期時鐘高亮儀表板 (Headline Timing Result)
+            # -------------------------------------------------------------
             st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-            st.subheader("🌙 月亮流動全景 (Moon's Panoramic Flow)")
-            st.caption("古典占星學中，月亮是全宇宙事態具象化的總發動機。月亮剛離開的相位代表『過去起因』，即將成相的相位代表『即刻發展』。")
-            
-            m_col1, m_col2 = st.columns(2)
-            with m_col1:
-                st.markdown(f"**當前月亮位置**：`{mf.get('moon_sign', '')} {mf.get('moon_deg_str', '')}`")
-            with m_col2:
-                if mf.get('is_voc'):
-                    st.warning("⚠️ **月亮處於空亡 (Void of Course)**：在進入下一星座前無主要相位。")
-                else:
-                    st.success("✅ **月亮動能充沛**：持續有主要相位引動事態。")
-            
-            flow_c1, flow_c2 = st.columns(2)
+            st.subheader("⏳ 古典應期時鐘 (William Lilly Timing Dashboard)")
+            st.caption("依據 William Lilly 應期計算法：以成相剩餘度數差 $\\Delta\\theta$ 為基礎，結合推進星所處星座 (開創/變動/固定) 與落入宮位 (角宮/續宮/落宮) 之速度矩陣權重換算。")
+
+            timeframe_val = t.get('estimated_timeframe', '需進一步觀測')
+            time_unit_val = t.get('time_unit', '待推算')
+            delta_deg_val = t.get('delta_degrees', 0.0)
+            active_p_val = t.get('active_planet', '')
+            active_s_val = t.get('active_sign', '')
+            sign_spd_val = t.get('sign_speed', '')
+            house_spd_val = t.get('house_speed', '')
+            pacing_desc_val = t.get('pacing_description', '')
+
+            st.markdown(f"""
+            <div style='background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); border-radius: 12px; padding: 22px 24px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);'>
+                <div style='font-size: 12px; letter-spacing: 1.5px; color: #94A3B8; text-transform: uppercase; margin-bottom: 4px;'>預估成事時間 (TIMING ESTIMATE)</div>
+                <div style='font-size: 2.2rem; font-weight: 800; color: #38BDF8; margin-bottom: 6px;'>{timeframe_val}</div>
+                <div style='font-size: 13px; color: #CBD5E1;'>時間尺度單位：<b>{time_unit_val}</b> ｜ 成相剩餘交角差：<b>{delta_deg_val}°</b></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            t_c1, t_c2, t_c3 = st.columns(3)
+            with t_c1:
+                st.markdown(f"""
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; text-align:center;'>
+                    <div style='font-size:11px; font-weight:700; color:#64748B; margin-bottom:4px;'>🎯 推進核心星體</div>
+                    <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:2px;'>{active_p_val}</div>
+                    <div style='font-size:12px; color:#475569;'>落於 {active_s_val} ｜ 需跑 {delta_deg_val}°</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with t_c2:
+                st.markdown(f"""
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; text-align:center;'>
+                    <div style='font-size:11px; font-weight:700; color:#64748B; margin-bottom:4px;'>⚡ 星座動能速度</div>
+                    <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:2px;'>{sign_spd_val}</div>
+                    <div style='font-size:12px; color:#475569;'>開創 (極快) / 變動 (適中) / 固定 (沉緩)</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with t_c3:
+                st.markdown(f"""
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; text-align:center;'>
+                    <div style='font-size:11px; font-weight:700; color:#64748B; margin-bottom:4px;'>🏛️ 宮位動能速度</div>
+                    <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:2px;'>{house_spd_val}</div>
+                    <div style='font-size:12px; color:#475569;'>角宮 (迅速) / 續宮 (適中) / 落宮 (延宕)</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown(f"""
+            <div style='background:#F0F9FF; border:1px solid #BAE6FD; border-left:4px solid #0284C7; border-radius:6px; padding:12px 16px; margin-top:16px; color:#0369A1; font-size:14px; line-height:1.6;'>
+                <b>💡 節奏動能評述：</b> {pacing_desc_val}
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # -------------------------------------------------------------
+            # 2. 月亮流動全景三階段時間軸 (Past ➔ Present ➔ Future)
+            # -------------------------------------------------------------
+            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+            st.subheader("🌙 月亮流動全景三階段時間軸 (Moon's Temporal Flow)")
+            st.caption("古典占星學中，月亮是全宇宙事態具象化的總發動機。月亮離相位代表『過去起因』，落宮代表『當下處境』，入相位代表『即刻發展』。")
+
+            m_sign_val = mf.get('moon_sign', '')
+            m_deg_val = mf.get('moon_deg_str', '')
+            is_voc_val = mf.get('is_voc', False)
+            lsa_val = mf.get('last_separating_aspect')
+            naa_val = mf.get('next_applying_aspect')
+
+            # Three temporal columns: Past -> Present -> Future
+            flow_c1, flow_c2, flow_c3 = st.columns(3)
             with flow_c1:
-                st.markdown("##### ⬅️ 離相位 (Separating Aspect - 過去起因)")
-                lsa = mf.get('last_separating_aspect')
-                if lsa:
-                    st.info(f"月亮剛與 **{lsa['target_planet']}** 形成 **{lsa['aspect_name']}** (交角差 {lsa['orb']}°)\n\n*象徵事件爆發前之背景、過去原由與問卜者歷程。*")
+                if lsa_val:
+                    lsa_title = f"{lsa_val['target_planet']} 形成 {lsa_val['aspect_name']}"
+                    lsa_orb = f"交角誤差：{lsa_val['orb']}°"
+                    lsa_desc = "象徵事件爆發前之背景、過去原由與問卜者在提問前的經歷。"
                 else:
-                    st.write("查無近期緊密離相位。")
+                    lsa_title = "無近期緊密離相位"
+                    lsa_orb = "—"
+                    lsa_desc = "過去事態相對平緩或無特殊劇烈引動事件。"
+
+                st.markdown(f"""
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-top:4px solid #64748B; border-radius:8px; padding:14px; height:100%;'>
+                    <div style='font-size:11px; font-weight:700; color:#64748B; margin-bottom:4px;'>⏪ 第一階段：過去起因 (離相)</div>
+                    <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{lsa_title}</div>
+                    <div style='font-size:12px; color:#475569; margin-bottom:6px;'>{lsa_orb}</div>
+                    <div style='font-size:12px; color:#64748B; line-height:1.5;'>{lsa_desc}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
             with flow_c2:
-                st.markdown("##### ➡️ 次一入相位 (Next Applying Aspect - 即刻未來)")
-                naa = mf.get('next_applying_aspect')
-                if naa:
-                    st.success(f"月亮即將與 **{naa['target_planet']}** 形成 **{naa['aspect_name']}** (剩餘 {naa['orb']}°)\n\n*象徵事態接下來最先迎來的關鍵引動點或消息。*")
+                voc_label = "⚠️ 空亡 (動能停滯)" if is_voc_val else "✅ 推進正常"
+                voc_color = "#DC2626" if is_voc_val else "#16A34A"
+                st.markdown(f"""
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-top:4px solid #2563EB; border-radius:8px; padding:14px; height:100%;'>
+                    <div style='font-size:11px; font-weight:700; color:#2563EB; margin-bottom:4px;'>⏸️ 第二階段：當前處境 (月相)</div>
+                    <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>月亮落於 {m_sign_val}</div>
+                    <div style='font-size:12px; color:#475569; margin-bottom:6px;'>度數：{m_deg_val} ｜ <span style='color:{voc_color}; font-weight:bold;'>{voc_label}</span></div>
+                    <div style='font-size:12px; color:#64748B; line-height:1.5;'>反映問卜者當前的心境焦點與局勢所處的客觀環境氛圍。</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with flow_c3:
+                if naa_val:
+                    naa_title = f"{naa_val['target_planet']} 形成 {naa_val['aspect_name']}"
+                    naa_orb = f"剩餘推進度數：{naa_val['orb']}°"
+                    naa_desc = "象徵事態接下來最直接迎來的關鍵引動點或消息，為未來的最主要推力！"
                 else:
-                    st.write("在該星座內已無後續入相位（月亮空亡）。")
-            
-            with st.expander("查看月亮在此星座之完整相位序列"):
+                    naa_title = "換座前已無入相位"
+                    naa_orb = "處於空亡狀態"
+                    naa_desc = "事件恐無實質後續進展或容易無疾而終。"
+
+                st.markdown(f"""
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-top:4px solid #16A34A; border-radius:8px; padding:14px; height:100%;'>
+                    <div style='font-size:11px; font-weight:700; color:#16A34A; margin-bottom:4px;'>⏩ 第三階段：即刻未來 (入相)</div>
+                    <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{naa_title}</div>
+                    <div style='font-size:12px; color:#475569; margin-bottom:6px;'>{naa_orb}</div>
+                    <div style='font-size:12px; color:#64748B; line-height:1.5;'>{naa_desc}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with st.expander("📋 查看月亮在此星座的完整相位歷程清單"):
                 if mf.get('all_applying'):
-                    st.markdown("**即將入相位清單**：")
+                    st.markdown("**即將迎來的入相位清單**：")
                     st.table(pd.DataFrame(mf['all_applying']).rename(columns={'target_planet': '目標星體', 'aspect_name': '相位類型', 'orb': '剩餘交角差', 'is_applying': '入相標記'}))
                 if mf.get('all_separating'):
-                    st.markdown("**剛脫離相位清單**：")
+                    st.markdown("**剛脫離的離相位清單**：")
                     st.table(pd.DataFrame(mf['all_separating']).rename(columns={'target_planet': '目標星體', 'aspect_name': '相位類型', 'orb': '脫離交角差', 'is_applying': '入相標記'}))
             st.markdown("</div>", unsafe_allow_html=True)
-
-            # Timing Clock
-            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-            st.subheader("⏳ 古典應期時鐘 (Timing Estimation)")
-            st.caption("依據 William Lilly 應期計算法：以成相剩餘度數差 $\\Delta\\theta$ 為基礎，結合推進星所處星座 (開創/變動/固定) 與落入宮位 (角宮/續宮/落宮) 之速度矩陣權重換算。")
-            
-            t_col1, t_col2 = st.columns(2)
-            with t_col1:
-                st.markdown(f"**預估應期時間**：`{t.get('estimated_timeframe', '需進一步觀測')}`")
-                st.markdown(f"**時間單位尺度**：`{t.get('time_unit', '')}`")
-                st.markdown(f"**推進星體**：`{t.get('active_planet', '')}` (落入 {t.get('active_sign', '')})")
-            with t_col2:
-                st.markdown(f"**成相剩餘度數差 ($\\Delta\\theta$)**：`{t.get('delta_degrees', 0.0)}°`")
-                st.markdown(f"**星座動速**：`{t.get('sign_speed', '')}` ｜ **宮位動速**：`{t.get('house_speed', '')}`")
-                st.markdown(f"**綜合速度指數**：`{t.get('combined_score', 0)} / 6` (分數越小速度越快)")
-            
-            st.info(f"💡 **節奏動能研判**：{t.get('pacing_description', '')}")
-            st.markdown("</div>", unsafe_allow_html=True)
-
         else:
             st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             st.subheader("推運資訊摘要")
