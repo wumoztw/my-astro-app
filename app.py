@@ -656,27 +656,32 @@ if st.session_state.report_data:
             # Helper to retrieve planet real positions and dignities
             def get_p_meta(p_name_or_id):
                 for pl in d.get('planets', []):
-                    if pl.get('name') == p_name_or_id or pl.get('id') == p_name_or_id:
+                    if p_name_or_id and (pl.get('name') == p_name_or_id or pl.get('id') == p_name_or_id):
                         ret_mark = " ⚠️逆行" if pl.get('retro') else ""
                         dig_list = pl.get('dignity', {}).get('list', [])
                         dig_str = ", ".join(dig_list) if dig_list else "遊走 (Peregrine)"
+                        h_num = pl.get('house_num')
+                        h_label = f"第 {h_num} 宮" if h_num is not None and h_num != '' else pl.get('house', '')
                         return {
                             'name': pl.get('name', p_name_or_id),
                             'symbol': pl.get('symbol', '🪐'),
                             'pos': f"{pl.get('sign', '')} {pl.get('degree_str', '')}{ret_mark}",
-                            'house': f"第 {pl.get('house_num', pl.get('house', ''))} 宮",
+                            'house': h_label,
                             'dignity': f"力量：{dig_str} (計分: {pl.get('dignity', {}).get('score', 0)})"
                         }
                 return {
-                    'name': p_name_or_id,
+                    'name': p_name_or_id or '未定',
                     'symbol': '🪐',
                     'pos': '位置已排盤',
                     'house': '',
-                    'dignity': ''
+                    'dignity': '力量：正常'
                 }
 
-            p1_meta = get_p_meta(c.get('querent_planet_name', ''))
-            pq_meta = get_p_meta(c.get('quesited_planet_name', ''))
+            p1_name = p.get('lord_1_name') or c.get('querent_planet_name') or p.get('lord_1_id') or '火星'
+            pq_name = p.get('lord_q_name') or c.get('quesited_planet_name') or p.get('lord_q_id') or '金星'
+
+            p1_meta = get_p_meta(p1_name)
+            pq_meta = get_p_meta(pq_name)
             pm_meta = get_p_meta('月亮')
 
             # -------------------------------------------------------------
@@ -687,8 +692,8 @@ if st.session_state.report_data:
             
             cur_q_text = c.get('question', st.session_state.get('horary_question', '這件事會成功嗎？'))
             target_h_num = c.get('quesited_house', 7)
-            target_h_desc = c.get('house_meaning', '合作/關係/對方')
-            target_kw = c.get('matched_keyword', '通用議題')
+            target_h_desc = c.get('house_meaning') or c.get('topic_tag') or c.get('house_name') or '合作/關係/對方'
+            target_kw = c.get('matched_keyword') or c.get('topic_tag') or '通用議題'
             
             st.markdown(f"""
             <div style='background: #F1F5F9; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; border-left: 4px solid #3B82F6;'>
@@ -702,29 +707,32 @@ if st.session_state.report_data:
 
             sig_col1, sig_col2, sig_col3 = st.columns(3)
             with sig_col1:
+                h_disp1 = f"（{p1_meta['house']}）" if p1_meta.get('house') else ""
                 st.markdown(f"""
                 <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,0.05); height:100%;'>
                     <div style='font-size:11px; font-weight:700; color:#2563EB; margin-bottom:4px;'>🙋‍♂️ 問卜者代表 (Lord 1)</div>
                     <div style='font-size:1.3rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{p1_meta['symbol']} {p1_meta['name']}</div>
-                    <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{p1_meta['pos']}</b>（{p1_meta['house']}）</div>
+                    <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{p1_meta['pos']}</b>{h_disp1}</div>
                     <div style='font-size:12px; color:#64748B;'>⚡ {p1_meta['dignity']}</div>
                 </div>
                 """, unsafe_allow_html=True)
             with sig_col2:
+                h_dispq = f"（{pq_meta['house']}）" if pq_meta.get('house') else ""
                 st.markdown(f"""
                 <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,0.05); height:100%;'>
                     <div style='font-size:11px; font-weight:700; color:#D97706; margin-bottom:4px;'>🎯 所問事項代表 (Lord Q)</div>
                     <div style='font-size:1.3rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{pq_meta['symbol']} {pq_meta['name']}</div>
-                    <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{pq_meta['pos']}</b>（{pq_meta['house']}）</div>
+                    <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{pq_meta['pos']}</b>{h_dispq}</div>
                     <div style='font-size:12px; color:#64748B;'>⚡ {pq_meta['dignity']}</div>
                 </div>
                 """, unsafe_allow_html=True)
             with sig_col3:
+                h_dispm = f"（{pm_meta['house']}）" if pm_meta.get('house') else ""
                 st.markdown(f"""
                 <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,0.05); height:100%;'>
                     <div style='font-size:11px; font-weight:700; color:#059669; margin-bottom:4px;'>🌙 事態推進總發動機 (Co-Sig)</div>
                     <div style='font-size:1.3rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{pm_meta['symbol']} {pm_meta['name']}</div>
-                    <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{pm_meta['pos']}</b>（{pm_meta['house']}）</div>
+                    <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{pm_meta['pos']}</b>{h_dispm}</div>
                     <div style='font-size:12px; color:#64748B;'>{'⚠️ 空亡（事無進展）' if mf.get('is_voc') else '✅ 動能充沛（持續推動中）'}</div>
                 </div>
                 """, unsafe_allow_html=True)

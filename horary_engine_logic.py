@@ -66,6 +66,8 @@ class HoraryEngineLogic:
             const.VENUS: '金星', const.MARS: '火星', const.JUPITER: '木星',
             const.SATURN: '土星'
         }
+        self.rev_planets = {v: k for k, v in self.trans_planets.items()}
+
 
     # -------------------------------------------------------------
     # 1. 問題意圖與目標宮位 (Quesited House) 自動分類
@@ -124,62 +126,39 @@ class HoraryEngineLogic:
         matched_name = "第 7 宮 (婚姻伴侶 / 合作交易 / 公開對手)"
         topic_tag = "一對一關係與契約"
         desc = "問事涉及感情關係、對象心態、合夥合作、談判交易或訴訟對造。"
+        matched_kw = "通用議題"
 
-        if any(k in q for k in career_keywords):
-            matched_house = 10
-            matched_name = "第 10 宮 (事業功名 / 求職升遷 / 官方成就)"
-            topic_tag = "事業工作與名望"
-            desc = "問事涉及求職面試錄取、事業升遷、創業開展或主管長官審批。"
-        elif any(k in q for k in wealth_8h_keywords):
-            matched_house = 8
-            matched_name = "第 8 宮 (偏財投資 / 借貸債務 / 共有資源)"
-            topic_tag = "偏財投資與融資"
-            desc = "問事涉及投資投機、股票獲利、借貸融資或他人合夥資產。"
-        elif any(k in q for k in wealth_2h_keywords):
-            matched_house = 2
-            matched_name = "第 2 宮 (正財薪資 / 個人資產 / 物質價值)"
-            topic_tag = "正財薪資與動產"
-            desc = "問事涉及薪資報酬、加薪調薪、買賣利潤或個人財物。"
-        elif any(k in q for k in home_4h_keywords):
-            matched_house = 4
-            matched_name = "第 4 宮 (不動產房產 / 家庭父母 / 終局落點)"
-            topic_tag = "房地產與家庭"
-            desc = "問事涉及購屋租屋、房屋買賣、搬遷、家庭長輩或失物所在地點。"
-        elif any(k in q for k in health_6h_keywords):
-            matched_house = 6
-            matched_name = "第 6 宮 (疾病健康 / 日常工作 / 寵物員工)"
-            topic_tag = "健康疾病與勞務"
-            desc = "問事涉及疾病康復、醫療手術、日常繁雜勞動或寵物健康。"
-        elif any(k in q for k in child_5h_keywords):
-            matched_house = 5
-            matched_name = "第 5 宮 (懷孕生育 / 子女後代 / 投機娛樂)"
-            topic_tag = "懷孕子女與投機"
-            desc = "問事涉及懷孕受孕、子女教養、投機遊戲或創作娛樂。"
-        elif any(k in q for k in travel_9h_keywords):
-            matched_house = 9
-            matched_name = "第 9 宮 (出國留學 / 長途遠行 / 高階學術)"
-            topic_tag = "出國深造與遠行"
-            desc = "問事涉及海外出國、留學簽證、遠途旅行或高等學術論文。"
-        elif any(k in q for k in friend_11h_keywords):
-            matched_house = 11
-            matched_name = "第 11 宮 (願望達成 / 朋友社群 / 貴人提攜)"
-            topic_tag = "願望與貴人人脈"
-            desc = "問事涉及個人願望能否實現、貴人支持或社群組織。"
-        elif any(k in q for k in comm_3h_keywords):
-            matched_house = 3
-            matched_name = "第 3 宮 (短程交通 / 考試溝通 / 兄弟手足)"
-            topic_tag = "日常溝通與短行"
-            desc = "問事涉及短途出差、考駕照、通訊合約或兄弟親屬。"
-        elif any(k in q for k in rel_keywords):
-            matched_house = 7
-            matched_name = "第 7 宮 (婚姻伴侶 / 合作交易 / 公開對手)"
-            topic_tag = "一對一關係與契約"
-            desc = "問事涉及感情伴侶、婚姻復合、合作商業夥伴或官司訴訟對手。"
+        groups = [
+            (career_keywords, 10, "第 10 宮 (事業功名 / 求職升遷 / 官方成就)", "事業工作與名望", "問事涉及求職面試錄取、事業升遷、創業開展或主管長官審批。"),
+            (wealth_8h_keywords, 8, "第 8 宮 (偏財投資 / 借貸債務 / 共有資源)", "偏財投資與融資", "問事涉及投資投機、股票獲利、借貸融資或他人合夥資產。"),
+            (wealth_2h_keywords, 2, "第 2 宮 (正財薪資 / 個人資產 / 物質價值)", "正財薪資與動產", "問事涉及薪資報酬、加薪調薪、買賣利潤或個人財物。"),
+            (home_4h_keywords, 4, "第 4 宮 (不動產房產 / 家庭父母 / 終局落點)", "房地產與家庭", "問事涉及購屋租屋、房屋買賣、搬遷、家庭長輩或失物所在地點。"),
+            (health_6h_keywords, 6, "第 6 宮 (疾病健康 / 日常工作 / 寵物員工)", "健康疾病與勞務", "問事涉及疾病康復、醫療手術、日常繁雜勞動或寵物健康。"),
+            (child_5h_keywords, 5, "第 5 宮 (懷孕生育 / 子女後代 / 投機娛樂)", "懷孕子女與投機", "問事涉及懷孕受孕、子女教養、投機遊戲或創作娛樂。"),
+            (travel_9h_keywords, 9, "第 9 宮 (出國留學 / 長途遠行 / 高階學術)", "出國深造與遠行", "問事涉及海外出國、留學簽證、遠途旅行或高等學術論文。"),
+            (friend_11h_keywords, 11, "第 11 宮 (願望達成 / 朋友社群 / 貴人提攜)", "願望與貴人人脈", "問事涉及個人願望能否實現、貴人支持或社群組織。"),
+            (comm_3h_keywords, 3, "第 3 宮 (短程交通 / 考試溝通 / 兄弟手足)", "日常溝通與短行", "問事涉及短途出差、考駕照、通訊合約或兄弟親屬。"),
+            (rel_keywords, 7, "第 7 宮 (婚姻伴侶 / 合作交易 / 公開對手)", "一對一關係與契約", "問事涉及感情伴侶、婚姻復合、合作商業夥伴或官司訴訟對手。")
+        ]
+
+        for kw_list, h_num, h_name, t_tag, h_desc in groups:
+            for k in kw_list:
+                if k in q:
+                    matched_house = h_num
+                    matched_name = h_name
+                    topic_tag = t_tag
+                    desc = h_desc
+                    matched_kw = k
+                    break
+            if matched_kw != "通用議題":
+                break
 
         return {
             "quesited_house": matched_house,
             "house_name": matched_name,
+            "house_meaning": topic_tag,
             "topic_tag": topic_tag,
+            "matched_keyword": matched_kw,
             "description": desc,
             "question": question
         }
@@ -262,8 +241,11 @@ class HoraryEngineLogic:
         5. 中途阻礙與截胡 (Prohibition & Refranation)
         """
         h_map = {h.get("id"): h for h in houses if isinstance(h, dict)}
-        lord_1_id = h_map.get(1, {}).get("ruler", const.MARS)
-        lord_q_id = h_map.get(quesited_house_num, {}).get("ruler", const.VENUS)
+        lord_1_raw = h_map.get(1, {}).get("ruler_id") or h_map.get(1, {}).get("ruler", const.MARS)
+        lord_q_raw = h_map.get(quesited_house_num, {}).get("ruler_id") or h_map.get(quesited_house_num, {}).get("ruler", const.VENUS)
+
+        lord_1_id = self.rev_planets.get(lord_1_raw, lord_1_raw)
+        lord_q_id = self.rev_planets.get(lord_q_raw, lord_q_raw)
 
         p_objects = {}
         for p_id in [const.SUN, const.MOON, const.MERCURY, const.VENUS, const.MARS, const.JUPITER, const.SATURN]:

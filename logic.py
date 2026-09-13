@@ -169,7 +169,8 @@ class AstrologyLogic:
                 'lon': house_lon,
                 'sign': self.TRANS_SIGNS.get(sign_const, sign_const),
                 'degree': 0.0,
-                'ruler': self.TRANS_PLANETS.get(ruler_const, ruler_const)
+                'ruler': self.TRANS_PLANETS.get(ruler_const, ruler_const),
+                'ruler_id': ruler_const
             })
         return houses
 
@@ -318,6 +319,12 @@ class AstrologyLogic:
         perfection = self.horary_engine.analyze_perfection(chart, houses, quesited_house, planets_data)
         timing = self.horary_engine.calculate_timing(chart, houses, perfection)
         moon_flow = self.horary_engine.get_moon_flow(chart)
+
+        # Synchronize significator names into classification for fast UI lookup
+        classification["querent_planet_name"] = perfection.get("lord_1_name")
+        classification["quesited_planet_name"] = perfection.get("lord_q_name")
+        classification["querent_planet_id"] = perfection.get("lord_1_id")
+        classification["quesited_planet_id"] = perfection.get("lord_q_id")
 
         return {
             "classification": classification,
