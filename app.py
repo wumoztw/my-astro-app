@@ -687,7 +687,6 @@ if st.session_state.report_data:
             # -------------------------------------------------------------
             # 1. 頂部問事對焦與三大徵象星全景卡片
             # -------------------------------------------------------------
-            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             st.subheader("🎯 占卜議題與三大主徵象星對焦")
             
             cur_q_text = c.get('question', st.session_state.get('horary_question', '這件事會成功嗎？'))
@@ -709,39 +708,45 @@ if st.session_state.report_data:
             with sig_col1:
                 h_disp1 = f"（{p1_meta['house']}）" if p1_meta.get('house') else ""
                 st.markdown(f"""
-                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,0.05); height:100%;'>
-                    <div style='font-size:11px; font-weight:700; color:#2563EB; margin-bottom:4px;'>🙋‍♂️ 問卜者代表 (Lord 1)</div>
-                    <div style='font-size:1.3rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{p1_meta['symbol']} {p1_meta['name']}</div>
-                    <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{p1_meta['pos']}</b>{h_disp1}</div>
-                    <div style='font-size:12px; color:#64748B;'>⚡ {p1_meta['dignity']}</div>
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,0.05); min-height:165px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;'>
+                    <div>
+                        <div style='font-size:11px; font-weight:700; color:#2563EB; margin-bottom:4px;'>🙋‍♂️ 問卜者代表 (Lord 1)</div>
+                        <div style='font-size:1.3rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{p1_meta['symbol']} {p1_meta['name']}</div>
+                        <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{p1_meta['pos']}</b>{h_disp1}</div>
+                    </div>
+                    <div style='font-size:12px; color:#64748B; margin-top:8px; padding-top:6px; border-top:1px dashed #E2E8F0;'>⚡ {p1_meta['dignity']}</div>
                 </div>
                 """, unsafe_allow_html=True)
             with sig_col2:
                 h_dispq = f"（{pq_meta['house']}）" if pq_meta.get('house') else ""
                 st.markdown(f"""
-                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,0.05); height:100%;'>
-                    <div style='font-size:11px; font-weight:700; color:#D97706; margin-bottom:4px;'>🎯 所問事項代表 (Lord Q)</div>
-                    <div style='font-size:1.3rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{pq_meta['symbol']} {pq_meta['name']}</div>
-                    <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{pq_meta['pos']}</b>{h_dispq}</div>
-                    <div style='font-size:12px; color:#64748B;'>⚡ {pq_meta['dignity']}</div>
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,0.05); min-height:165px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;'>
+                    <div>
+                        <div style='font-size:11px; font-weight:700; color:#D97706; margin-bottom:4px;'>🎯 所問事項代表 (Lord Q)</div>
+                        <div style='font-size:1.3rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{pq_meta['symbol']} {pq_meta['name']}</div>
+                        <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{pq_meta['pos']}</b>{h_dispq}</div>
+                    </div>
+                    <div style='font-size:12px; color:#64748B; margin-top:8px; padding-top:6px; border-top:1px dashed #E2E8F0;'>⚡ {pq_meta['dignity']}</div>
                 </div>
                 """, unsafe_allow_html=True)
             with sig_col3:
                 h_dispm = f"（{pm_meta['house']}）" if pm_meta.get('house') else ""
+                moon_status_str = '⚠️ 空亡（事無進展）' if mf.get('is_voc') else '✅ 動能充沛（持續推動中）'
                 st.markdown(f"""
-                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,0.05); height:100%;'>
-                    <div style='font-size:11px; font-weight:700; color:#059669; margin-bottom:4px;'>🌙 事態推進總發動機 (Co-Sig)</div>
-                    <div style='font-size:1.3rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{pm_meta['symbol']} {pm_meta['name']}</div>
-                    <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{pm_meta['pos']}</b>{h_dispm}</div>
-                    <div style='font-size:12px; color:#64748B;'>{'⚠️ 空亡（事無進展）' if mf.get('is_voc') else '✅ 動能充沛（持續推動中）'}</div>
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; box-shadow:0 1px 2px rgba(0,0,0,0.05); min-height:165px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;'>
+                    <div>
+                        <div style='font-size:11px; font-weight:700; color:#059669; margin-bottom:4px;'>🌙 事態推進總發動機 (Co-Sig)</div>
+                        <div style='font-size:1.3rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{pm_meta['symbol']} {pm_meta['name']}</div>
+                        <div style='font-size:13px; color:#334155; margin-bottom:2px;'>📍 <b>{pm_meta['pos']}</b>{h_dispm}</div>
+                    </div>
+                    <div style='font-size:12px; color:#64748B; margin-top:8px; padding-top:6px; border-top:1px dashed #E2E8F0;'>{moon_status_str}</div>
                 </div>
                 """, unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-bottom: 24px;'></div>", unsafe_allow_html=True)
 
             # -------------------------------------------------------------
             # 2. 終局成事裁決高亮大卡片 (Executive Verdict)
             # -------------------------------------------------------------
-            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             st.subheader("🏆 終局成事裁決 (William Lilly 1647 原典診斷)")
             
             v_text = p.get('overall_verdict', '評估中')
@@ -875,12 +880,11 @@ if st.session_state.report_data:
                     <b>5. 阻礙截胡與反悔 (Prohibition & Refranation)</b>：<span style='color:#16A34A; font-weight:bold;'>【路徑暢通】</span> 無第三方星體搶先截胡插隊，亦無主星逆行反悔。
                 </div>
                 """, unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-bottom: 24px;'></div>", unsafe_allow_html=True)
 
             # -------------------------------------------------------------
             # 4. William Lilly 1647 盤體檢意審查 (Considerations Dashboard)
             # -------------------------------------------------------------
-            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             st.subheader("⚖️ 盤體有效性檢驗 (Considerations Before Judgment)")
             asc_deg_f = (d['chart'].get(const.ASC).lon % 30) if 'chart' in d else 15.0
             is_early = asc_deg_f < 3.0
@@ -889,29 +893,30 @@ if st.session_state.report_data:
             saturn_h = next((p_item['house_num'] for p_item in d['planets'] if p_item.get('id') == 'Saturn'), 0)
             
             c_r1, c_r2, c_r3, c_r4 = st.columns(4)
+            card_style_base = "border-radius:6px;padding:10px;text-align:center;min-height:75px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;"
             with c_r1:
                 if is_early:
-                    st.markdown(f"<div style='background:#FFFBEB;border:1px solid #FCD34D;border-radius:6px;padding:10px;text-align:center;'><b>上升過早</b><br><span style='color:#D97706;font-size:12px;'>{round(asc_deg_f,1)}° < 3° (事未成熟)</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background:#FFFBEB;border:1px solid #FCD34D;{card_style_base}'><b>上升過早</b><br><span style='color:#D97706;font-size:12px;'>{round(asc_deg_f,1)}° < 3° (事未成熟)</span></div>", unsafe_allow_html=True)
                 elif is_late:
-                    st.markdown(f"<div style='background:#FEF2F2;border:1px solid #FCA5A5;border-radius:6px;padding:10px;text-align:center;'><b>上升過晚</b><br><span style='color:#DC2626;font-size:12px;'>{round(asc_deg_f,1)}° > 27° (大局已定)</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background:#FEF2F2;border:1px solid #FCA5A5;{card_style_base}'><b>上升過晚</b><br><span style='color:#DC2626;font-size:12px;'>{round(asc_deg_f,1)}° > 27° (大局已定)</span></div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:10px;text-align:center;'><b>上升度數良好</b><br><span style='color:#16A34A;font-size:12px;'>{round(asc_deg_f,1)}° (3°~27° 適判)</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background:#F0FDF4;border:1px solid #86EFAC;{card_style_base}'><b>上升度數良好</b><br><span style='color:#16A34A;font-size:12px;'>{round(asc_deg_f,1)}° (3°~27° 適判)</span></div>", unsafe_allow_html=True)
             with c_r2:
                 if is_m_voc:
-                    st.markdown("<div style='background:#FEF2F2;border:1px solid #FCA5A5;border-radius:6px;padding:10px;text-align:center;'><b>月亮空亡 (VOC)</b><br><span style='color:#DC2626;font-size:12px;'>換座前無入相 (動能停滯)</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background:#FEF2F2;border:1px solid #FCA5A5;{card_style_base}'><b>月亮空亡 (VOC)</b><br><span style='color:#DC2626;font-size:12px;'>換座前無入相 (動能停滯)</span></div>", unsafe_allow_html=True)
                 else:
-                    st.markdown("<div style='background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:10px;text-align:center;'><b>月亮推進正常</b><br><span style='color:#16A34A;font-size:12px;'>具備實質入相發展動能</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background:#F0FDF4;border:1px solid #86EFAC;{card_style_base}'><b>月亮推進正常</b><br><span style='color:#16A34A;font-size:12px;'>具備實質入相發展動能</span></div>", unsafe_allow_html=True)
             with c_r3:
                 if saturn_h == 1:
-                    st.markdown("<div style='background:#FFFBEB;border:1px solid #FCD34D;border-radius:6px;padding:10px;text-align:center;'><b>土星落入 1 宮</b><br><span style='color:#D97706;font-size:12px;'>問卜者焦慮或阻力沉重</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background:#FFFBEB;border:1px solid #FCD34D;{card_style_base}'><b>土星落入 1 宮</b><br><span style='color:#D97706;font-size:12px;'>問卜者焦慮或阻力沉重</span></div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:10px;text-align:center;'><b>土星無落 1 宮</b><br><span style='color:#16A34A;font-size:12px;'>落第 {saturn_h} 宮 (問卜無受克)</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background:#F0FDF4;border:1px solid #86EFAC;{card_style_base}'><b>土星無落 1 宮</b><br><span style='color:#16A34A;font-size:12px;'>落第 {saturn_h} 宮 (問卜無受克)</span></div>", unsafe_allow_html=True)
             with c_r4:
                 if saturn_h == 7:
-                    st.markdown("<div style='background:#FFFBEB;border:1px solid #FCD34D;border-radius:6px;padding:10px;text-align:center;'><b>土星落入 7 宮</b><br><span style='color:#D97706;font-size:12px;'>占斷研判易受干擾</span></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background:#FFFBEB;border:1px solid #FCD34D;{card_style_base}'><b>土星落入 7 宮</b><br><span style='color:#D97706;font-size:12px;'>占斷研判易受干擾</span></div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='background:#F0FDF4;border:1px solid #86EFAC;border-radius:6px;padding:10px;text-align:center;'><b>土星無落 7 宮</b><br><span style='color:#16A34A;font-size:12px;'>落第 {saturn_h} 宮 (客觀明朗)</span></div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background:#F0FDF4;border:1px solid #86EFAC;{card_style_base}'><b>土星無落 7 宮</b><br><span style='color:#16A34A;font-size:12px;'>落第 {saturn_h} 宮 (客觀明朗)</span></div>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
         else:
             st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             st.subheader("希臘阿拉伯點 (Lots)")
@@ -949,7 +954,6 @@ if st.session_state.report_data:
             # -------------------------------------------------------------
             # 1. 應期時鐘高亮儀表板 (Headline Timing Result)
             # -------------------------------------------------------------
-            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             st.subheader("⏳ 古典應期時鐘 (William Lilly Timing Dashboard)")
             st.caption("依據 William Lilly 應期計算法：以成相剩餘度數差 $\\Delta\\theta$ 為基礎，結合推進星所處星座 (開創/變動/固定) 與落入宮位 (角宮/續宮/落宮) 之速度矩陣權重換算。")
 
@@ -973,40 +977,44 @@ if st.session_state.report_data:
             t_c1, t_c2, t_c3 = st.columns(3)
             with t_c1:
                 st.markdown(f"""
-                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; text-align:center;'>
-                    <div style='font-size:11px; font-weight:700; color:#64748B; margin-bottom:4px;'>🎯 推進核心星體</div>
-                    <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:2px;'>{active_p_val}</div>
-                    <div style='font-size:12px; color:#475569;'>落於 {active_s_val} ｜ 需跑 {delta_deg_val}°</div>
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; text-align:center; min-height:115px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;'>
+                    <div>
+                        <div style='font-size:11px; font-weight:700; color:#64748B; margin-bottom:4px;'>🎯 推進核心星體</div>
+                        <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:2px;'>{active_p_val}</div>
+                    </div>
+                    <div style='font-size:12px; color:#475569; border-top:1px dashed #E2E8F0; padding-top:4px;'>落於 {active_s_val} ｜ 需跑 {delta_deg_val}°</div>
                 </div>
                 """, unsafe_allow_html=True)
             with t_c2:
                 st.markdown(f"""
-                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; text-align:center;'>
-                    <div style='font-size:11px; font-weight:700; color:#64748B; margin-bottom:4px;'>⚡ 星座動能速度</div>
-                    <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:2px;'>{sign_spd_val}</div>
-                    <div style='font-size:12px; color:#475569;'>開創 (極快) / 變動 (適中) / 固定 (沉緩)</div>
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; text-align:center; min-height:115px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;'>
+                    <div>
+                        <div style='font-size:11px; font-weight:700; color:#64748B; margin-bottom:4px;'>⚡ 星座動能速度</div>
+                        <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:2px;'>{sign_spd_val}</div>
+                    </div>
+                    <div style='font-size:12px; color:#475569; border-top:1px dashed #E2E8F0; padding-top:4px;'>開創 (極快) / 變動 (適中) / 固定 (沉緩)</div>
                 </div>
                 """, unsafe_allow_html=True)
             with t_c3:
                 st.markdown(f"""
-                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; text-align:center;'>
-                    <div style='font-size:11px; font-weight:700; color:#64748B; margin-bottom:4px;'>🏛️ 宮位動能速度</div>
-                    <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:2px;'>{house_spd_val}</div>
-                    <div style='font-size:12px; color:#475569;'>角宮 (迅速) / 續宮 (適中) / 落宮 (延宕)</div>
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px; padding:14px; text-align:center; min-height:115px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;'>
+                    <div>
+                        <div style='font-size:11px; font-weight:700; color:#64748B; margin-bottom:4px;'>🏛️ 宮位動能速度</div>
+                        <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:2px;'>{house_spd_val}</div>
+                    </div>
+                    <div style='font-size:12px; color:#475569; border-top:1px dashed #E2E8F0; padding-top:4px;'>角宮 (迅速) / 續宮 (適中) / 落宮 (延宕)</div>
                 </div>
                 """, unsafe_allow_html=True)
 
             st.markdown(f"""
-            <div style='background:#F0F9FF; border:1px solid #BAE6FD; border-left:4px solid #0284C7; border-radius:6px; padding:12px 16px; margin-top:16px; color:#0369A1; font-size:14px; line-height:1.6;'>
+            <div style='background:#F0F9FF; border:1px solid #BAE6FD; border-left:4px solid #0284C7; border-radius:6px; padding:12px 16px; margin-top:16px; margin-bottom:24px; color:#0369A1; font-size:14px; line-height:1.6;'>
                 <b>💡 節奏動能評述：</b> {pacing_desc_val}
             </div>
             """, unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
 
             # -------------------------------------------------------------
             # 2. 月亮流動全景三階段時間軸 (Past ➔ Present ➔ Future)
             # -------------------------------------------------------------
-            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             st.subheader("🌙 月亮流動全景三階段時間軸 (Moon's Temporal Flow)")
             st.caption("古典占星學中，月亮是全宇宙事態具象化的總發動機。月亮離相位代表『過去起因』，落宮代表『當下處境』，入相位代表『即刻發展』。")
 
@@ -1029,11 +1037,13 @@ if st.session_state.report_data:
                     lsa_desc = "過去事態相對平緩或無特殊劇烈引動事件。"
 
                 st.markdown(f"""
-                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-top:4px solid #64748B; border-radius:8px; padding:14px; height:100%;'>
-                    <div style='font-size:11px; font-weight:700; color:#64748B; margin-bottom:4px;'>⏪ 第一階段：過去起因 (離相)</div>
-                    <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{lsa_title}</div>
-                    <div style='font-size:12px; color:#475569; margin-bottom:6px;'>{lsa_orb}</div>
-                    <div style='font-size:12px; color:#64748B; line-height:1.5;'>{lsa_desc}</div>
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-top:4px solid #64748B; border-radius:8px; padding:14px; min-height:185px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;'>
+                    <div>
+                        <div style='font-size:11px; font-weight:700; color:#64748B; margin-bottom:4px;'>⏪ 第一階段：過去起因 (離相)</div>
+                        <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{lsa_title}</div>
+                        <div style='font-size:12px; color:#475569; margin-bottom:6px;'>{lsa_orb}</div>
+                    </div>
+                    <div style='font-size:12px; color:#64748B; line-height:1.5; border-top:1px dashed #E2E8F0; padding-top:6px;'>{lsa_desc}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -1041,11 +1051,13 @@ if st.session_state.report_data:
                 voc_label = "⚠️ 空亡 (動能停滯)" if is_voc_val else "✅ 推進正常"
                 voc_color = "#DC2626" if is_voc_val else "#16A34A"
                 st.markdown(f"""
-                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-top:4px solid #2563EB; border-radius:8px; padding:14px; height:100%;'>
-                    <div style='font-size:11px; font-weight:700; color:#2563EB; margin-bottom:4px;'>⏸️ 第二階段：當前處境 (月相)</div>
-                    <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>月亮落於 {m_sign_val}</div>
-                    <div style='font-size:12px; color:#475569; margin-bottom:6px;'>度數：{m_deg_val} ｜ <span style='color:{voc_color}; font-weight:bold;'>{voc_label}</span></div>
-                    <div style='font-size:12px; color:#64748B; line-height:1.5;'>反映問卜者當前的心境焦點與局勢所處的客觀環境氛圍。</div>
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-top:4px solid #2563EB; border-radius:8px; padding:14px; min-height:185px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;'>
+                    <div>
+                        <div style='font-size:11px; font-weight:700; color:#2563EB; margin-bottom:4px;'>⏸️ 第二階段：當前處境 (月相)</div>
+                        <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>月亮落於 {m_sign_val}</div>
+                        <div style='font-size:12px; color:#475569; margin-bottom:6px;'>度數：{m_deg_val} ｜ <span style='color:{voc_color}; font-weight:bold;'>{voc_label}</span></div>
+                    </div>
+                    <div style='font-size:12px; color:#64748B; line-height:1.5; border-top:1px dashed #E2E8F0; padding-top:6px;'>反映問卜者當前的心境焦點與局勢所處的客觀環境氛圍。</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -1060,11 +1072,13 @@ if st.session_state.report_data:
                     naa_desc = "事件恐無實質後續進展或容易無疾而終。"
 
                 st.markdown(f"""
-                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-top:4px solid #16A34A; border-radius:8px; padding:14px; height:100%;'>
-                    <div style='font-size:11px; font-weight:700; color:#16A34A; margin-bottom:4px;'>⏩ 第三階段：即刻未來 (入相)</div>
-                    <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{naa_title}</div>
-                    <div style='font-size:12px; color:#475569; margin-bottom:6px;'>{naa_orb}</div>
-                    <div style='font-size:12px; color:#64748B; line-height:1.5;'>{naa_desc}</div>
+                <div style='background:#FFFFFF; border:1px solid #CBD5E1; border-top:4px solid #16A34A; border-radius:8px; padding:14px; min-height:185px; height:100%; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box;'>
+                    <div>
+                        <div style='font-size:11px; font-weight:700; color:#16A34A; margin-bottom:4px;'>⏩ 第三階段：即刻未來 (入相)</div>
+                        <div style='font-size:1.15rem; font-weight:800; color:#0F172A; margin-bottom:4px;'>{naa_title}</div>
+                        <div style='font-size:12px; color:#475569; margin-bottom:6px;'>{naa_orb}</div>
+                    </div>
+                    <div style='font-size:12px; color:#64748B; line-height:1.5; border-top:1px dashed #E2E8F0; padding-top:6px;'>{naa_desc}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -1075,7 +1089,6 @@ if st.session_state.report_data:
                 if mf.get('all_separating'):
                     st.markdown("**剛脫離的離相位清單**：")
                     st.table(pd.DataFrame(mf['all_separating']).rename(columns={'target_planet': '目標星體', 'aspect_name': '相位類型', 'orb': '脫離交角差', 'is_applying': '入相標記'}))
-            st.markdown("</div>", unsafe_allow_html=True)
         else:
             st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             st.subheader("推運資訊摘要")
