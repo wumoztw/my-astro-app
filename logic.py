@@ -31,6 +31,7 @@ from almuten_logic import AlmutenLogic
 from secondary_progressions_logic import SecondaryProgressionsLogic
 from tertiary_progressions_logic import TertiaryProgressionsLogic
 from thematic_reports_logic import ThematicReportsLogic
+from horary_engine_logic import HoraryEngineLogic
 import streamlit as st
 import os
 
@@ -97,6 +98,7 @@ class AstrologyLogic:
         self.secondary_progressions = SecondaryProgressionsLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.tertiary_progressions = TertiaryProgressionsLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.thematic_reports = ThematicReportsLogic()
+        self.horary_engine = HoraryEngineLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.tf = TimezoneFinder()
 
     def get_timezone_info(self, lat, lon, dt=None):
@@ -306,6 +308,24 @@ class AstrologyLogic:
         return self.tertiary_progressions.calculate_tertiary_progressions(
             chart, houses, birth_dt_str, birth_time_str, utc_offset_str, lat, lon, target_date
         )
+
+    def analyze_horary_chart(self, chart, houses, question: str, planets_data):
+        """
+        全面分析古典占星卜卦：問題宮位鎖定、五大成事路徑、應期時鐘與月亮流動全景。
+        """
+        classification = self.horary_engine.classify_quesited_house(question)
+        quesited_house = classification["quesited_house"]
+        perfection = self.horary_engine.analyze_perfection(chart, houses, quesited_house, planets_data)
+        timing = self.horary_engine.calculate_timing(chart, houses, perfection)
+        moon_flow = self.horary_engine.get_moon_flow(chart)
+
+        return {
+            "classification": classification,
+            "perfection": perfection,
+            "timing": timing,
+            "moon_flow": moon_flow
+        }
+
 
 
 

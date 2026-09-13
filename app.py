@@ -9,7 +9,7 @@ import importlib
 
 # Ensure fresh module reloading in Streamlit Cloud when git updates
 for _mod_name in (
-    'logic', 'dignities_logic', 'aspects_logic', 'lots_logic', 
+    'logic', 'horary_engine_logic', 'dignities_logic', 'aspects_logic', 'lots_logic', 
     'time_lords_logic', 'zodiacal_releasing_logic', 'solar_arc_logic', 
     'almuten_logic', 'secondary_progressions_logic', 'tertiary_progressions_logic',
     'thematic_reports_logic', 'horary_prompt', 'natal_prompt', 'ai_logic'
@@ -231,6 +231,12 @@ if generate_btn or horary_btn:
         birth_date_str = birth_date.strftime('%Y/%m/%d')
         birth_time_str = birth_time.strftime('%H:%M')
         
+        # If horary button is clicked and default 1900/01/01 is left, cast for current moment
+        if horary_btn and date_input_raw.strip() == "1900/01/01":
+            now_dt = datetime.now()
+            birth_date_str = now_dt.strftime('%Y/%m/%d')
+            birth_time_str = now_dt.strftime('%H:%M')
+        
         sign = '+' if utc_offset >= 0 else '-'
         abs_offset = abs(utc_offset)
         h, m = int(abs_offset), int((abs_offset - int(abs_offset)) * 60)
@@ -422,6 +428,54 @@ if generate_btn or horary_btn:
                         md += f"  * {tpa['prog_planet']} {tpa['aspect']} {tpa['natal_planet']} (誤差 {tpa['orb_str']}，{tpa['duration']})\n"
                 md += "\n"
 
+        horary_analysis = None
+        if st.session_state.chart_type == 'horary':
+            cur_q = st.session_state.get('horary_question', '這件事會成功嗎？')
+            horary_analysis = logic.analyze_horary_chart(chart, houses, cur_q, planets_data)
+            
+            c = horary_analysis.get('classification', {})
+            p = horary_analysis.get('perfection', {})
+            t = horary_analysis.get('timing', {})
+            mf = horary_analysis.get('moon_flow', {})
+            
+            md += "## 🔮 古典卜卦成事診斷與應期 (William Lilly 1647 原典規範)\n\n"
+            md += f"- **問卜問題**：{cur_q}\n"
+            md += f"- **鎖定所屬宮位**：第 {c.get('quesited_house', 7)} 宮 ({c.get('house_meaning', '')}) ｜ 匹配關鍵字：`{c.get('matched_keyword', '')}`\n"
+            md += f"- **問卜者守護星 (Lord 1)**：{c.get('querent_planet_name', '')}\n"
+            md += f"- **所問事項守護星 (Lord Q)**：{c.get('quesited_planet_name', '')}\n"
+            md += f"- **終局裁決**：**{p.get('overall_verdict', '')}**\n"
+            md += f"  * 裁決說明：{p.get('verdict_desc', '')}\n"
+            if p.get('direct_perfections'):
+                for dp in p['direct_perfections']:
+                    md += f"  * 直接入相位：{dp['source']} 與 {dp['target']} 呈 {dp['aspect']} (剩餘 {dp['delta_deg']}°)\n"
+            if p.get('translation_of_light'):
+                for tol in p['translation_of_light']:
+                    md += f"  * 光線傳遞：{tol['translator']} 傳遞光線予 {tol['receiver']}\n"
+            if p.get('collection_of_light'):
+                for col in p['collection_of_light']:
+                    md += f"  * 光線收集：{col['collector']} 收集雙方光線\n"
+            if p.get('reception_details'):
+                for rec in p['reception_details']:
+                    md += f"  * 互容關係：{rec['reception_type']} ({rec['meaning']})\n"
+            if p.get('prohibitions'):
+                for pro in p['prohibitions']:
+                    md += f"  * ⚠️ 阻礙截胡：{pro['meaning']}\n"
+            if p.get('refranations'):
+                for ref in p['refranations']:
+                    md += f"  * ⚠️ 逆行反悔：{ref['meaning']}\n"
+            md += "\n"
+            
+            md += "### 🌙 月亮流動全景與應期時鐘\n"
+            md += f"- **月亮當前狀態**：落於 {mf.get('moon_sign', '')} {mf.get('moon_deg_str', '')} ｜ {'⚠️ 空亡 (Void of Course)' if mf.get('is_voc') else '✅ 正常推進'}\n"
+            if mf.get('last_separating_aspect'):
+                lsa = mf['last_separating_aspect']
+                md += f"- **離相位 (過去起因)**：月亮剛與 {lsa['target_planet']} 形成 {lsa['aspect_name']} (誤差 {lsa['orb']}°)\n"
+            if mf.get('next_applying_aspect'):
+                naa = mf['next_applying_aspect']
+                md += f"- **次一入相位 (即刻發展)**：月亮即將與 {naa['target_planet']} 形成 {naa['aspect_name']} (誤差 {naa['orb']}°)\n"
+            md += f"- **古典應期推估**：約 **{t.get('estimated_timeframe', '')}** (時間單位：{t.get('time_unit', '')}，剩餘度數：{t.get('delta_degrees', 0)}°)\n"
+            md += f"  * 節奏動能：{t.get('pacing_description', '')}\n\n"
+
         md += "---\n\n"
         md += "## 🤖 AI 自動解析已就緒\n"
         report_type = "本命盤" if st.session_state.chart_type == 'natal' else "卜卦占星盤"
@@ -429,6 +483,7 @@ if generate_btn or horary_btn:
 
         st.session_state.report_md = md
         st.session_state.report_data = {
+            'chart': chart,
             'asc': f"{asc_sign} {asc_deg}°{asc_min}'",
             'sun': f"{sun_sign} {sun_deg}°{sun_min}'",
             'moon': f"{moon_sign} {moon_deg}°{moon_min}'",
@@ -443,7 +498,8 @@ if generate_btn or horary_btn:
             'tert_prog_data': tert_prog_data,
             'is_day': is_day,
             'lots': lots,
-            'fixed_stars': fixed_stars
+            'fixed_stars': fixed_stars,
+            'horary_analysis': horary_analysis
         }
     except Exception as e:
         st.error(f"分析錯誤: {str(e)}")
@@ -456,7 +512,8 @@ if st.session_state.report_data and ai_assistant.is_configured:
         
         if st.session_state.chart_type == 'horary':
             # --- Specialized Horary AI Module ---
-            horary_question = st.text_input("📌 請輸入您想占卜的問題：", help="例如：我會不會順利錄取這份工作？")
+            horary_question = st.text_input("📌 請輸入您想占卜的問題：", value=st.session_state.get('horary_question', '這件事會成功嗎？'), help="例如：我會不會順利錄取這份工作？")
+            st.session_state.horary_question = horary_question
             
             if st.button("🔮 啟動卜卦盤 AI 邏輯分析引擎", use_container_width=True, type="primary"):
                 st.session_state.ai_analysis_triggered = True
@@ -519,9 +576,24 @@ if st.session_state.report_data:
     
     # --- UI Layout ---
     # Define tabs dynamically
-    tabs_list = ['行星與本質力量', '相位與接納', '特殊點位與恆星', '推運時間軸 (法達/小限/ZR/太陽弧)']
-    if st.session_state.get('ai_analysis_triggered'):
-        tabs_list.append('✨ AI 深度解析報告')
+    if st.session_state.chart_type == 'horary':
+        tabs_list = [
+            '🪐 行星與本質力量',
+            '📐 相位與接納關係',
+            '🔮 卜卦檢意與成事診斷',
+            '🌙 月亮流動與應期時鐘'
+        ]
+        if st.session_state.get('ai_analysis_triggered'):
+            tabs_list.append('✨ AI 卜卦深度解析報告')
+    else:
+        tabs_list = [
+            '行星與本質力量',
+            '相位與接納',
+            '特殊點位與恆星',
+            '推運時間軸 (法達/小限/ZR/太陽弧)'
+        ]
+        if st.session_state.get('ai_analysis_triggered'):
+            tabs_list.append('✨ AI 深度解析報告')
     
     all_tabs = st.tabs(tabs_list)
     
@@ -572,226 +644,407 @@ if st.session_state.report_data:
             st.write("目前無顯著相位。")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Tab 3: Lots & Stars
+    # Tab 3: Lots & Stars (Natal) OR Radicality & Perfection (Horary)
     with all_tabs[2]:
-        st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-        st.subheader("希臘阿拉伯點 (Lots)")
-        if d.get('lots'):
-            df_l = pd.DataFrame(d['lots'])
-            col_map_l = {
-                'name': '點位名稱',
-                'sign': '星座',
-                'degree': '度數',
-                'house': '宮位',
-                'description': '象徵意義'
-            }
-            cols_l = [c for c in col_map_l if c in df_l.columns]
-            st.table(df_l[cols_l].rename(columns=col_map_l))
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-        st.subheader("重要恆星合相 (Fixed Stars)")
-        if d['fixed_stars']:
-            df_s = pd.DataFrame(d['fixed_stars'])
-            col_map_s = {'planet': '行星', 'star': '恆星', 'orb': '誤差'}
-            cols_s = [c for c in col_map_s if c in df_s.columns]
-            st.table(df_s[cols_s].rename(columns=col_map_s))
+        if st.session_state.chart_type == 'horary':
+            ha = d.get('horary_analysis') or {}
+            c = ha.get('classification', {})
+            p = ha.get('perfection', {})
+            t = ha.get('timing', {})
+            mf = ha.get('moon_flow', {})
+            
+            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+            st.subheader("🔮 卜卦檢意與所問事項鎖定 (William Lilly 1647)")
+            
+            # Question & Target House Banner
+            q_cols = st.columns([3, 1])
+            with q_cols[0]:
+                st.markdown(f"**占卜問題**：`{c.get('question', st.session_state.get('horary_question', ''))}`")
+                st.caption(f"匹配關鍵字：`{c.get('matched_keyword', '')}` ➔ 鎖定 **第 {c.get('quesited_house', 7)} 宮**（{c.get('house_meaning', '')}）")
+            with q_cols[1]:
+                if st.button("🔄 重新分析問題", use_container_width=True):
+                    st.rerun()
+            
+            # Querent vs Quesited significators cards
+            sig_col1, sig_col2, sig_col3 = st.columns(3)
+            with sig_col1:
+                st.markdown(f"<div class='summary-card'><div class='summary-title'>問卜者 (Lord 1)</div><div class='summary-value'>{c.get('querent_planet_name', '')}</div><div style='font-size:12px;color:#666;'>第 1 宮主星</div></div>", unsafe_allow_html=True)
+            with sig_col2:
+                st.markdown(f"<div class='summary-card'><div class='summary-title'>所問事項 (Lord Q)</div><div class='summary-value'>{c.get('quesited_planet_name', '')}</div><div style='font-size:12px;color:#666;'>第 {c.get('quesited_house', 7)} 宮主星</div></div>", unsafe_allow_html=True)
+            with sig_col3:
+                st.markdown(f"<div class='summary-card'><div class='summary-title'>共同徵象星 (Co-Sig)</div><div class='summary-value'>{c.get('co_significator_name', '月亮')}</div><div style='font-size:12px;color:#666;'>推動事態發展</div></div>", unsafe_allow_html=True)
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # Radicality & Considerations Before Judgment
+            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+            st.subheader("⚖️ 盤體有效性檢驗 (Considerations Before Judgment)")
+            asc_deg_f = (d['chart'].get(const.ASC).lon % 30) if 'chart' in d else 15.0
+            is_early = asc_deg_f < 3.0
+            is_late = asc_deg_f > 27.0
+            is_m_voc = mf.get('is_voc', False)
+            saturn_h = next((p_item['house_num'] for p_item in d['planets'] if p_item.get('id') == 'Saturn'), 0)
+            
+            r_col1, r_col2 = st.columns(2)
+            with r_col1:
+                if is_early:
+                    st.warning(f"⚠️ 上升度數過早 ({round(asc_deg_f, 1)}° < 3°)：事件尚未成熟，變數仍多。")
+                elif is_late:
+                    st.warning(f"⚠️ 上升度數過晚 ({round(asc_deg_f, 1)}° > 27°)：大局已定，木已成舟。")
+                else:
+                    st.success(f"✅ 上升度數良好 ({round(asc_deg_f, 1)}°)：介於 3°~27° 之間，盤體健康適判。")
+                
+                if saturn_h in (1, 7):
+                    st.warning(f"⚠️ 土星落入第 {saturn_h} 宮：容易受外界阻力干擾或問卜者情緒焦慮。")
+                else:
+                    st.success(f"✅ 土星落入第 {saturn_h} 宮：無 1/7 宮干擾。")
+
+            with r_col2:
+                if is_m_voc:
+                    st.warning("⚠️ 月亮空亡 (Void of Course)：月亮在換座前無入相位，事態恐無實質進展。")
+                else:
+                    st.success("✅ 月亮運行順暢：具備實質入相位推動力。")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # Overall Verdict & 5 Perfection Pathways
+            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+            st.subheader("🎯 古典成事五大路徑診斷 (Perfection of Matter)")
+            
+            # Big Verdict Banner
+            v_text = p.get('overall_verdict', '評估中')
+            v_color = "#16A34A" if p.get('is_perfected') and "阻礙" not in v_text and "逆行" not in v_text else ("#DC2626" if "無" in v_text else "#EA580C")
+            st.markdown(f"""
+            <div style='background-color: {v_color}15; border: 2px solid {v_color}; border-radius: 10px; padding: 18px; margin-bottom: 20px;'>
+                <div style='font-size: 22px; font-weight: bold; color: {v_color}; margin-bottom: 6px;'>
+                    {v_text}
+                </div>
+                <div style='font-size: 15px; color: #333;'>
+                    {p.get('verdict_desc', '')}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Five pathways detailed inspection
+            p_tabs = st.tabs(["1. 直接入相", "2. 光線傳遞", "3. 光線收集", "4. 古典互容", "5. 阻礙與反悔"])
+            with p_tabs[0]:
+                if p.get('direct_perfections'):
+                    for dp in p['direct_perfections']:
+                        st.info(f"✨ **{dp['type']}**：{dp['source']} 與 {dp['target']} 形成 **{dp['aspect']}**（當前交角誤差 {dp['orb']}°，剩餘推進度數 {dp['delta_deg']}°）")
+                else:
+                    st.write("雙方守護星目前無直接入相位。")
+            with p_tabs[1]:
+                if p.get('translation_of_light'):
+                    for tol in p['translation_of_light']:
+                        st.success(f"🤝 **光線傳遞成功**：第三方星體 **{tol['translator']}** 從 {tol['source']} 剛脫離相位，即將奔向與 {tol['target']} 成相！象徵有熱心貴人、中介或信使在雙方之間牽線撮合。")
+                else:
+                    st.write("目前無光線傳遞跡象。")
+            with p_tabs[2]:
+                if p.get('collection_of_light'):
+                    for col in p['collection_of_light']:
+                        st.success(f"⚖️ **光線收集成功**：權威星體 **{col['collector']}** 同時接納問卜者與事項雙方的入相位！象徵雙方透過共同長官、權威機構或仲裁法律達成和解。")
+                else:
+                    st.write("目前無光線收集跡象。")
+            with p_tabs[3]:
+                if p.get('reception_details'):
+                    for rec in p['reception_details']:
+                        st.markdown(f"**{rec['reception_type']}**：{rec['meaning']}")
+                else:
+                    st.write("雙方守護星之間無顯著廟旺互容。")
+            with p_tabs[4]:
+                has_obstacle = False
+                if p.get('prohibitions'):
+                    has_obstacle = True
+                    for pro in p['prohibitions']:
+                        st.error(f"⚠️ {pro['meaning']}")
+                if p.get('refranations'):
+                    has_obstacle = True
+                    for ref in p['refranations']:
+                        st.warning(f"⚠️ {ref['meaning']}")
+                if not has_obstacle:
+                    st.success("✅ 成相推進路徑清晰，無第三方星體搶先截胡 (Prohibition)，亦無逆行反悔 (Refranation)。")
+            st.markdown("</div>", unsafe_allow_html=True)
+
         else:
-            st.write("目前無行星與重要恆星合相。")
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+            st.subheader("希臘阿拉伯點 (Lots)")
+            if d.get('lots'):
+                df_l = pd.DataFrame(d['lots'])
+                col_map_l = {
+                    'name': '點位名稱',
+                    'sign': '星座',
+                    'degree': '度數',
+                    'house': '宮位',
+                    'description': '象徵意義'
+                }
+                cols_l = [c for c in col_map_l if c in df_l.columns]
+                st.table(df_l[cols_l].rename(columns=col_map_l))
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+            st.subheader("重要恆星合相 (Fixed Stars)")
+            if d['fixed_stars']:
+                df_s = pd.DataFrame(d['fixed_stars'])
+                col_map_s = {'planet': '行星', 'star': '恆星', 'orb': '誤差'}
+                cols_s = [c for c in col_map_s if c in df_s.columns]
+                st.table(df_s[cols_s].rename(columns=col_map_s))
+            else:
+                st.write("目前無行星與重要恆星合相。")
+            st.markdown("</div>", unsafe_allow_html=True)
 
-    # Tab 4: Time Lords
+    # Tab 4: Time Lords (Natal) OR Moon Flow & Timing Clock (Horary)
     with all_tabs[3]:
-        st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-        st.subheader("推運資訊摘要")
-        pi = d['prof_info']
-        st.write(f"當前年齡：{pi.get('age')} 歲")
-        st.write(f"小限走到：{pi.get('prof_sign')} (第 {pi.get('prof_house_num')} 宮)")
-        st.write(f"年度主星：{pi.get('lord_of_year')}")
-        st.markdown("---")
-        
-        st.subheader("法達大限 (Firdaria) 時間表")
-        act = d['f_data']['active']
-        st.info(f"**當前大運**：{logic.TRANS_PLANETS.get(act['major'], act['major'])} | **當前小運**：{logic.TRANS_PLANETS.get(act['minor'], act['minor'])} (直到 {act['end'].strftime('%Y/%m/%d')})")
-        
-        with st.expander("查看完整法達星限時間表"):
-            f_rows = []
-            for major in d['f_data']['timeline']:
-                for minor in major['subs']:
-                    f_rows.append({
-                        '大運': logic.TRANS_PLANETS.get(major['lord'], major['lord']),
-                        '小運': logic.TRANS_PLANETS.get(minor['minor'], minor['minor']),
-                        '開始日期': minor['start'].strftime('%Y/%m/%d'),
-                        '結束日期': minor['end'].strftime('%Y/%m/%d')
-                    })
-            st.table(pd.DataFrame(f_rows))
-        st.markdown("---")
-
-        # --- Zodiacal Releasing (ZR) Section ---
-        st.subheader("希臘黃道釋放法 (Zodiacal Releasing - 精神點)")
-        zr = d.get('zr_data', {}).get('spirit', {})
-        if zr:
-            act_l1 = zr.get('active_l1', {})
-            act_l2 = zr.get('active_l2', {})
-            z_col1, z_col2 = st.columns(2)
-            with z_col1:
-                st.markdown(f"**L1 主運**：`{act_l1.get('sign_name')}` ({act_l1.get('ruler_name')})")
-                st.caption(f"區間：{act_l1.get('start_date')} ~ {act_l1.get('end_date')} ｜ {act_l1.get('peak_type', '普通時期')}")
-            with z_col2:
-                st.markdown(f"**L2 子運**：`{act_l2.get('sign_name')}` ({act_l2.get('ruler_name')})")
-                st.caption(f"區間：{act_l2.get('start_date')} ~ {act_l2.get('end_date')} ｜ {act_l2.get('peak_type', '普通時期')}")
-            if act_l2.get('is_lb'):
-                st.warning("⚠️ 當前處於換宮跳躍 (Losing of the Bond) 關鍵轉折大變動期！")
-
-            with st.expander("查看黃道釋放法 L1 完整時間軸"):
-                l1_list = []
-                for p in zr.get('l1_periods', []):
-                    l1_list.append({
-                        '星座': p['sign_name'],
-                        '主星': p['ruler_name'],
-                        '黃道年數': p['years'],
-                        '開始時間': p['start_date'],
-                        '結束時間': p['end_date'],
-                        '巔峰屬性': p['peak_type']
-                    })
-                st.table(pd.DataFrame(l1_list))
-        st.markdown("---")
-
-        # --- Solar Arc Directions (SAD) Section ---
-        st.subheader("現代事件占星：太陽弧推運 (Solar Arc Directions)")
-        sa = d.get('sa_data', {})
-        if sa:
-            st.info(f"**推進太陽弧**：`{sa.get('solar_arc_str')}` (當前年齡：{sa.get('age_years')} 歲)")
-            sa_aspects = sa.get('active_aspects', [])
-            if sa_aspects:
-                st.markdown("**當前活躍重大硬相位 (0°/90°/180°，誤差 <= 1.0°)**：")
-                sa_rows = []
-                for asp in sa_aspects:
-                    sa_rows.append({
-                        '推運星 (SA)': asp['sa_planet_name'],
-                        '相位': asp['aspect'],
-                        '本命星 (Natal)': asp['natal_planet_name'],
-                        '誤差': asp['orb_str'],
-                        '核心事件象徵': asp.get('significance', '重大人生結構重組')
-                    })
-                st.table(pd.DataFrame(sa_rows))
-            else:
-                st.write("目前無容許度 <= 1.0° 之重大事件硬相位（處於相對穩定期）。")
-        st.markdown("---")
-
-        # --- Secondary Progressions (一日一年) Section ---
-        st.subheader("次限推運法 (Secondary Progressions - 一日一年)")
-        sp = d.get('sec_prog_data', {})
-        if sp:
-            p_moon = sp.get('progressed_moon', {})
-            l_phase = sp.get('lunar_phase', {})
+        if st.session_state.chart_type == 'horary':
+            ha = d.get('horary_analysis') or {}
+            mf = ha.get('moon_flow', {})
+            t = ha.get('timing', {})
             
-            sp_col1, sp_col2 = st.columns(2)
-            with sp_col1:
-                st.markdown(f"**🌙 次限月亮焦點**：`{p_moon.get('sign', '')} {p_moon.get('degree_str', '')}` ({p_moon.get('house_str', '')})")
-                st.caption(f"生活重心：{p_moon.get('theme', '')}")
-                st.caption(f"預計換座剩餘：約 {p_moon.get('months_left_in_sign', 0)} 個月")
-            with sp_col2:
-                st.markdown(f"**🌗 30 年月相大週期**：`{l_phase.get('phase_name', '')}`")
-                st.caption(f"人生階段：【{l_phase.get('stage', '')}】(日月角距 {l_phase.get('angle_str', '')})")
-                st.caption(f"{l_phase.get('desc', '')}")
-
-            # 30 年次限月相視覺進度軸
-            angle_val = l_phase.get('angle', 0.0)
-            progress_ratio = min(1.0, max(0.0, angle_val / 360.0))
-            cycle_year = round(progress_ratio * 29.5, 1)
-            st.progress(progress_ratio, text=f"30年月相進程：{round(progress_ratio * 100, 1)}% (約第 {cycle_year} 年 / 29.5 年週期)")
-
-            phase_stages = [
-                ("新月", "🌑", "0°~45°", "播種期"),
-                ("蛾眉月", "🌒", "45°~90°", "萌芽期"),
-                ("上弦月", "🌓", "90°~135°", "突破期"),
-                ("盈凸月", "🌔", "135°~180°", "精進期"),
-                ("滿月", "🌕", "180°~225°", "巔峰期"),
-                ("散播月", "🌖", "225°~270°", "分享期"),
-                ("下弦月", "🌗", "270°~315°", "重組期"),
-                ("香脂月", "🌘", "315°~360°", "休整期")
-            ]
-            cur_pname = l_phase.get('phase_name', '')
-            badges_html = "<div style='display: flex; justify-content: space-between; margin-top: 4px; margin-bottom: 12px; gap: 4px; overflow-x: auto;'>"
-            for name, icon, deg_range, stage in phase_stages:
-                is_active = (name in cur_pname)
-                bg_col = "#1E293B" if is_active else "#F1F5F9"
-                text_col = "#38BDF8" if is_active else "#475569"
-                border = "2px solid #38BDF8" if is_active else "1px solid #CBD5E1"
-                badges_html += f"<div style='flex: 1; min-width: 65px; text-align: center; background: {bg_col}; color: {text_col}; border: {border}; border-radius: 6px; padding: 6px 2px; font-size: 11px;'>"
-                badges_html += f"<div style='font-size: 16px; margin-bottom: 2px;'>{icon}</div><b>{stage}</b><div style='font-size: 9px; opacity: 0.8;'>{deg_range}</div></div>"
-            badges_html += "</div>"
-            st.markdown(badges_html, unsafe_allow_html=True)
+            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+            st.subheader("🌙 月亮流動全景 (Moon's Panoramic Flow)")
+            st.caption("古典占星學中，月亮是全宇宙事態具象化的總發動機。月亮剛離開的相位代表『過去起因』，即將成相的相位代表『即刻發展』。")
             
-            sp_aspects = sp.get('active_aspects', [])
-            if sp_aspects:
-                st.markdown("**當前活躍次限相位 (對本命盤)**：")
-                sp_rows = []
-                for asp in sp_aspects:
-                    sp_rows.append({
-                        '次限星 (Prog)': asp['prog_planet'],
-                        '相位': asp['aspect'],
-                        '本命星 (Natal)': asp['natal_planet'],
-                        '誤差': asp['orb_str'],
-                        '持續引動期': asp['duration']
-                    })
-                st.table(pd.DataFrame(sp_rows))
-            else:
-                st.write("目前無容許度內之活躍次限對本命相位。")
+            m_col1, m_col2 = st.columns(2)
+            with m_col1:
+                st.markdown(f"**當前月亮位置**：`{mf.get('moon_sign', '')} {mf.get('moon_deg_str', '')}`")
+            with m_col2:
+                if mf.get('is_voc'):
+                    st.warning("⚠️ **月亮處於空亡 (Void of Course)**：在進入下一星座前無主要相位。")
+                else:
+                    st.success("✅ **月亮動能充沛**：持續有主要相位引動事態。")
+            
+            flow_c1, flow_c2 = st.columns(2)
+            with flow_c1:
+                st.markdown("##### ⬅️ 離相位 (Separating Aspect - 過去起因)")
+                lsa = mf.get('last_separating_aspect')
+                if lsa:
+                    st.info(f"月亮剛與 **{lsa['target_planet']}** 形成 **{lsa['aspect_name']}** (交角差 {lsa['orb']}°)\n\n*象徵事件爆發前之背景、過去原由與問卜者歷程。*")
+                else:
+                    st.write("查無近期緊密離相位。")
+            with flow_c2:
+                st.markdown("##### ➡️ 次一入相位 (Next Applying Aspect - 即刻未來)")
+                naa = mf.get('next_applying_aspect')
+                if naa:
+                    st.success(f"月亮即將與 **{naa['target_planet']}** 形成 **{naa['aspect_name']}** (剩餘 {naa['orb']}°)\n\n*象徵事態接下來最先迎來的關鍵引動點或消息。*")
+                else:
+                    st.write("在該星座內已無後續入相位（月亮空亡）。")
+            
+            with st.expander("查看月亮在此星座之完整相位序列"):
+                if mf.get('all_applying'):
+                    st.markdown("**即將入相位清單**：")
+                    st.table(pd.DataFrame(mf['all_applying']).rename(columns={'target_planet': '目標星體', 'aspect_name': '相位類型', 'orb': '剩餘交角差', 'is_applying': '入相標記'}))
+                if mf.get('all_separating'):
+                    st.markdown("**剛脫離相位清單**：")
+                    st.table(pd.DataFrame(mf['all_separating']).rename(columns={'target_planet': '目標星體', 'aspect_name': '相位類型', 'orb': '脫離交角差', 'is_applying': '入相標記'}))
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # Timing Clock
+            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+            st.subheader("⏳ 古典應期時鐘 (Timing Estimation)")
+            st.caption("依據 William Lilly 應期計算法：以成相剩餘度數差 $\\Delta\\theta$ 為基礎，結合推進星所處星座 (開創/變動/固定) 與落入宮位 (角宮/續宮/落宮) 之速度矩陣權重換算。")
+            
+            t_col1, t_col2 = st.columns(2)
+            with t_col1:
+                st.markdown(f"**預估應期時間**：`{t.get('estimated_timeframe', '需進一步觀測')}`")
+                st.markdown(f"**時間單位尺度**：`{t.get('time_unit', '')}`")
+                st.markdown(f"**推進星體**：`{t.get('active_planet', '')}` (落入 {t.get('active_sign', '')})")
+            with t_col2:
+                st.markdown(f"**成相剩餘度數差 ($\\Delta\\theta$)**：`{t.get('delta_degrees', 0.0)}°`")
+                st.markdown(f"**星座動速**：`{t.get('sign_speed', '')}` ｜ **宮位動速**：`{t.get('house_speed', '')}`")
+                st.markdown(f"**綜合速度指數**：`{t.get('combined_score', 0)} / 6` (分數越小速度越快)")
+            
+            st.info(f"💡 **節奏動能研判**：{t.get('pacing_description', '')}")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        else:
+            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+            st.subheader("推運資訊摘要")
+            pi = d['prof_info']
+            st.write(f"當前年齡：{pi.get('age')} 歲")
+            st.write(f"小限走到：{pi.get('prof_sign')} (第 {pi.get('prof_house_num')} 宮)")
+            st.write(f"年度主星：{pi.get('lord_of_year')}")
+            st.markdown("---")
+        
+            st.subheader("法達大限 (Firdaria) 時間表")
+            act = d['f_data']['active']
+            st.info(f"**當前大運**：{logic.TRANS_PLANETS.get(act['major'], act['major'])} | **當前小運**：{logic.TRANS_PLANETS.get(act['minor'], act['minor'])} (直到 {act['end'].strftime('%Y/%m/%d')})")
+        
+            with st.expander("查看完整法達星限時間表"):
+                f_rows = []
+                for major in d['f_data']['timeline']:
+                    for minor in major['subs']:
+                        f_rows.append({
+                            '大運': logic.TRANS_PLANETS.get(major['lord'], major['lord']),
+                            '小運': logic.TRANS_PLANETS.get(minor['minor'], minor['minor']),
+                            '開始日期': minor['start'].strftime('%Y/%m/%d'),
+                            '結束日期': minor['end'].strftime('%Y/%m/%d')
+                        })
+                st.table(pd.DataFrame(f_rows))
             st.markdown("---")
 
-            # --- Tertiary Progressions (一日一月) Section ---
-            st.subheader("三限推運法 (Tertiary Progressions - 一日一月)")
-            st.caption("推進法則：以地球自轉一日對應熱帶月（約 27.32 日），精準捕捉以「月份/週」為尺度的生活場景轉移與情緒心理焦點。")
-            tp = d.get('tert_prog_data', {})
-            if tp:
-                t_moon = tp.get('tertiary_moon', {})
-                tl_phase = tp.get('lunar_phase', {})
-                
-                tp_col1, tp_col2 = st.columns(2)
-                with tp_col1:
-                    st.markdown(f"**🌙 三限月亮當月焦點**：`{t_moon.get('sign', '')} {t_moon.get('degree_str', '')}` ({t_moon.get('house_str', '')})")
-                    st.caption(f"當月生活重心：{t_moon.get('theme', '')}")
-                    st.caption(f"預計換宮剩餘：約 {t_moon.get('weeks_left_in_sign', 0)} 週 ({t_moon.get('days_left_in_sign', 0)} 天)")
-                with tp_col2:
-                    st.markdown(f"**🌗 2.5 年月相週期**：`{tl_phase.get('phase_name', '')}`")
-                    st.caption(f"階段進程：【{tl_phase.get('stage', '')}】(第 {tl_phase.get('cycle_month', 0)} 個月 / 29.5 個月週期)")
-                    st.caption(f"{tl_phase.get('desc', '')}")
+            # --- Zodiacal Releasing (ZR) Section ---
+            st.subheader("希臘黃道釋放法 (Zodiacal Releasing - 精神點)")
+            zr = d.get('zr_data', {}).get('spirit', {})
+            if zr:
+                act_l1 = zr.get('active_l1', {})
+                act_l2 = zr.get('active_l2', {})
+                z_col1, z_col2 = st.columns(2)
+                with z_col1:
+                    st.markdown(f"**L1 主運**：`{act_l1.get('sign_name')}` ({act_l1.get('ruler_name')})")
+                    st.caption(f"區間：{act_l1.get('start_date')} ~ {act_l1.get('end_date')} ｜ {act_l1.get('peak_type', '普通時期')}")
+                with z_col2:
+                    st.markdown(f"**L2 子運**：`{act_l2.get('sign_name')}` ({act_l2.get('ruler_name')})")
+                    st.caption(f"區間：{act_l2.get('start_date')} ~ {act_l2.get('end_date')} ｜ {act_l2.get('peak_type', '普通時期')}")
+                if act_l2.get('is_lb'):
+                    st.warning("⚠️ 當前處於換宮跳躍 (Losing of the Bond) 關鍵轉折大變動期！")
 
-                # 2.5 年三限月相進度軸
-                t_angle_val = tl_phase.get('angle', 0.0)
-                t_prog_ratio = min(1.0, max(0.0, t_angle_val / 360.0))
-                st.progress(t_prog_ratio, text=f"2.5年月相循環：{round(t_prog_ratio * 100, 1)}% (約第 {tl_phase.get('cycle_month', 0)} 個月 / 29.5 個月週期)")
+                with st.expander("查看黃道釋放法 L1 完整時間軸"):
+                    l1_list = []
+                    for p in zr.get('l1_periods', []):
+                        l1_list.append({
+                            '星座': p['sign_name'],
+                            '主星': p['ruler_name'],
+                            '黃道年數': p['years'],
+                            '開始時間': p['start_date'],
+                            '結束時間': p['end_date'],
+                            '巔峰屬性': p['peak_type']
+                        })
+                    st.table(pd.DataFrame(l1_list))
+            st.markdown("---")
 
-                cur_tpname = tl_phase.get('phase_name', '')
-                tp_badges_html = "<div style='display: flex; justify-content: space-between; margin-top: 4px; margin-bottom: 12px; gap: 4px; overflow-x: auto;'>"
+            # --- Solar Arc Directions (SAD) Section ---
+            st.subheader("現代事件占星：太陽弧推運 (Solar Arc Directions)")
+            sa = d.get('sa_data', {})
+            if sa:
+                st.info(f"**推進太陽弧**：`{sa.get('solar_arc_str')}` (當前年齡：{sa.get('age_years')} 歲)")
+                sa_aspects = sa.get('active_aspects', [])
+                if sa_aspects:
+                    st.markdown("**當前活躍重大硬相位 (0°/90°/180°，誤差 <= 1.0°)**：")
+                    sa_rows = []
+                    for asp in sa_aspects:
+                        sa_rows.append({
+                            '推運星 (SA)': asp['sa_planet_name'],
+                            '相位': asp['aspect'],
+                            '本命星 (Natal)': asp['natal_planet_name'],
+                            '誤差': asp['orb_str'],
+                            '核心事件象徵': asp.get('significance', '重大人生結構重組')
+                        })
+                    st.table(pd.DataFrame(sa_rows))
+                else:
+                    st.write("目前無容許度 <= 1.0° 之重大事件硬相位（處於相對穩定期）。")
+            st.markdown("---")
+
+            # --- Secondary Progressions (一日一年) Section ---
+            st.subheader("次限推運法 (Secondary Progressions - 一日一年)")
+            sp = d.get('sec_prog_data', {})
+            if sp:
+                p_moon = sp.get('progressed_moon', {})
+                l_phase = sp.get('lunar_phase', {})
+            
+                sp_col1, sp_col2 = st.columns(2)
+                with sp_col1:
+                    st.markdown(f"**🌙 次限月亮焦點**：`{p_moon.get('sign', '')} {p_moon.get('degree_str', '')}` ({p_moon.get('house_str', '')})")
+                    st.caption(f"生活重心：{p_moon.get('theme', '')}")
+                    st.caption(f"預計換座剩餘：約 {p_moon.get('months_left_in_sign', 0)} 個月")
+                with sp_col2:
+                    st.markdown(f"**🌗 30 年月相大週期**：`{l_phase.get('phase_name', '')}`")
+                    st.caption(f"人生階段：【{l_phase.get('stage', '')}】(日月角距 {l_phase.get('angle_str', '')})")
+                    st.caption(f"{l_phase.get('desc', '')}")
+
+                # 30 年次限月相視覺進度軸
+                angle_val = l_phase.get('angle', 0.0)
+                progress_ratio = min(1.0, max(0.0, angle_val / 360.0))
+                cycle_year = round(progress_ratio * 29.5, 1)
+                st.progress(progress_ratio, text=f"30年月相進程：{round(progress_ratio * 100, 1)}% (約第 {cycle_year} 年 / 29.5 年週期)")
+
+                phase_stages = [
+                    ("新月", "🌑", "0°~45°", "播種期"),
+                    ("蛾眉月", "🌒", "45°~90°", "萌芽期"),
+                    ("上弦月", "🌓", "90°~135°", "突破期"),
+                    ("盈凸月", "🌔", "135°~180°", "精進期"),
+                    ("滿月", "🌕", "180°~225°", "巔峰期"),
+                    ("散播月", "🌖", "225°~270°", "分享期"),
+                    ("下弦月", "🌗", "270°~315°", "重組期"),
+                    ("香脂月", "🌘", "315°~360°", "休整期")
+                ]
+                cur_pname = l_phase.get('phase_name', '')
+                badges_html = "<div style='display: flex; justify-content: space-between; margin-top: 4px; margin-bottom: 12px; gap: 4px; overflow-x: auto;'>"
                 for name, icon, deg_range, stage in phase_stages:
-                    is_active = (name in cur_tpname)
+                    is_active = (name in cur_pname)
                     bg_col = "#1E293B" if is_active else "#F1F5F9"
                     text_col = "#38BDF8" if is_active else "#475569"
                     border = "2px solid #38BDF8" if is_active else "1px solid #CBD5E1"
-                    tp_badges_html += f"<div style='flex: 1; min-width: 65px; text-align: center; background: {bg_col}; color: {text_col}; border: {border}; border-radius: 6px; padding: 6px 2px; font-size: 11px;'>"
-                    tp_badges_html += f"<div style='font-size: 16px; margin-bottom: 2px;'>{icon}</div><b>{stage}</b><div style='font-size: 9px; opacity: 0.8;'>{deg_range}</div></div>"
-                tp_badges_html += "</div>"
-                st.markdown(tp_badges_html, unsafe_allow_html=True)
-
-                tp_aspects = tp.get('active_aspects', [])
-                if tp_aspects:
-                    st.markdown("**當月活躍三限相位 (對本命盤，持續約 2~4 週)**：")
-                    tp_rows = []
-                    for asp in tp_aspects:
-                        tp_rows.append({
-                            '三限星 (Tert)': asp['prog_planet'],
+                    badges_html += f"<div style='flex: 1; min-width: 65px; text-align: center; background: {bg_col}; color: {text_col}; border: {border}; border-radius: 6px; padding: 6px 2px; font-size: 11px;'>"
+                    badges_html += f"<div style='font-size: 16px; margin-bottom: 2px;'>{icon}</div><b>{stage}</b><div style='font-size: 9px; opacity: 0.8;'>{deg_range}</div></div>"
+                badges_html += "</div>"
+                st.markdown(badges_html, unsafe_allow_html=True)
+            
+                sp_aspects = sp.get('active_aspects', [])
+                if sp_aspects:
+                    st.markdown("**當前活躍次限相位 (對本命盤)**：")
+                    sp_rows = []
+                    for asp in sp_aspects:
+                        sp_rows.append({
+                            '次限星 (Prog)': asp['prog_planet'],
                             '相位': asp['aspect'],
                             '本命星 (Natal)': asp['natal_planet'],
                             '誤差': asp['orb_str'],
                             '持續引動期': asp['duration']
                         })
-                    st.table(pd.DataFrame(tp_rows))
+                    st.table(pd.DataFrame(sp_rows))
                 else:
-                    st.write("目前無容許度內之活躍三限對本命相位。")
-        st.markdown("</div>", unsafe_allow_html=True)
+                    st.write("目前無容許度內之活躍次限對本命相位。")
+                st.markdown("---")
+
+                # --- Tertiary Progressions (一日一月) Section ---
+                st.subheader("三限推運法 (Tertiary Progressions - 一日一月)")
+                st.caption("推進法則：以地球自轉一日對應熱帶月（約 27.32 日），精準捕捉以「月份/週」為尺度的生活場景轉移與情緒心理焦點。")
+                tp = d.get('tert_prog_data', {})
+                if tp:
+                    t_moon = tp.get('tertiary_moon', {})
+                    tl_phase = tp.get('lunar_phase', {})
+                
+                    tp_col1, tp_col2 = st.columns(2)
+                    with tp_col1:
+                        st.markdown(f"**🌙 三限月亮當月焦點**：`{t_moon.get('sign', '')} {t_moon.get('degree_str', '')}` ({t_moon.get('house_str', '')})")
+                        st.caption(f"當月生活重心：{t_moon.get('theme', '')}")
+                        st.caption(f"預計換宮剩餘：約 {t_moon.get('weeks_left_in_sign', 0)} 週 ({t_moon.get('days_left_in_sign', 0)} 天)")
+                    with tp_col2:
+                        st.markdown(f"**🌗 2.5 年月相週期**：`{tl_phase.get('phase_name', '')}`")
+                        st.caption(f"階段進程：【{tl_phase.get('stage', '')}】(第 {tl_phase.get('cycle_month', 0)} 個月 / 29.5 個月週期)")
+                        st.caption(f"{tl_phase.get('desc', '')}")
+
+                    # 2.5 年三限月相進度軸
+                    t_angle_val = tl_phase.get('angle', 0.0)
+                    t_prog_ratio = min(1.0, max(0.0, t_angle_val / 360.0))
+                    st.progress(t_prog_ratio, text=f"2.5年月相循環：{round(t_prog_ratio * 100, 1)}% (約第 {tl_phase.get('cycle_month', 0)} 個月 / 29.5 個月週期)")
+
+                    cur_tpname = tl_phase.get('phase_name', '')
+                    tp_badges_html = "<div style='display: flex; justify-content: space-between; margin-top: 4px; margin-bottom: 12px; gap: 4px; overflow-x: auto;'>"
+                    for name, icon, deg_range, stage in phase_stages:
+                        is_active = (name in cur_tpname)
+                        bg_col = "#1E293B" if is_active else "#F1F5F9"
+                        text_col = "#38BDF8" if is_active else "#475569"
+                        border = "2px solid #38BDF8" if is_active else "1px solid #CBD5E1"
+                        tp_badges_html += f"<div style='flex: 1; min-width: 65px; text-align: center; background: {bg_col}; color: {text_col}; border: {border}; border-radius: 6px; padding: 6px 2px; font-size: 11px;'>"
+                        tp_badges_html += f"<div style='font-size: 16px; margin-bottom: 2px;'>{icon}</div><b>{stage}</b><div style='font-size: 9px; opacity: 0.8;'>{deg_range}</div></div>"
+                    tp_badges_html += "</div>"
+                    st.markdown(tp_badges_html, unsafe_allow_html=True)
+
+                    tp_aspects = tp.get('active_aspects', [])
+                    if tp_aspects:
+                        st.markdown("**當月活躍三限相位 (對本命盤，持續約 2~4 週)**：")
+                        tp_rows = []
+                        for asp in tp_aspects:
+                            tp_rows.append({
+                                '三限星 (Tert)': asp['prog_planet'],
+                                '相位': asp['aspect'],
+                                '本命星 (Natal)': asp['natal_planet'],
+                                '誤差': asp['orb_str'],
+                                '持續引動期': asp['duration']
+                            })
+                        st.table(pd.DataFrame(tp_rows))
+                    else:
+                        st.write("目前無容許度內之活躍三限對本命相位。")
+            st.markdown("</div>", unsafe_allow_html=True)
 
     # Tab 5: AI Analysis (Dynamic Chat)
     if st.session_state.get('ai_analysis_triggered'):
