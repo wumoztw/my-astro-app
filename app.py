@@ -12,7 +12,8 @@ for _mod_name in (
     'logic', 'horary_engine_logic', 'dignities_logic', 'aspects_logic', 'lots_logic', 
     'time_lords_logic', 'zodiacal_releasing_logic', 'solar_arc_logic', 
     'almuten_logic', 'secondary_progressions_logic', 'tertiary_progressions_logic',
-    'thematic_reports_logic', 'horary_prompt', 'natal_prompt', 'ai_logic'
+    'thematic_reports_logic', 'horary_prompt', 'natal_prompt', 'ai_logic',
+    'github_forum_exporter'
 ):
     if _mod_name in sys.modules:
         try:
@@ -26,6 +27,7 @@ from horary_prompt import HORARY_SYSTEM_PROMPT
 from natal_prompt import NATAL_SYSTEM_PROMPT
 from thematic_reports_logic import ThematicReportsLogic
 from ai_logic import AIAssistant
+from github_forum_exporter import generate_discussion_payload, REPO_URL
 
 import streamlit.components.v1 as components
 
@@ -594,6 +596,9 @@ if st.session_state.report_data:
         ]
         if st.session_state.get('ai_analysis_triggered'):
             tabs_list.append('✨ AI 深度解析報告')
+    
+    # Always append Community Forum Tab at the end
+    tabs_list.append('🏛️ 占星社群論壇')
     
     all_tabs = st.tabs(tabs_list)
     
@@ -1333,6 +1338,50 @@ if st.session_state.report_data:
             
             st.markdown("</div>", unsafe_allow_html=True)
 
+    # Tab: GitHub Discussions Community Forum
+    with all_tabs[-1]:
+        st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+        st.subheader("🏛️ GitHub 原生古典占星社群論壇 (Discussions)")
+        st.markdown(
+            "歡迎將此命盤發布至 GitHub 開源討論區進行深度研討！\n\n"
+            "發布後，我們的 **AI 駐站古典掌門（William Lilly 1647 原典體系）** 將透過 **Groq LPU (openai/gpt-oss-120b)** "
+            "在 2 秒內於討論串底下自動提供第一道深度體檢、徵象星診斷與成事路徑分析。"
+        )
+
+        q_or_theme = st.session_state.get('horary_question', '') if st.session_state.chart_type == 'horary' else "古典本命格局與推運研討"
+        forum_notes = st.text_area(
+            "📝 想向社群易友說明的背景或問題細節（選填）：",
+            placeholder="例如：目前正在考慮是否接受外商 Offer、想探討 ZR 精神點 L2 換宮轉折的具體生活印證...",
+            key="forum_custom_notes"
+        )
+
+        f_payload = generate_discussion_payload(
+            chart_type=st.session_state.chart_type,
+            question_or_theme=q_or_theme,
+            report_md=st.session_state.report_md,
+            extra_notes=forum_notes
+        )
+
+        f_col1, f_col2 = st.columns([1, 1])
+        with f_col1:
+            st.link_button(
+                "📢 一鍵前往 GitHub 發布此盤 (免 Token/全自動帶入模板)",
+                f_payload['deep_link'],
+                use_container_width=True,
+                type="primary"
+            )
+        with f_col2:
+            st.link_button(
+                "🌐 瀏覽 GitHub 占星論壇所有案例討論",
+                f_payload['repo_discussions_url'],
+                use_container_width=True
+            )
+
+        with st.expander("📋 查看即將發布至 GitHub Discussions 的結構化 Markdown 數據", expanded=False):
+            st.code(f_payload['markdown_body'], language="markdown")
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
     # Re-declare tabs (Handled above now)
 
     with st.sidebar:
@@ -1343,6 +1392,13 @@ if st.session_state.report_data:
             data=st.session_state.report_md,
             file_name=f"Chart_Report_{datetime.now().strftime('%Y%m%d')}.md",
             mime="text/markdown",
+            use_container_width=True
+        )
+        st.markdown("---")
+        st.subheader("🏛️ 社群論壇交流")
+        st.link_button(
+            "🌐 前往 GitHub 占星論壇",
+            f"{REPO_URL}/discussions",
             use_container_width=True
         )
 

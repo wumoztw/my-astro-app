@@ -1,0 +1,34 @@
+name: ⏳ 案例結果印證與反饋 (Verified Outcomes)
+description: 回報先前發布之卜卦或推運案例的真實結果（印證古典技法）
+title: "[結果印證] "
+labels: ["verified", "ground-truth", "feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### ⏳ 占星案例真實結果回報
+        印證是占星學前進的基石！請分享事件在現實中發生的真實結果與時間點。
+  - type: input
+    id: original_link
+    attributes:
+      label: 🔗 原討論串連結或標題
+      placeholder: "例如：#12 [卜卦求助] 下週的面試會錄取嗎？"
+      description: 標記先前求助的討論串編號或 URL
+    validations:
+      required: true
+  - type: textarea
+    id: actual_result
+    attributes:
+      label: 🎯 真實發生的結果與反饋 (Actual Result)
+      description: 事件是否成事？最終結果為何？
+      placeholder: "例如：於 10 月 15 日正式收到錄取通知..."
+    validations:
+      required: true
+  - type: textarea
+    id: timing_feedback
+    attributes:
+      label: ⏰ 應期與時間點驗證 (Timing Accuracy)
+      description: 實際應期是否與星體度數差、星座地宮速度推估相符？
+      placeholder: "實際應期與星盤推算時間相差約..."
+    validations:
+      required: false

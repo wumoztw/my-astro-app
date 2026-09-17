@@ -1,0 +1,34 @@
+name: 🔮 卜卦問事與實戰求助案例 (Horary Case)
+description: 提交一個需要古典占星體檢或成事診斷的實戰卜卦問題
+title: "[卜卦求助] "
+labels: ["horary", "help-wanted", "ai-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 🔮 古典占星卜卦案例分享
+        歡迎在此提交你的卜卦盤！我們的 AI 駐站古典掌門（William Lilly 體系）將在 30 秒內為你進行初步體檢與成事診斷。
+  - type: input
+    id: question
+    attributes:
+      label: ❓ 卜卦具體問題 (Question)
+      description: 請清楚描述想要問卜的具體事項（例如：這份新工作的面試會錄取嗎？、我與對方有機會復合嗎？）
+      placeholder: "例如：下週的面試會錄取嗎？"
+    validations:
+      required: true
+  - type: textarea
+    id: background
+    attributes:
+      label: 📖 事件背景與當前處境 (Context)
+      description: 簡要說明問卜時的現實情況、雙方關係或當前進展，有助於更精確鎖定事項守護星。
+      placeholder: "簡述現實背景..."
+    validations:
+      required: true
+  - type: textarea
+    id: chart_data
+    attributes:
+      label: 🪐 命盤幾何與星體數據 (Chart Data)
+      description: 請直接貼上由排盤系統「一鍵複製」產生的結構化數據，或填寫起卦時間、地點、上升度數。
+      placeholder: "起卦時間 (UTC/當地時)、地點、上升星座度數、各星體度數表..."
+    validations:
+      required: true
