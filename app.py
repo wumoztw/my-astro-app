@@ -1358,6 +1358,7 @@ if st.session_state.report_data:
         f_payload = generate_discussion_payload(
             chart_type=st.session_state.chart_type,
             question_or_theme=q_or_theme,
+            report_data=st.session_state.report_data,
             report_md=st.session_state.report_md,
             extra_notes=forum_notes
         )
@@ -1365,7 +1366,7 @@ if st.session_state.report_data:
         f_col1, f_col2 = st.columns([1, 1])
         with f_col1:
             st.link_button(
-                "📢 一鍵前往 GitHub 發布此盤 (免 Token/全自動帶入模板)",
+                "📢 一鍵前往 GitHub 發布此盤 (免 Token/自動填寫)",
                 f_payload['deep_link'],
                 use_container_width=True,
                 type="primary"
@@ -1377,8 +1378,11 @@ if st.session_state.report_data:
                 use_container_width=True
             )
 
-        with st.expander("📋 查看即將發布至 GitHub Discussions 的結構化 Markdown 數據", expanded=False):
-            st.code(f_payload['markdown_body'], language="markdown")
+        with st.expander("📋 查看發布數據 (精簡版與完整長篇報告)", expanded=False):
+            st.markdown("#### ⚡ 自動帶入 GitHub 的緊湊精華盤體：")
+            st.code(f_payload['compact_body'], language="markdown")
+            st.markdown("#### 📜 完整多頁長篇報告（若想在留言貼上完整細節可複製）：")
+            st.code(f_payload['full_markdown_body'], language="markdown")
 
         st.markdown("</div>", unsafe_allow_html=True)
 
