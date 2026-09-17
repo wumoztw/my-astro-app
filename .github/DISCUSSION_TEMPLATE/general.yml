@@ -1,0 +1,22 @@
+title: "[占星研討] "
+labels: ["discussion", "study"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 🏛️ 古典占星綜合研討 (General Discussion)
+        歡迎探討古典本命格局、全盤總御星、六大推運（法達/黃道釋放/太陽弧）或原典學術交流。
+  - type: input
+    id: topic
+    attributes:
+      label: 🎯 研討主題
+      placeholder: "例如：黃道釋放精神點 L2 換宮轉折的實戰印證"
+    validations:
+      required: true
+  - type: textarea
+    id: content
+    attributes:
+      label: 💡 研討內容與心得
+      placeholder: "請分享你的分析視角、命盤案例或經典文獻心得..."
+    validations:
+      required: true

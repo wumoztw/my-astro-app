@@ -1,0 +1,22 @@
+title: "[案例印證] "
+labels: ["verified", "ground-truth"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### ⏳ 占星實戰案例結果回報與展示 (Show and Tell)
+        印證是古典占星學最重要的基石！歡迎分享先前占斷事件的真實發生結果。
+  - type: input
+    id: original_ref
+    attributes:
+      label: 🔗 原問題或討論連結
+      placeholder: "例如：關於 10 月面試的卜卦結果"
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: 🎯 真實發生的結果與反饋
+      placeholder: "詳細說明事情最後是如何發展的、在何時成事或未成事..."
+    validations:
+      required: true
