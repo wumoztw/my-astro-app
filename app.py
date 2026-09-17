@@ -1365,13 +1365,15 @@ if st.session_state.report_data:
 
         st.markdown("---")
         st.info(
-            "💡 **GitHub Discussions 發布指引**：\n"
-            "1. 點擊下方代碼框右上角的 **「複製」** 圖示（已為你提煉出緊湊精華盤體）。\n"
-            "2. 點擊 **「🌐 前往 GitHub Discussions 發布」** 按鈕 ➔ 在內容框中貼上 (Ctrl+V) ➔ 點擊 **Start discussion** 送出！"
+            "💡 **極簡發布 2 步驟**：\n"
+            "1. 點擊下方內容框右上角的 **「複製 (Copy)」** 圖示（已包含完整命盤、七政度數、相位與推運報告）。\n"
+            "2. 點擊 **「🌐 前往 GitHub Discussions 發布」** ➔ 貼上標題與內容 ➔ 點擊 **Start discussion** 送出！"
         )
 
-        st.markdown("#### 📋 已為你排版完畢的發文內容：")
-        st.code(f_payload['compact_body'], language="markdown")
+        st.text_input("📌 貼文標題 (Title)：", value=f_payload['title'], help="可複製此標題填入 GitHub 討論串標題欄")
+
+        st.markdown("#### 📋 完整命盤發布內容 (點右上角一鍵複製)：")
+        st.code(f_payload['full_markdown_body'], language="markdown")
 
         f_col1, f_col2 = st.columns([1, 1])
         with f_col1:
@@ -1387,9 +1389,6 @@ if st.session_state.report_data:
                 f_payload['repo_discussions_url'],
                 use_container_width=True
             )
-
-        with st.expander("📜 展開查看完整多頁詳細長篇報告（可供複製參考）", expanded=False):
-            st.code(f_payload['full_markdown_body'], language="markdown")
 
         st.markdown("</div>", unsafe_allow_html=True)
 
