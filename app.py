@@ -1369,8 +1369,8 @@ if st.session_state.report_data:
         step_c1, step_c2, step_c3 = st.columns(3)
         with step_c1:
             st.markdown(
-                "#### 1️⃣ 複製命盤資料\n"
-                "點擊下方代碼框右上角的 **複製 (Copy)** 圖示，完整星體、尊貴度、法達大運與推運數據已全數打包。"
+                "#### 1️⃣ 複製或下載命盤\n"
+                "點擊下方代碼框右上角的 **複製** 圖示，或直接使用下方 **「💾 下載 Markdown 檔」** 備份。"
             )
         with step_c2:
             st.markdown(
@@ -1396,7 +1396,7 @@ if st.session_state.report_data:
         st.markdown("#### 📋 完整命盤發布內容 (點右上角一鍵複製)：")
         st.code(f_payload['full_markdown_body'], language="markdown")
 
-        f_col1, f_col2 = st.columns([1, 1])
+        f_col1, f_col2, f_col3 = st.columns([1.2, 1, 1])
         with f_col1:
             st.link_button(
                 "🌐 前往 GitHub Discussions 發布 (貼上即發)",
@@ -1405,6 +1405,15 @@ if st.session_state.report_data:
                 type="primary"
             )
         with f_col2:
+            st.download_button(
+                label="💾 下載此盤 Markdown 檔",
+                data=f_payload['full_markdown_body'],
+                file_name=f"Astrology_Discussion_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
+                mime="text/markdown",
+                use_container_width=True,
+                help="點擊將完整討論串內容（包含 YAML 元資料與完整排盤）下載為 .md 檔案"
+            )
+        with f_col3:
             st.link_button(
                 "📚 瀏覽論壇現有所有案例討論",
                 f_payload['repo_discussions_url'],
