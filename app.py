@@ -1344,14 +1344,14 @@ if st.session_state.report_data:
         st.subheader("🏛️ GitHub 原生古典占星社群論壇 (Discussions)")
         st.markdown(
             "歡迎將此命盤發布至 GitHub 開源討論區進行深度研討！\n\n"
-            "發布後，我們的 **AI 駐站古典掌門（William Lilly 1647 原典體系）** 將透過 **Groq LPU (openai/gpt-oss-120b)** "
-            "在 2 秒內於討論串底下自動提供第一道深度體檢、徵象星診斷與成事路徑分析。"
+            "⚡ **全自動 AI 駐站古典掌門**：發布後約 15~20 秒，**Groq LPU (openai/gpt-oss-120b)** "
+            "將自動輸出**直白大白話**深度剖析（包含命格底牌、法達十年大運、年度小限、黃道釋放、凶星化解與關鍵時間點）！"
         )
 
         q_or_theme = st.session_state.get('horary_question', '') if st.session_state.chart_type == 'horary' else "古典本命格局與推運研討"
         forum_notes = st.text_area(
             "📝 想向社群易友說明的背景或問題細節（選填）：",
-            placeholder="例如：目前正在考慮是否接受外商 Offer、想探討 ZR 精神點 L2 換宮轉折的具體生活印證...",
+            placeholder="例如：目前正在考慮是否接受外商 Offer、想探討 ZR 精神點 L2 換宮轉折的具體生活印證、或針對某顆受剋星體的化解心得...",
             key="forum_custom_notes"
         )
 
@@ -1364,11 +1364,32 @@ if st.session_state.report_data:
         )
 
         st.markdown("---")
-        st.info(
-            "💡 **極簡發布 2 步驟**：\n"
-            "1. 點擊下方內容框右上角的 **「複製 (Copy)」** 圖示（已包含完整命盤、七政度數、相位與推運報告）。\n"
-            "2. 點擊 **「🌐 前往 GitHub Discussions 發布」** ➔ 貼上標題與內容 ➔ 點擊 **Start discussion** 送出！"
-        )
+        
+        # 3 步驟圖卡引導
+        step_c1, step_c2, step_c3 = st.columns(3)
+        with step_c1:
+            st.markdown(
+                "#### 1️⃣ 複製命盤資料\n"
+                "點擊下方代碼框右上角的 **複製 (Copy)** 圖示，完整星體、尊貴度、法達大運與推運數據已全數打包。"
+            )
+        with step_c2:
+            st.markdown(
+                "#### 2️⃣ 前往 Discussions 發布\n"
+                "點擊下方 **「🌐 前往 GitHub Discussions 發布」** 按鈕，直接將標題與命盤內容貼入並送出。"
+            )
+        with step_c3:
+            st.markdown(
+                "#### 3️⃣ AI 秒級解盤與留言互動\n"
+                "約 15 秒後 AI 掌門將現身送上深度大白話解析！後續在留言中輸入 `@ai` 即可隨時追問。"
+            )
+
+        with st.expander("💬 查看「留言區 @ai 追問互動」範例指南", expanded=False):
+            st.markdown("""
+            任何人在 GitHub Discussions 討論串下方留言，只要帶上 `@ai-astrologer` 或 `@ai`，AI 駐站掌門將在 20 秒內直接在該則留言下為你解答：
+            - 🔹 **流年轉職提問**：`@ai-astrologer 請問以我的流年小限，今年下半年適合換工作還是保守為宜？`
+            - 🔹 **星體化解提問**：`@ai 請問這張盤中的火星落陷且受剋，生活中有哪些具體的能量化解管道？`
+            - 🔹 **卜卦時效追問**：`@ai-astrologer 如果依照這張卜卦盤的徵象星阻礙，若延後一個月執行勝算會變大嗎？`
+            """)
 
         st.text_input("📌 貼文標題 (Title)：", value=f_payload['title'], help="可複製此標題填入 GitHub 討論串標題欄")
 
