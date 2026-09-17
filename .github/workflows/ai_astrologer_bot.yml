@@ -23,11 +23,21 @@ permissions:
 jobs:
   ai_reply:
     runs-on: ubuntu-latest
-    # 當是新 Discussion 建立，或者有人在留言中 @ai-astrologer 時觸發
+    # 當是新 Discussion 建立，或者有人在留言中 @ai-astrologer, @ai, @AI, @bot 且非機器人自身留言時觸發
     if: |
       github.event_name == 'workflow_dispatch' ||
       github.event_name == 'discussion' ||
-      (github.event_name == 'discussion_comment' && contains(github.event.comment.body, '@ai-astrologer'))
+      (
+        github.event_name == 'discussion_comment' &&
+        github.event.comment.user.login != 'github-actions[bot]' &&
+        (
+          contains(github.event.comment.body, '@ai-astrologer') ||
+          contains(github.event.comment.body, '@ai') ||
+          contains(github.event.comment.body, '@AI') ||
+          contains(github.event.comment.body, '@bot') ||
+          contains(github.event.comment.body, '@groq')
+        )
+      )
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -53,5 +63,9 @@ jobs:
           DISCUSSION_ID: ${{ github.event.discussion.node_id }}
           DISCUSSION_TITLE: ${{ github.event.discussion.title || github.event.inputs.test_title }}
           DISCUSSION_BODY: ${{ github.event.discussion.body || github.event.inputs.test_body }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          COMMENT_NODE_ID: ${{ github.event.comment.node_id }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           python scripts/forum_ai_bot.py

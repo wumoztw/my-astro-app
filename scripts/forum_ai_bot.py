@@ -13,8 +13,8 @@ import argparse
 import requests
 from groq import Groq
 
-# 系統提示詞：古典占星 William Lilly 1647 體系（大白話實戰解盤風格）
-CLASSICAL_BOT_SYSTEM_PROMPT = """你是一位精通 1647 年 William Lilly 古典卜卦占星學的「白話解盤大師」（AI 駐站古典掌門）。
+# 1. 卜卦問事專用大白話 Prompt
+HORARY_BOT_SYSTEM_PROMPT = """你是一位精通 1647 年 William Lilly 古典卜卦占星學的「白話解盤大師」（AI 駐站古典掌門）。
 你的風格是：【直接、一針見血、講大白話】！
 請徹底拋棄生硬刻板的學術調書袋與拉丁古文堆砌，用老百姓聽得懂的現代生活化語言，把古典天象精準翻譯成現實中的具體走勢與應對方案。
 
@@ -51,17 +51,64 @@ CLASSICAL_BOT_SYSTEM_PROMPT = """你是一位精通 1647 年 William Lilly 古�
 - 給出 2~3 點具體、接地氣的行動指引，告訴問卜者當前現實中「該做什麼、千萬別做什麼」以化解阻礙。
 """
 
-def call_groq_analysis(title: str, body: str, api_keys: list) -> str:
-    """調用 Groq 進行古典占星推理，支援多金鑰自動輪替 (Round-Robin & Failover)"""
+# 2. 本命格局與六大流年推運專用大白話 Prompt
+NATAL_PREDICTIVE_BOT_SYSTEM_PROMPT = """你是一位精通古典西洋占星學（希臘化、波斯阿拉伯與中世紀）的「白話命盤與流年推運大師」（AI 駐站古典掌門）。
+你的專長是把深奧複雜的本命盤底牌與六大推運體系，用【最直接、一針見血、大白話】的語言翻譯給案主聽，直擊人生命運核心！
+
+【三大核心原則】：
+1. 拒絕生硬調書袋：不拋無意義的生僻專有名詞，講清楚每顆星、每個推運週期在現實生活中的具體含義與個人感受。
+2. 命盤底牌與流年運勢雙線並重：
+   - 先解「本命底牌」：你是個什麼樣的人？你的老天賞飯王牌是什麼？你的致命軟肋在哪裡？
+   - 再解「當前流年運勢」：現在正走什麼十年大運？今年小限是誰當家？黃道釋放處於什麼週期？近期有沒有重大引動？
+3. 實戰指引：給出近 1~3 年的具體行事避坑指引（何時衝刺、何時防守、該注意什麼）。
+
+【回覆版面結構 (繁體中文 zh-TW)】：
+
+### 🎯 掌門一針見血底牌總結
+- **人格本色**：用一句犀利白話說出你的人格底色與核心驅動力。
+- **你的天賦王牌**：全盤總御星（Almuten Figuris）或本命最強星體與宮位，這是你這輩子最容易成事、老天賞飯吃的地方。
+- **你的盲點與暗坑**：落陷、受剋或弱勢星體，這是你最容易踩雷、最需要提防的致命死穴。
+
+### 🌊 當前流年大運深度白話剖析
+1. **法達星限 (Firdaria) —— 當前人生十年大運**：
+   - 目前正走哪顆「主運星」與「副運星」？
+   - 白話解析：這個人生大週期是在順風順水還是爬坡歷練？主題是財富爆發、事業耕耘、還是感情家庭轉折？
+2. **年度小限 (Annual Profections) —— 今年焦點戰場**：
+   - 今年（實歲）輪到哪一宮當家？年度主星是誰？
+   - 白話解析：今年一整年最核心的生活事件、壓力或機遇會爆發在什麼領域？
+3. **希臘黃道釋放法 (Zodiacal Releasing) —— 人生高光與重大轉折**：
+   - 精神點與福德點 L1/L2 週期：當前是否處於「四正宮高光巔峰期 (Peak)」、「換宮跳躍重大轉向 (Losing of the Bond)」還是「蓄勢準備期」？
+   - 白話解析：職涯事業與社會地位的長期起伏走勢。
+4. **太陽弧 (Solar Arc) 與次限/三限月相引動**：
+   - 近 1~2 年內有無容許度 1° 內的重大外在事件引動？近期心理生活焦點為何？
+
+### 💡 掌門給你的近 1~3 年生活與職涯避坑指南
+- 給出 2~3 條極為具體、接地氣的行動指引：
+  - 哪一年/領域適合大膽出擊突破？
+  - 哪一年/領域務必低調防守、避免衝動盲目投資或轉職？
+"""
+
+# 3. 討論串留言區追問互動專用 Prompt
+INTERACTIVE_COMMENT_SYSTEM_PROMPT = """你是一位精通古典西洋占星與流年推運的「白話解盤大師」（AI 駐站古典掌門）。
+易友在討論串中向你追問問題（可能針對個人事業、感情、健康、特定年份運勢、或某顆星體的化解方式）。
+
+【回覆準則】：
+1. 一針見血，直球對決：不要重複整篇命盤，直接針對他追問的核心問題深入分析！
+2. 緊密結合原盤與推運數據：參考討論串主文提供的命度、星體度數、法達星限、小限宮位、黃道釋放進行精準推算。
+3. 語氣像身經百戰的老前輩，親切、犀利、實用，給予明確的生活化行動建議與避坑指針。
+"""
+
+def detect_chart_mode(title: str, body: str) -> str:
+    """自動判定討論串是卜卦盤 (horary) 還是本命推運盤 (natal)"""
+    text = (title + " " + body).lower()
+    if "horary" in text or "卜卦" in text or "問事" in text or "成事" in text:
+        return "horary"
+    return "natal"
+
+def call_groq_analysis(prompt_sys: str, user_content: str, api_keys: list) -> str:
+    """調用 Groq 進行推理，支援多金鑰自動輪替 (Round-Robin & Failover)"""
     if not api_keys:
         raise ValueError("No Groq API keys provided.")
-
-    user_content = f"""【討論串標題】：{title}
-
-【案主發布之命盤與問題數據】：
-{body}
-
-請根據上述案例數據與 William Lilly 1647 原典體系，進行全面的古典盤體檢意、徵象星分析、成事路徑診斷與應期推算。"""
 
     models_to_try = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
     last_err = None
@@ -77,7 +124,7 @@ def call_groq_analysis(title: str, body: str, api_keys: list) -> str:
                 print(f"  └─ Calling model: {model} ...", file=sys.stderr)
                 chat_completion = client.chat.completions.create(
                     messages=[
-                        {"role": "system", "content": CLASSICAL_BOT_SYSTEM_PROMPT},
+                        {"role": "system", "content": prompt_sys},
                         {"role": "user", "content": user_content}
                     ],
                     model=model,
@@ -89,7 +136,6 @@ def call_groq_analysis(title: str, body: str, api_keys: list) -> str:
             except Exception as e:
                 print(f"  [!] Failed model {model} with Key #{idx}: {e}", file=sys.stderr)
                 last_err = e
-                # 若是 429 頻率限制或 401 密鑰問題，直接跳下一把 Key
                 err_str = str(e).lower()
                 if "rate limit" in err_str or "429" in err_str or "401" in err_str or "quota" in err_str:
                     print(f"  [!] Key #{idx} hit rate limit or auth error. Switching to next key...", file=sys.stderr)
@@ -99,8 +145,8 @@ def call_groq_analysis(title: str, body: str, api_keys: list) -> str:
     raise RuntimeError(f"All Groq keys and models failed: {last_err}")
 
 
-def post_github_discussion_comment(discussion_id: str, comment_body: str, gh_token: str):
-    """透過 GitHub GraphQL API 將分析結果發布為討論串回覆"""
+def post_github_discussion_comment(discussion_id: str, comment_body: str, gh_token: str, reply_to_id: str = None):
+    """透過 GitHub GraphQL API 將分析結果發布為討論串回覆（若有 reply_to_id 則直接巢狀回覆留言）"""
     url = "https://api.github.com/graphql"
     headers = {
         "Authorization": f"Bearer {gh_token}",
@@ -108,6 +154,39 @@ def post_github_discussion_comment(discussion_id: str, comment_body: str, gh_tok
         "User-Agent": "my-astro-app-ai-bot"
     }
     
+    # 1. 若有指定 reply_to_id，先嘗試巢狀回覆該則留言
+    if reply_to_id:
+        mutation_reply = """
+        mutation AddDiscussionReply($discussionId: ID!, $replyToId: ID!, $body: String!) {
+          addDiscussionComment(input: {discussionId: $discussionId, replyToId: $replyToId, body: $body}) {
+            comment {
+              id
+              url
+            }
+          }
+        }
+        """
+        payload_reply = {
+            "query": mutation_reply,
+            "variables": {
+                "discussionId": discussion_id,
+                "replyToId": reply_to_id,
+                "body": comment_body
+            }
+        }
+        try:
+            res = requests.post(url, headers=headers, json=payload_reply, timeout=30)
+            data = res.json()
+            if res.status_code == 200 and "errors" not in data:
+                comment_info = data.get("data", {}).get("addDiscussionComment", {}).get("comment", {})
+                print(f"[+] Successfully posted threaded reply to {reply_to_id}: {comment_info.get('url')}", file=sys.stderr)
+                return comment_info
+            else:
+                print(f"[*] Threaded reply fallback to top-level (GraphQL note: {data.get('errors')})", file=sys.stderr)
+        except Exception as e:
+            print(f"[*] Threaded reply failed ({e}), falling back to top-level comment.", file=sys.stderr)
+
+    # 2. 標準討論串回覆
     mutation = """
     mutation AddDiscussionComment($discussionId: ID!, $body: String!) {
       addDiscussionComment(input: {discussionId: $discussionId, body: $body}) {
@@ -145,6 +224,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Print AI review to stdout without posting to GitHub")
     parser.add_argument("--title", type=str, default="", help="Discussion Title")
     parser.add_argument("--body", type=str, default="", help="Discussion Body")
+    parser.add_argument("--comment", type=str, default="", help="User follow-up comment")
     args = parser.parse_args()
 
     # 1. 取得環境變數或命令列參數（支援 3 把 Groq 金鑰輪替備援）
@@ -154,42 +234,72 @@ def main():
         os.getenv("GROQ_API_KEY_3"),
         os.getenv("GROQ_API_KEY")
     ]
-    # 去重且過濾空值
     groq_api_keys = []
     for k in raw_keys:
         if k and k.strip() and k.strip() not in groq_api_keys:
             groq_api_keys.append(k.strip())
 
     gh_token = os.getenv("GH_TOKEN") or os.getenv("GITHUB_TOKEN")
-    
     discussion_id = os.getenv("DISCUSSION_ID")
     discussion_title = args.title or os.getenv("DISCUSSION_TITLE", "占星案例求助")
     discussion_body = args.body or os.getenv("DISCUSSION_BODY", "")
+    
+    comment_body = args.comment or os.getenv("COMMENT_BODY", "")
+    comment_author = os.getenv("COMMENT_AUTHOR", "易友")
+    comment_node_id = os.getenv("COMMENT_NODE_ID")
+    event_name = os.getenv("EVENT_NAME", "discussion")
 
     if not groq_api_keys:
-        print("[!] Error: No valid Groq API key found in GROQ_API_KEY_1, GROQ_API_KEY_2, GROQ_API_KEY_3, or GROQ_API_KEY.", file=sys.stderr)
+        print("[!] Error: No valid Groq API key found in secrets.", file=sys.stderr)
         sys.exit(1)
 
     print(f"[*] Loaded {len(groq_api_keys)} Groq API Key(s) for automatic rotation & failover.", file=sys.stderr)
 
-    if not discussion_body.strip():
-        print("[!] No discussion body provided, nothing to analyze.", file=sys.stderr)
-        sys.exit(0)
+    # 2. 判斷是「新討論串首評」還是「留言區互動追問」
+    is_interactive_followup = bool(comment_body.strip() and event_name == "discussion_comment")
 
-    print(f"[*] Analyzing discussion: '{discussion_title}' ...", file=sys.stderr)
-    
-    # 2. 呼叫 Groq 進行古典占星推理 (多金鑰輪替)
-    ai_analysis = call_groq_analysis(discussion_title, discussion_body, groq_api_keys)
-    
-    full_comment = f"""### 🤖【AI 駐站古典掌門 · William Lilly 原典體檢報告】
+    if is_interactive_followup:
+        print(f"[*] Processing Interactive Follow-up by @{comment_author} ...", file=sys.stderr)
+        sys_prompt = INTERACTIVE_COMMENT_SYSTEM_PROMPT
+        user_content = f"""【討論串原命盤資料】：
+{discussion_body}
 
-{ai_analysis}
+【易友 @{comment_author} 在留言中的具體追問】：
+{comment_body}
 
+請針對該易友的追問，結合原命盤與推運數據，給予直接、一針見血、白話生活化的專業指點與實戰建議。"""
+        header_title = f"### 🤖【AI 駐站掌門 · 深度解惑回覆】\n\n> 回覆 @{comment_author} 的提問：\n\n"
+    else:
+        # 新討論串首評：自動識別是 卜卦盤 還是 本命推運盤
+        chart_mode = detect_chart_mode(discussion_title, discussion_body)
+        print(f"[*] Analyzing new discussion: '{discussion_title}' (Detected Mode: {chart_mode}) ...", file=sys.stderr)
+        
+        if chart_mode == "horary":
+            sys_prompt = HORARY_BOT_SYSTEM_PROMPT
+            header_title = "### 🎯【AI 駐站古典掌門 · William Lilly 卜卦成事實戰斷言】\n\n"
+        else:
+            sys_prompt = NATAL_PREDICTIVE_BOT_SYSTEM_PROMPT
+            header_title = "### 🏛️【AI 駐站古典掌門 · 本命底牌與流年推運深度剖析】\n\n"
+
+        user_content = f"""【討論串標題】：{discussion_title}
+
+【案主發布之命盤與問題數據】：
+{discussion_body}
+
+請進行全面、直白、大白話的深度剖析。"""
+
+    # 3. 呼叫 Groq 進行推理
+    ai_analysis = call_groq_analysis(sys_prompt, user_content, groq_api_keys)
+
+    interactive_footer = """
 ---
-*✨ 報告由 **my-astro-app** 社群自動化引擎 + **Groq LPU (openai/gpt-oss-120b)** 於 2 秒內自動生成。歡迎各位易友於下方留言交流、發表不同流派見解或提供現實反饋！*
+*✨ 報告由 **my-astro-app** 社群自動化引擎 + **Groq LPU (openai/gpt-oss-120b)** 於 2 秒內自動生成。*  
+*💬 **想針對本盤進一步追問嗎？** 直接在下方留言並標記 `@ai-astrologer`（例如：「`@ai-astrologer 請教明年事業運如何？`」），掌門將在 20 秒內為你現身解答！*
 """
 
-    # 3. 輸出或發布
+    full_comment = f"{header_title}{ai_analysis}\n{interactive_footer}"
+
+    # 4. 輸出或發布
     if args.dry_run or not discussion_id or not gh_token:
         print("\n" + "="*50)
         print("=== [DRY RUN / LOCAL MODE OUTPUT] ===")
@@ -197,7 +307,8 @@ def main():
         print(full_comment)
     else:
         print(f"[*] Posting comment to Discussion Node ID: {discussion_id} ...", file=sys.stderr)
-        post_github_discussion_comment(discussion_id, full_comment, gh_token)
+        reply_target = comment_node_id if is_interactive_followup else None
+        post_github_discussion_comment(discussion_id, full_comment, gh_token, reply_to_id=reply_target)
 
 if __name__ == "__main__":
     main()
