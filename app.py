@@ -27,7 +27,7 @@ from horary_prompt import HORARY_SYSTEM_PROMPT
 from natal_prompt import NATAL_SYSTEM_PROMPT
 from thematic_reports_logic import ThematicReportsLogic
 from ai_logic import AIAssistant
-from github_forum_exporter import generate_discussion_payload, REPO_URL
+from github_forum_exporter import generate_discussion_payload, publish_discussion_via_api, REPO_URL
 
 import streamlit.components.v1 as components
 
@@ -1363,25 +1363,52 @@ if st.session_state.report_data:
             extra_notes=forum_notes
         )
 
+        st.markdown("---")
+        st.info(
+            "💡 **GitHub Discussions 發布指引**：\n"
+            "1. 點擊下方代碼框右上角的 **「複製」** 圖示（已為你提煉出緊湊精華盤體）。\n"
+            "2. 點擊 **「🌐 前往 GitHub Discussions 發布」** 按鈕 ➔ 在內容框中貼上 (Ctrl+V) ➔ 點擊 **Start discussion** 送出！"
+        )
+
+        st.markdown("#### 📋 已為你排版完畢的發文內容：")
+        st.code(f_payload['compact_body'], language="markdown")
+
         f_col1, f_col2 = st.columns([1, 1])
         with f_col1:
             st.link_button(
-                "📢 一鍵前往 GitHub 發布此盤 (免 Token/自動填寫)",
-                f_payload['deep_link'],
+                "🌐 前往 GitHub Discussions 發布 (貼上即發)",
+                f"{REPO_URL}/discussions/new?category={f_payload['category_slug']}",
                 use_container_width=True,
                 type="primary"
             )
         with f_col2:
             st.link_button(
-                "🌐 瀏覽 GitHub 占星論壇所有案例討論",
+                "📚 瀏覽論壇現有所有案例討論",
                 f_payload['repo_discussions_url'],
                 use_container_width=True
             )
 
-        with st.expander("📋 查看發布數據 (精簡版與完整長篇報告)", expanded=False):
-            st.markdown("#### ⚡ 自動帶入 GitHub 的緊湊精華盤體：")
-            st.code(f_payload['compact_body'], language="markdown")
-            st.markdown("#### 📜 完整多頁長篇報告（若想在留言貼上完整細節可複製）：")
+        with st.expander("⚡ 進階：輸入 GitHub Token 一鍵全自動背景發布（連貼上都免了）", expanded=False):
+            gh_token_input = st.text_input("GitHub Personal Access Token (需有 repo/discussions 寫入權限)：", type="password", key="user_gh_token_auto")
+            if st.button("🚀 透過 API 全自動發布此討論串", type="secondary", use_container_width=True):
+                if not gh_token_input.strip():
+                    st.warning("請先填入 GitHub Token！")
+                else:
+                    with st.spinner("正在透過 GitHub GraphQL API 發布至 Discussions..."):
+                        api_res = publish_discussion_via_api(
+                            token=gh_token_input,
+                            title=f_payload['title'],
+                            body=f_payload['compact_body'],
+                            chart_type=st.session_state.chart_type
+                        )
+                        if api_res.get("success"):
+                            target_url = api_res.get("url")
+                            st.success(f"🎉 成功發布！討論串編號 #{api_res.get('number')}")
+                            st.link_button("👉 立即前往查看剛發布的討論串", target_url, use_container_width=True)
+                        else:
+                            st.error(f"發布失敗：{api_res.get('error')}")
+
+        with st.expander("📜 展開查看完整多頁詳細長篇報告（可供複製參考）", expanded=False):
             st.code(f_payload['full_markdown_body'], language="markdown")
 
         st.markdown("</div>", unsafe_allow_html=True)
