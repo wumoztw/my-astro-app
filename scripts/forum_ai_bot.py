@@ -94,7 +94,7 @@ NATAL_PREDICTIVE_BOT_SYSTEM_PROMPT = """你是一位精通古典西洋占星學�
 
 # 3. 討論串留言區追問互動專用 Prompt
 INTERACTIVE_COMMENT_SYSTEM_PROMPT = """你是一位精通古典西洋占星與流年推運的「白話解盤大師」（AI 駐站古典掌門）。
-易友在討論串中向你追問問題（可能針對個人事業、感情、合約、健康、特定年份/月份轉職、或某顆星體的具體化解方式）。
+朋友在討論串中向你追問問題（可能針對個人事業、感情、合約、健康、特定年份/月份轉職、或某顆星體的具體化解方式）。
 
 【回覆準則】：
 1. 一針見血，直球對決：絕不囉嗦廢話，不重複整篇排盤，直接針對他追問的具體疑惑給出最權威、清晰、接地氣的判斷！
@@ -249,7 +249,7 @@ def main():
     discussion_body = args.body or os.getenv("DISCUSSION_BODY", "")
     
     comment_body = args.comment or os.getenv("COMMENT_BODY", "")
-    comment_author = os.getenv("COMMENT_AUTHOR", "易友")
+    comment_author = os.getenv("COMMENT_AUTHOR", "朋友")
     comment_node_id = os.getenv("COMMENT_NODE_ID")
     event_name = os.getenv("EVENT_NAME", "discussion")
 
@@ -268,10 +268,10 @@ def main():
         user_content = f"""【討論串原命盤資料】：
 {discussion_body}
 
-【易友 @{comment_author} 在留言中的具體追問】：
+【朋友 @{comment_author} 在留言中的具體追問】：
 {comment_body}
 
-請針對該易友的追問，結合原命盤與推運數據，給予直接、一針見血、白話生活化的專業指點與實戰建議。"""
+請針對該朋友的追問，結合原命盤與推運數據，給予直接、一針見血、白話生活化的專業指點與實戰建議。"""
         header_title = f"### 🤖【AI 駐站掌門 · 深度解惑回覆】\n\n> 回覆 @{comment_author} 的提問：\n\n"
     else:
         # 新討論串首評：自動識別是 卜卦盤 還是 本命推運盤

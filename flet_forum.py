@@ -111,10 +111,10 @@ def main(page: ft.Page):
                                 ft.Row(
                                     spacing=16,
                                     controls=[
-                                        ft.Text(f"🟢 AI 駐站古典掌門: 在線中", size=12, color=ft.Colors.GREEN_400, weight=ft.FontWeight.W_600),
+                                        ft.Text("🟢 AI 駐站古典掌門: 正在線上", size=12, color=ft.Colors.GREEN_400, weight=ft.FontWeight.W_600),
                                         ft.Text(f"📊 總主題: {stats['total_topics']} 篇", size=12, color=ft.Colors.GREY_300),
                                         ft.Text(f"💬 總討論: {stats['total_posts']} 則", size=12, color=ft.Colors.GREY_300),
-                                        ft.Text(f"👥 線上易友: {stats['online_users']} 人", size=12, color=ft.Colors.GREY_300),
+                                        ft.Text(f"👥 線上朋友: {stats['online_users']} 人", size=12, color=ft.Colors.GREY_300),
                                     ]
                                 ),
                                 ft.Text("⚡ Groq LPU 毫秒級推運運算核心", size=11, color=ft.Colors.AMBER_300)
@@ -489,7 +489,7 @@ def main(page: ft.Page):
             if not val or not val.strip():
                 show_snackbar("請輸入回覆內容！", ft.Colors.RED_400)
                 return
-            add_post(topic_id, author="熱心易友", author_role="🌱 易壇道友", content=val.strip())
+            add_post(topic_id, author="熱心朋友", author_role="🌱 易壇道友", content=val.strip())
             reply_field.value = ""
             show_snackbar("回覆發布成功！")
             refresh_current_view()
@@ -654,7 +654,7 @@ def main(page: ft.Page):
             tid = add_topic(
                 category_id=cid,
                 title=title_input.value.strip(),
-                author=author_input.value.strip() or "易友",
+                author=author_input.value.strip() or "朋友",
                 author_role="🌱 易壇道友",
                 content=body_input.value.strip(),
                 chart_type=chart_type_dropdown.value

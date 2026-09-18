@@ -83,7 +83,12 @@ def init_db():
         # 自動遷移更新現有資料庫名稱與順序
         cur.execute("UPDATE categories SET title = '🏛️ 本命與流運討論區', sort_order = 1 WHERE slug = 'natal-predictive'")
         cur.execute("UPDATE categories SET sort_order = 2 WHERE slug = 'horary-cases'")
-        cur.execute("UPDATE categories SET sort_order = 3 WHERE slug = 'astrology-lounge'")
+        cur.execute("UPDATE categories SET title = '☕ 朋友茶水間與解盤閒聊', sort_order = 3 WHERE slug = 'astrology-lounge'")
+        cur.execute("UPDATE posts SET content = REPLACE(content, '各位易友大家好！', '各位朋友大家好！')")
+        cur.execute("UPDATE posts SET content = REPLACE(content, '易友們好！', '朋友們好！')")
+        cur.execute("UPDATE posts SET content = REPLACE(content, '易友', '朋友')")
+        cur.execute("UPDATE topics SET author = REPLACE(author, '易友', '朋友')")
+        cur.execute("UPDATE posts SET author = REPLACE(author, '易友', '朋友')")
         # 將原本 classical-texts 的主題轉移至茶水間並移除該版塊
         cur.execute("SELECT id FROM categories WHERE slug = 'classical-texts'")
         ct_row = cur.fetchone()
@@ -116,7 +121,7 @@ def seed_categories(cur):
         ),
         (
             "astrology-lounge",
-            "☕ 易友茶水間與解盤閒聊",
+            "☕ 朋友茶水間與解盤閒聊",
             "生活心得分享、疑難雜症破局心得、新手入門請教與現實反饋。",
             "☕",
             3
@@ -143,7 +148,7 @@ def seed_topics_and_posts(cur):
     VALUES (?, 1, '星空漫步者', '📜 資深占星師', '🔭', ?, 5, 0, ?)
     """, (
         topic1_id,
-        "各位易友大家好！\n\n下週二要去面試一家心儀已久的 AI 新創公司主管職缺，想請教大家這盤的成事跡象與阻礙。\n\n**【占卜背景與盤體數據】**：\n- 上升度數：天蠍座 14°20'\n- 1宮主（我）：火星在巨蟹座 18°（落陷在第 9 宮）\n- 10宮主（職位/主管）：太陽在處女座 25°（第 11 宮）\n- 月亮（情勢進展）：天蠍座 22°（落陷在第 1 宮，入相位六分太陽處女座 25°）\n\n我自己看火星落陷感覺心態很虛，但月亮即將六分 10 宮主太陽，這是否構成光線傳遞（Translation of Light）？求高人指點！",
+        "各位朋友大家好！\n\n下週二要去面試一家心儀已久的 AI 新創公司主管職缺，想請教大家這盤的成事跡象與阻礙。\n\n**【占卜背景與盤體數據】**：\n- 上升度數：天蠍座 14°20'\n- 1宮主（我）：火星在巨蟹座 18°（落陷在第 9 宮）\n- 10宮主（職位/主管）：太陽在處女座 25°（第 11 宮）\n- 月亮（情勢進展）：天蠍座 22°（落陷在第 1 宮，入相位六分太陽處女座 25°）\n\n我自己看火星落陷感覺心態很虛，但月亮即將六分 10 宮主太陽，這是否構成光線傳遞（Translation of Light）？求高人指點！",
         now
     ))
 
@@ -190,7 +195,7 @@ def seed_topics_and_posts(cur):
     VALUES (?, 1, '星圖旅人', '🌱 易壇道友', '🧭', ?, 3, 0, ?)
     """, (
         topic2_id,
-        "易友們好！\n\n今年剛滿 32 歲，原本在傳產當小主管，近期突然收到歐美外商的總監級職缺邀約。\n比對了一下推運：\n1. 法達星限：目前正值水星大限 / 月亮小限\n2. 年度小限：32 歲走到第 10 宮（獅子座），年度主星為太陽\n3. 本命太陽在雙魚座拱入廟巨蟹座木星\n\n這是否意味著今年是職業生涯的重要破局年？想聽聽各位與掌門的見解！",
+        "朋友們好！\n\n今年剛滿 32 歲，原本在傳產當小主管，近期突然收到歐美外商的總監級職缺邀約。\n比對了一下推運：\n1. 法達星限：目前正值水星大限 / 月亮小限\n2. 年度小限：32 歲走到第 10 宮（獅子座），年度主星為太陽\n3. 本命太陽在雙魚座拱入廟巨蟹座木星\n\n這是否意味著今年是職業生涯的重要破局年？想聽聽各位與掌門的見解！",
         now
     ))
 
@@ -215,7 +220,7 @@ def get_forum_stats() -> Dict[str, Any]:
         "total_posts": total_posts,
         "total_members": total_members,
         "online_users": 18,
-        "ai_bot_status": "🟢 在線中 (Groq LPU)"
+        "ai_bot_status": "🟢 正在線上 (Groq LPU)"
     }
 
 
