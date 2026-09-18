@@ -1420,6 +1420,46 @@ if st.session_state.report_data:
                 use_container_width=True
             )
 
+        # --- Flet phpBB 經典占星迷你論壇連動區 ---
+        st.markdown("---")
+        st.subheader("🏛️ Flet 現代化 phpBB 經典占星迷你論壇 (本地極速 · 雙欄排版 · AI 掌門駐站)")
+        st.markdown(
+            "若您偏好**經典 phpBB 論壇**的版塊分區、樓層會員名片卡（樓主/沙發/板凳）排版與更極速的互動體驗，"
+            "我們特別運用 **Flet (Flutter) + SQLite** 打造了全功能的迷你論壇系統！"
+        )
+        
+        # 檢測 8555 埠位是否運作
+        import socket
+        def check_flet_running(port=8555):
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.settimeout(0.3)
+                    return s.connect_ex(('127.0.0.1', port)) == 0
+            except:
+                return False
+
+        is_flet_on = check_flet_running(8555)
+        fl_col1, fl_col2 = st.columns([1, 1])
+        with fl_col1:
+            if is_flet_on:
+                st.success("🟢 Flet phpBB 論壇服務運作中 (Web: 8555)")
+                st.link_button("🌐 點此直接開啟 Flet phpBB 論壇", "http://localhost:8555", type="primary", use_container_width=True)
+            else:
+                st.warning("⚪ Flet phpBB 論壇服務尚未啟動")
+                if st.button("⚡ 點擊於背景啟動 Flet 論壇 (Port 8555)", use_container_width=True, type="primary"):
+                    import subprocess, time
+                    flet_bin = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv", "bin", "python")
+                    if not os.path.exists(flet_bin):
+                        flet_bin = sys.executable
+                    flet_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "flet_forum.py")
+                    subprocess.Popen([flet_bin, flet_script, "--port", "8555"])
+                    st.info("正在啟動 Flet 論壇服務，請稍候 2 秒後點擊進入...")
+                    time.sleep(1.5)
+                    st.rerun()
+
+        with fl_col2:
+            st.info("💡 **特色一覽**：\n- 🎯 卜卦 / 🏛️ 本命 / 📜 典籍 / ☕ 茶水間 四大版塊\n- 👤 經典 phpBB 雙欄名片卡與樓層榮譽階級\n- 🤖 主題內一鍵召喚 AI 駐站古典掌門秒級推演\n- 💾 本地 SQLite 儲存，離線極速開啟")
+
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Re-declare tabs (Handled above now)
@@ -1436,6 +1476,11 @@ if st.session_state.report_data:
         )
         st.markdown("---")
         st.subheader("🏛️ 社群論壇交流")
+        st.link_button(
+            "🏛️ Flet phpBB 迷你論壇 (8555)",
+            "http://localhost:8555",
+            use_container_width=True
+        )
         st.link_button(
             "🌐 前往 GitHub 占星論壇",
             f"{REPO_URL}/discussions",

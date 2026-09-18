@@ -5,3 +5,5 @@ __pycache__/
 .env
 GEMINI.md
 GitHub更新教學.md
+*.db
+*.sqlite
