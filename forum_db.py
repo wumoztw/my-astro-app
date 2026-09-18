@@ -91,7 +91,7 @@ def init_db():
         # 移除所有階級標示，論壇設定為 AI 管理，其餘皆為平權朋友
         cur.execute("UPDATE topics SET author_role = ''")
         cur.execute("UPDATE posts SET author_role = '' WHERE is_ai = 0")
-        cur.execute("UPDATE posts SET author_role = '🤖 AI 掌門 (管理員)' WHERE is_ai = 1")
+        cur.execute("UPDATE posts SET author_role = '🧚 占星精靈' WHERE is_ai = 1")
         # 移除茶水間與古典典籍版塊，不保留閒聊廢話，主題若有殘留全數轉移至本命討論區
         cur.execute("SELECT id FROM categories WHERE slug = 'natal-predictive'")
         natal_row = cur.fetchone()
