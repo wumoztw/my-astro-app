@@ -66,10 +66,12 @@ def generate_discussion_payload(
         compact_lines.append("\n### 🪐 盤體摘要")
         compact_lines.append(report_md[:300] if report_md else "（無詳細星盤數據）")
 
-    compact_lines.append("\n*💡 來自 easyastrology.streamlit.app。請 AI 駐站古典掌門 (William Lilly 體系) 進行體檢。*")
+    compact_lines.append("\n*💡 來自 easyastrology.streamlit.app。請 🧚 占星精靈 (William Lilly 體系) 進行體檢。*")
     compact_body = "\n".join(compact_lines)
 
     # 2. 完整報告 (Full Markdown)
+    notes_block = f"\n> 📝 **發布者補充說明**：\n> {extra_notes.strip()}\n" if extra_notes.strip() else ""
+
     full_markdown_body = f"""---
 chart_type: "{chart_type}"
 title: "{clean_title}"
@@ -78,22 +80,26 @@ generated_at: "{datetime.utcnow().isoformat()}Z"
 
 ### ❓ 事項說明
 **{clean_title}**
-
-{f'### 📖 補充備註：{extra_notes}' if extra_notes.strip() else ''}
-
+{notes_block}
 ### 🪐 命盤完整數據與報告
 {report_md}
 
 ---
-*💡 此案例由 easyastrology.streamlit.app 排盤系統生成。*
+> 💡 **社群交流與占星精靈互動指引**：
+> - 本案例由 [古典占星排盤系統](https://easyastrology.streamlit.app) 自動生成。
+> - 發布後約 15~20 秒，**🧚 占星精靈** 會自動現身留下第一手大白話深度剖析！
+> - 若想進一步追問，請在下方留言並加上 `@ai` 或 `@ai-astrologer`，占星精靈將隨時為你解盤答疑。
 """
+
+    encoded_title = urllib.parse.quote(title)
+    new_discussion_url = f"{REPO_URL}/discussions/new?category={category_slug}&title={encoded_title}"
 
     return {
         "title": title,
         "category_slug": category_slug,
         "compact_body": compact_body,
         "full_markdown_body": full_markdown_body,
-        "new_discussion_url": f"{REPO_URL}/discussions/new",
+        "new_discussion_url": new_discussion_url,
         "repo_discussions_url": f"{REPO_URL}/discussions"
     }
 

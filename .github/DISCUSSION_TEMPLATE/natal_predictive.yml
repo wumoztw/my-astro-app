@@ -28,7 +28,7 @@ body:
     id: discussion_points
     attributes:
       label: 💡 想要探討的疑問或心得 (Discussion Points)
-      description: 具體分享你的觀察、推論或想向易友請教的問題。
+      description: 具體分享你的觀察、推論或想向社群朋友請教的問題。
       placeholder: "請詳述你的分析觀點與問題..."
     validations:
       required: true

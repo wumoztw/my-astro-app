@@ -14,7 +14,7 @@ on:
       test_body:
         description: 'Test Discussion Body'
         required: false
-        default: '上升天蠍 14°，10 宮主太陽落在雙子座 12°，1 宮主火星在金牛座 20° 逆行。請 AI 掌門體檢。'
+        default: '上升天蠍 14°，10 宮主太陽落在雙子座 12°，1 宮主火星在金牛座 20° 逆行。請 🧚 占星精靈體檢。'
 
 permissions:
   contents: read

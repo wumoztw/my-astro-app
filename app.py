@@ -1344,8 +1344,8 @@ if st.session_state.report_data:
         st.subheader("🏛️ GitHub 原生古典占星社群論壇 (Discussions)")
         st.markdown(
             "歡迎將此命盤發布至 GitHub 開源討論區進行深度研討！\n\n"
-            "⚡ **全自動 AI 駐站古典掌門**：發布後約 15~20 秒，**Groq LPU (openai/gpt-oss-120b)** "
-            "將自動輸出**直白大白話**深度剖析（包含命格底牌、法達十年大運、年度小限、黃道釋放、凶星化解與關鍵時間點）！"
+            "⚡ **全自動 🧚 占星精靈**：發布後約 15~20 秒，**Groq LPU (openai/gpt-oss-120b)** "
+            "將自動送上**直白大白話**深度剖析（包含命格底牌、法達十年大運、年度小限、黃道釋放、凶星化解與關鍵時間點）！"
         )
 
         q_or_theme = st.session_state.get('horary_question', '') if st.session_state.chart_type == 'horary' else "古典本命格局與推運研討"
@@ -1370,37 +1370,37 @@ if st.session_state.report_data:
         with step_c1:
             st.markdown(
                 "#### 1️⃣ 複製或下載命盤\n"
-                "點擊下方代碼框右上角的 **複製** 圖示，或直接使用下方 **「💾 下載 Markdown 檔」** 備份。"
+                "點擊下方代碼框右上角的 **複製** 圖示，或使用下方 **「💾 下載 Markdown 檔」** 備份。"
             )
         with step_c2:
             st.markdown(
-                "#### 2️⃣ 前往 Discussions 發布\n"
-                "點擊下方 **「🌐 前往 GitHub Discussions 發布」** 按鈕，直接將標題與命盤內容貼入並送出。"
+                "#### 2️⃣ 前往 Discussions 一鍵發布\n"
+                "點擊下方 **「🌐 前往 GitHub Discussions 發布」**，**標題已為您自動帶入**，貼上內文即可送出！"
             )
         with step_c3:
             st.markdown(
-                "#### 3️⃣ AI 秒級解盤與留言互動\n"
-                "約 15 秒後 AI 掌門將現身送上深度大白話解析！後續在留言中輸入 `@ai` 即可隨時追問。"
+                "#### 3️⃣ 占星精靈秒級解盤與互動\n"
+                "約 15 秒後 🧚 占星精靈將現身送上深度大白話解析！後續在留言中輸入 `@ai` 即可隨時追問。"
             )
 
         with st.expander("💬 查看「留言區 @ai 追問互動」範例指南", expanded=False):
             st.markdown("""
-            任何人在 GitHub Discussions 討論串下方留言，只要帶上 `@ai-astrologer` 或 `@ai`，AI 駐站掌門將在 20 秒內直接在該則留言下為你解答：
-            - 🔹 **流年轉職提問**：`@ai-astrologer 請問以我的流年小限，今年下半年適合換工作還是保守為宜？`
+            任何人在 GitHub Discussions 討論串下方留言，只要帶上 `@ai` 或 `@ai-astrologer`，🧚 占星精靈將在 20 秒內直接在該則留言下為你解答：
+            - 🔹 **流年轉職提問**：`@ai 請問以我的流年小限，今年下半年適合換工作還是保守為宜？`
             - 🔹 **星體化解提問**：`@ai 請問這張盤中的火星落陷且受剋，生活中有哪些具體的能量化解管道？`
             - 🔹 **卜卦時效追問**：`@ai-astrologer 如果依照這張卜卦盤的徵象星阻礙，若延後一個月執行勝算會變大嗎？`
             """)
 
-        st.text_input("📌 貼文標題 (Title)：", value=f_payload['title'], help="可複製此標題填入 GitHub 討論串標題欄")
+        st.text_input("📌 貼文標題 (Title)：", value=f_payload['title'], help="點擊下方按鈕時已自動帶入 GitHub，若手動複製亦可使用此標題")
 
         st.markdown("#### 📋 完整命盤發布內容 (點右上角一鍵複製)：")
         st.code(f_payload['full_markdown_body'], language="markdown")
 
-        f_col1, f_col2, f_col3 = st.columns([1.2, 1, 1])
+        f_col1, f_col2, f_col3 = st.columns([1.3, 1, 1])
         with f_col1:
             st.link_button(
-                "🌐 前往 GitHub Discussions 發布 (貼上即發)",
-                f"{REPO_URL}/discussions/new?category={f_payload['category_slug']}",
+                "🌐 前往 GitHub Discussions 發布 (標題已自動帶入)",
+                f_payload['new_discussion_url'],
                 use_container_width=True,
                 type="primary"
             )
