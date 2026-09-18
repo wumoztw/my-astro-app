@@ -87,12 +87,6 @@ def main(page: ft.Page):
                                             color=ft.Colors.WHITE
                                         )
                                     ),
-                                    ft.FilledButton(
-                                        "✍️ 發布新主題",
-                                        icon=ft.Icons.ADD_COMMENT,
-                                        on_click=lambda _: open_new_topic_dialog(),
-                                        style=ft.ButtonStyle(bgcolor=ft.Colors.AMBER_700, color=ft.Colors.WHITE)
-                                    ),
                                     ft.IconButton(
                                         icon=ft.Icons.REFRESH,
                                         icon_color=ft.Colors.AMBER_300,
@@ -608,13 +602,17 @@ def main(page: ft.Page):
     # --- 發布新主題對話框 ---
     def open_new_topic_dialog(default_category_id: int = 1):
         categories = get_categories_with_stats()
+        matched_cat = next((c for c in categories if c["id"] == default_category_id), None)
+        default_chart = "horary" if (matched_cat and matched_cat["slug"] == "horary-cases") else "natal"
+
         cat_dropdown = ft.Dropdown(
-            label="選擇發布版塊",
+            label="目前發布版面 (已由進入版塊鎖定)",
             options=[ft.dropdown.Option(str(c["id"]), f"{c['icon']} {c['title']}") for c in categories],
             value=str(default_category_id),
+            disabled=True,
             expand=True
         )
-        title_input = ft.TextField(label="主題標題", hint_text="例如：【卜卦問事】下週合約能否順利簽約？", expand=True)
+        title_input = ft.TextField(label="主題標題", hint_text="例如：【本命推運】30歲轉職與法達星限討論、或【卜卦問事】合約簽訂吉凶", expand=True)
         author_input = ft.TextField(label="您的稱謂", value="熱心朋友", width=180)
         chart_type_dropdown = ft.Dropdown(
             label="盤體類型",
@@ -623,7 +621,7 @@ def main(page: ft.Page):
                 ft.dropdown.Option("natal", "🏛️ 本命流年盤"),
                 ft.dropdown.Option("general", "📜 一般占星研討"),
             ],
-            value="horary",
+            value=default_chart,
             width=180
         )
         body_input = ft.TextField(
