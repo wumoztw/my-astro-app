@@ -111,7 +111,7 @@ def main(page: ft.Page):
                                 ft.Row(
                                     spacing=16,
                                     controls=[
-                                        ft.Text("🟢 AI 駐站古典掌門: 正在線上", size=12, color=ft.Colors.GREEN_400, weight=ft.FontWeight.W_600),
+                                        ft.Text("🟢 AI 駐站管理員: 正在線上", size=12, color=ft.Colors.GREEN_400, weight=ft.FontWeight.W_600),
                                         ft.Text(f"📊 總主題: {stats['total_topics']} 篇", size=12, color=ft.Colors.GREY_300),
                                         ft.Text(f"💬 總討論: {stats['total_posts']} 則", size=12, color=ft.Colors.GREY_300),
                                         ft.Text(f"👥 線上朋友: {stats['online_users']} 人", size=12, color=ft.Colors.GREY_300),
@@ -211,7 +211,7 @@ def main(page: ft.Page):
             content=ft.Row(
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 controls=[
-                    ft.Text("🤝 交流原則: 開誠佈公、彼此尊重、切磋占星學理，大家都是熱愛研討的朋友", size=12, color=ft.Colors.GREY_400),
+                    ft.Text("🤝 管理架構: 本論壇由 AI 駐站古典掌門常駐管理，其餘皆為切磋占星學理的平權朋友", size=12, color=ft.Colors.GREY_400),
                     ft.Text("📜 依循 William Lilly 1647 原典體系驗證", size=11, color=ft.Colors.GREY_500)
                 ]
             ),
@@ -391,7 +391,7 @@ def main(page: ft.Page):
                                         ft.Text(p["author"], size=13, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE),
                                     ] + ([
                                         ft.Container(
-                                            content=ft.Text("🤖 AI 掌門", size=10, color=ft.Colors.PURPLE_300, weight=ft.FontWeight.W_600),
+                                            content=ft.Text("🤖 AI 管理員", size=10, color=ft.Colors.PURPLE_300, weight=ft.FontWeight.W_600),
                                             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                                             padding=ft.Padding.symmetric(horizontal=6, vertical=2),
                                             border_radius=4

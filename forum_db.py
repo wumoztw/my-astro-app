@@ -80,28 +80,24 @@ def init_db():
         seed_topics_and_posts(cur)
         conn.commit()
     else:
-        # 自動遷移更新現有資料庫名稱與順序
+        # 自動遷移更新現有資料庫名稱與順序（僅保留專注研討之兩大核心版塊）
         cur.execute("UPDATE categories SET title = '🏛️ 本命與流運討論區', sort_order = 1 WHERE slug = 'natal-predictive'")
-        cur.execute("UPDATE categories SET sort_order = 2 WHERE slug = 'horary-cases'")
-        cur.execute("UPDATE categories SET title = '☕ 朋友茶水間與解盤閒聊', sort_order = 3 WHERE slug = 'astrology-lounge'")
+        cur.execute("UPDATE categories SET title = '🎯 卜卦問事實戰版', sort_order = 2 WHERE slug = 'horary-cases'")
         cur.execute("UPDATE posts SET content = REPLACE(content, '各位易友大家好！', '各位朋友大家好！')")
         cur.execute("UPDATE posts SET content = REPLACE(content, '易友們好！', '朋友們好！')")
         cur.execute("UPDATE posts SET content = REPLACE(content, '易友', '朋友')")
         cur.execute("UPDATE topics SET author = REPLACE(author, '易友', '朋友')")
         cur.execute("UPDATE posts SET author = REPLACE(author, '易友', '朋友')")
-        # 移除所有階級標示，論壇大家都是朋友無階級
+        # 移除所有階級標示，論壇設定為 AI 管理，其餘皆為平權朋友
         cur.execute("UPDATE topics SET author_role = ''")
         cur.execute("UPDATE posts SET author_role = '' WHERE is_ai = 0")
-        cur.execute("UPDATE posts SET author_role = '🤖 AI 掌門' WHERE is_ai = 1")
-        # 將原本 classical-texts 的主題轉移至茶水間並移除該版塊
-        cur.execute("SELECT id FROM categories WHERE slug = 'classical-texts'")
-        ct_row = cur.fetchone()
-        if ct_row:
-            ct_id = ct_row[0]
-            cur.execute("SELECT id FROM categories WHERE slug = 'astrology-lounge'")
-            lounge_id = cur.fetchone()[0]
-            cur.execute("UPDATE topics SET category_id = ? WHERE category_id = ?", (lounge_id, ct_id))
-            cur.execute("DELETE FROM categories WHERE id = ?", (ct_id,))
+        cur.execute("UPDATE posts SET author_role = '🤖 AI 掌門 (管理員)' WHERE is_ai = 1")
+        # 移除茶水間與古典典籍版塊，不保留閒聊廢話，主題若有殘留全數轉移至本命討論區
+        cur.execute("SELECT id FROM categories WHERE slug = 'natal-predictive'")
+        natal_row = cur.fetchone()
+        natal_id = natal_row[0] if natal_row else 1
+        cur.execute("UPDATE topics SET category_id = ? WHERE category_id NOT IN (SELECT id FROM categories WHERE slug IN ('natal-predictive', 'horary-cases'))", (natal_id,))
+        cur.execute("DELETE FROM categories WHERE slug NOT IN ('natal-predictive', 'horary-cases')")
         conn.commit()
 
     conn.close()
@@ -122,13 +118,6 @@ def seed_categories(cur):
             "依 William Lilly 1647 原典體系探討求職、感情、失物與事態吉凶成否。",
             "🎯",
             2
-        ),
-        (
-            "astrology-lounge",
-            "☕ 朋友茶水間與解盤閒聊",
-            "生活心得分享、疑難雜症破局心得、新手入門請教與現實反饋。",
-            "☕",
-            3
         ),
     ]
     cur.executemany(
