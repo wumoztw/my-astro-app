@@ -1343,24 +1343,17 @@ if st.session_state.report_data:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("🏛️ GitHub 原生古典占星社群論壇 (Discussions)")
         st.markdown(
-            "歡迎將此命盤發布至 GitHub 開源討論區進行深度研討！\n\n"
             "⚡ **全自動 AI 解盤**：發布後約 15~20 秒，**Groq LPU (openai/gpt-oss-120b)** "
             "將自動送上**直白大白話**深度剖析（包含命格底牌、法達十年大運、年度小限、黃道釋放、凶星化解與關鍵時間點）！"
         )
 
         q_or_theme = st.session_state.get('horary_question', '') if st.session_state.chart_type == 'horary' else "古典本命格局與推運研討"
-        forum_notes = st.text_area(
-            "📝 想向社群朋友說明的背景或問題細節（選填）：",
-            placeholder="例如：目前正在考慮是否接受外商 Offer、想探討 ZR 精神點 L2 換宮轉折的具體生活印證、或針對某顆受剋星體的化解心得...",
-            key="forum_custom_notes"
-        )
 
         f_payload = generate_discussion_payload(
             chart_type=st.session_state.chart_type,
             question_or_theme=q_or_theme,
             report_data=st.session_state.report_data,
-            report_md=st.session_state.report_md,
-            extra_notes=forum_notes
+            report_md=st.session_state.report_md
         )
 
         st.markdown("---")
