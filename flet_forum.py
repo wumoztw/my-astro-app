@@ -614,13 +614,115 @@ def main(page: ft.Page):
         )
         author_input = ft.TextField(label="您的稱謂", value="熱心朋友", width=180)
         title_input = ft.TextField(label="主題標題", hint_text="例如：【本命推運】30歲轉職與法達星限討論、或【卜卦問事】合約簽訂吉凶", expand=True)
+
+        # 說明與問題細節的美化元件與工具列
+        def insert_text_to_body(text_to_insert: str):
+            curr = body_input.value or ""
+            if not curr:
+                body_input.value = text_to_insert
+            elif "\n" in text_to_insert:
+                body_input.value = curr.rstrip() + "\n\n" + text_to_insert
+            else:
+                body_input.value = curr + text_to_insert
+            page.update()
+
+        horary_template = """**【起盤問事背景】**：
+- 所問疑問：
+- 起盤時間與地點：
+- 核心星體（上升/1宮主/事項主星/月亮狀態）：
+- 想請教的具體成事方向："""
+
+        natal_template = """**【本命與推運數據】**：
+- 出生盤簡述（性別/日夜生/上升星座）：
+- 當前推運週期（法達星限/年度小限/黃道釋放）：
+- 核心焦點星體與主要相位配置：
+- 想研討的人生主題（事業/職涯/感情/關卡轉折）："""
+
+        sample_template = horary_template if default_chart == "horary" else natal_template
+
+        symbol_buttons = []
+        astrology_symbols = [
+            ("☉", "太陽"), ("☽", "月亮"), ("☿", "水星"), ("♀", "金星"),
+            ("♂", "火星"), ("♃", "木星"), ("♄", "土星"), ("☊", "北交"),
+            ("☋", "南交"), ("△", "三分"), ("□", "四分"), ("⚹", "六分"), ("☍", "對衝")
+        ]
+        for sym, tip in astrology_symbols:
+            symbol_buttons.append(
+                ft.Container(
+                    content=ft.Text(sym, size=13, weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER_200),
+                    tooltip=f"插入星體/相位符號：{sym} ({tip})",
+                    padding=ft.Padding.symmetric(horizontal=8, vertical=4),
+                    bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                    border_radius=4,
+                    border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                    on_click=lambda _, s=sym: insert_text_to_body(s)
+                )
+            )
+
         body_input = ft.TextField(
-            label="說明與問題細節",
-            hint_text="請描述所問問題、起盤背景，或貼入完整的命盤度數數據...",
+            hint_text="請詳細描述所問問題、起盤背景，或貼入完整的星圖度數數據與推運週期...",
             multiline=True,
-            min_lines=6,
-            max_lines=12
+            min_lines=8,
+            max_lines=14,
+            text_size=13,
+            bgcolor=ft.Colors.SURFACE_CONTAINER_LOW,
+            border_color=ft.Colors.OUTLINE_VARIANT,
+            focused_border_color=ft.Colors.AMBER_400,
+            border_radius=8,
+            content_padding=14
         )
+
+        body_section = ft.Container(
+            content=ft.Column(
+                spacing=8,
+                controls=[
+                    ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        controls=[
+                            ft.Row(
+                                spacing=6,
+                                controls=[
+                                    ft.Icon(ft.Icons.EDIT_DOCUMENT, size=16, color=ft.Colors.AMBER_400),
+                                    ft.Text("說明與問題細節", size=13, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
+                                    ft.Text("(支援 Markdown 與度數貼入)", size=11, color=ft.Colors.GREY_400)
+                                ]
+                            ),
+                            ft.TextButton(
+                                "📝 載入盤體結構範本",
+                                icon=ft.Icons.FORMAT_LIST_BULLETED,
+                                style=ft.ButtonStyle(color=ft.Colors.AMBER_300),
+                                on_click=lambda _: insert_text_to_body(sample_template)
+                            )
+                        ]
+                    ),
+                    # 常用占星符號工具列
+                    ft.Container(
+                        content=ft.Row(
+                            spacing=6,
+                            scroll=ft.ScrollMode.ADAPTIVE,
+                            controls=[
+                                ft.Text("⚡ 符號盤:", size=11, color=ft.Colors.GREY_400, weight=ft.FontWeight.W_500),
+                                *symbol_buttons
+                            ]
+                        ),
+                        padding=ft.Padding.symmetric(horizontal=10, vertical=5),
+                        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGH,
+                        border_radius=6,
+                        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT)
+                    ),
+                    body_input,
+                    ft.Row(
+                        spacing=4,
+                        controls=[
+                            ft.Icon(ft.Icons.AUTO_AWESOME, size=13, color=ft.Colors.AMBER_400),
+                            ft.Text("提供具體星體度數、宮位與推運週期，AI 駐站管理員解盤將更精準！", size=11, color=ft.Colors.GREY_400),
+                        ]
+                    )
+                ]
+            ),
+            padding=ft.Padding.symmetric(vertical=4)
+        )
+
         auto_ai_checkbox = ft.Checkbox(label="發布後立即召喚 AI 駐站古典掌門首評 (Groq LPU 秒級解盤)", value=True)
 
         def submit_new_topic(_):
@@ -660,14 +762,14 @@ def main(page: ft.Page):
         dialog = ft.AlertDialog(
             title=ft.Row([ft.Icon(ft.Icons.POST_ADD, color=ft.Colors.AMBER_400), ft.Text("發起新的古典占星研討主題")]),
             content=ft.Container(
-                width=650,
+                width=680,
                 content=ft.Column(
                     spacing=12,
                     tight=True,
                     controls=[
                         ft.Row([cat_dropdown, author_input]),
                         title_input,
-                        body_input,
+                        body_section,
                         auto_ai_checkbox
                     ]
                 )
