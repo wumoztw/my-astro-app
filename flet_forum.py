@@ -95,11 +95,6 @@ def main(page: ft.Page):
                                         tooltip="重新整理",
                                         on_click=lambda _: refresh_current_view()
                                     ),
-                                    ft.IconButton(
-                                        icon=ft.Icons.BRIGHTNESS_4,
-                                        tooltip="切換深淺模式",
-                                        on_click=lambda _: toggle_theme()
-                                    ),
                                 ]
                             )
                         ]
@@ -132,10 +127,6 @@ def main(page: ft.Page):
             bgcolor=ft.Colors.SURFACE_CONTAINER_LOW,
             border=ft.Border.only(bottom=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT))
         )
-
-    def toggle_theme():
-        page.theme_mode = ft.ThemeMode.LIGHT if page.theme_mode == ft.ThemeMode.DARK else ft.ThemeMode.DARK
-        page.update()
 
     # --- 1. 首頁視圖 (Board Index) ---
     def render_board_index():
