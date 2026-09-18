@@ -1344,7 +1344,7 @@ if st.session_state.report_data:
         st.subheader("🏛️ GitHub 原生古典占星社群論壇 (Discussions)")
         st.markdown(
             "歡迎將此命盤發布至 GitHub 開源討論區進行深度研討！\n\n"
-            "⚡ **全自動 🧚 占星精靈**：發布後約 15~20 秒，**Groq LPU (openai/gpt-oss-120b)** "
+            "⚡ **全自動 AI 解盤**：發布後約 15~20 秒，**Groq LPU (openai/gpt-oss-120b)** "
             "將自動送上**直白大白話**深度剖析（包含命格底牌、法達十年大運、年度小限、黃道釋放、凶星化解與關鍵時間點）！"
         )
 
@@ -1379,13 +1379,13 @@ if st.session_state.report_data:
             )
         with step_c3:
             st.markdown(
-                "#### 3️⃣ 占星精靈秒級解盤與互動\n"
-                "約 15 秒後 🧚 占星精靈將現身送上深度大白話解析！後續在留言中輸入 `@ai` 即可隨時追問。"
+                "#### 3️⃣ AI 秒級解盤與互動\n"
+                "約 15 秒後 AI 將現身送上深度大白話解析！後續在留言中輸入 `@ai` 即可隨時追問。"
             )
 
         with st.expander("💬 查看「留言區 @ai 追問互動」範例指南", expanded=False):
             st.markdown("""
-            任何人在 GitHub Discussions 討論串下方留言，只要帶上 `@ai` 或 `@ai-astrologer`，🧚 占星精靈將在 20 秒內直接在該則留言下為你解答：
+            任何人在 GitHub Discussions 討論串下方留言，只要帶上 `@ai` 或 `@ai-astrologer`，AI 將在 20 秒內直接在該則留言下為你解答：
             - 🔹 **流年轉職提問**：`@ai 請問以我的流年小限，今年下半年適合換工作還是保守為宜？`
             - 🔹 **星體化解提問**：`@ai 請問這張盤中的火星落陷且受剋，生活中有哪些具體的能量化解管道？`
             - 🔹 **卜卦時效追問**：`@ai-astrologer 如果依照這張卜卦盤的徵象星阻礙，若延後一個月執行勝算會變大嗎？`

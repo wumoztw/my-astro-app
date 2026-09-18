@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         ### 🔮 古典占星卜卦案例分享
-        歡迎在此提交你的卜卦盤！我們的 🧚 占星精靈（William Lilly 體系）將在 20 秒內為你進行初步體檢與成事診斷。
+        歡迎在此提交你的卜卦盤！我們的 AI（William Lilly 體系）將在 20 秒內為你進行初步體檢與成事診斷。
   - type: input
     id: question
     attributes:
