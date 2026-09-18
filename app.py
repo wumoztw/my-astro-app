@@ -1458,7 +1458,7 @@ if st.session_state.report_data:
                     st.rerun()
 
         with fl_col2:
-            st.info("💡 **特色一覽**：\n- 🏛️ 本命與流運討論區 / 🎯 卜卦問事實戰版 / ☕ 朋友茶水間 三大版塊\n- 👤 經典雙欄名片卡與樓層榮譽階級\n- 🤖 主題內一鍵召喚 AI 駐站古典掌門秒級推演\n- 💾 本地 SQLite 儲存，離線極速開啟")
+            st.info("💡 **特色一覽**：\n- 🏛️ 本命與流運討論區 / 🎯 卜卦問事實戰版 / ☕ 朋友茶水間 三大版塊\n- 👤 經典雙欄名片卡，大家都是平等的占星研討朋友\n- 🤖 主題內一鍵召喚 AI 駐站古典掌門秒級推演\n- 💾 本地 SQLite 儲存，離線極速開啟")
 
         st.markdown("</div>", unsafe_allow_html=True)
 

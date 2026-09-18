@@ -206,21 +206,12 @@ def main(page: ft.Page):
                 )
             )
 
-        # phpBB 經典底部版塊與榮譽階級條
+        # 論壇底部原則說明 (無階級友善交流)
         legend_row = ft.Container(
             content=ft.Row(
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 controls=[
-                    ft.Row(
-                        spacing=12,
-                        controls=[
-                            ft.Text("👥 社群階級標示:", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_400),
-                            ft.Text("🤖 駐站大宗師", size=12, color=ft.Colors.PURPLE_300, weight=ft.FontWeight.BOLD),
-                            ft.Text("👑 易壇宗師", size=12, color=ft.Colors.AMBER_300),
-                            ft.Text("📜 資深占星師", size=12, color=ft.Colors.CYAN_300),
-                            ft.Text("🌱 易壇道友", size=12, color=ft.Colors.GREEN_300),
-                        ]
-                    ),
+                    ft.Text("🤝 交流原則: 開誠佈公、彼此尊重、切磋占星學理，大家都是熱愛研討的朋友", size=12, color=ft.Colors.GREY_400),
                     ft.Text("📜 依循 William Lilly 1647 原典體系驗證", size=11, color=ft.Colors.GREY_500)
                 ]
             ),
@@ -285,7 +276,7 @@ def main(page: ft.Page):
                                         expand=True,
                                         controls=[
                                             ft.Text(t["title"], size=15, weight=ft.FontWeight.W_600, color=ft.Colors.WHITE),
-                                            ft.Text(f"發起人: {t['author']} ({t['author_role']}) · 發布於 {t['created_at'][:16]}", size=11, color=ft.Colors.GREY_400)
+                                            ft.Text(f"發起人: {t['author']} · 發布於 {t['created_at'][:16]}", size=11, color=ft.Colors.GREY_400)
                                         ]
                                     )
                                 ]
@@ -398,12 +389,14 @@ def main(page: ft.Page):
                                             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST
                                         ),
                                         ft.Text(p["author"], size=13, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE),
+                                    ] + ([
                                         ft.Container(
-                                            content=ft.Text(p["author_role"], size=10, color=role_color, weight=ft.FontWeight.W_600),
+                                            content=ft.Text("🤖 AI 掌門", size=10, color=ft.Colors.PURPLE_300, weight=ft.FontWeight.W_600),
                                             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                                             padding=ft.Padding.symmetric(horizontal=6, vertical=2),
                                             border_radius=4
-                                        ),
+                                        )
+                                    ] if is_ai else []) + [
                                         ft.Divider(color=ft.Colors.OUTLINE_VARIANT, height=12),
                                         ft.Text(floor_text, size=11, color=ft.Colors.AMBER_400, weight=ft.FontWeight.BOLD),
                                         ft.Text(f"🕒 {p['created_at'][:16]}", size=10, color=ft.Colors.GREY_500, text_align=ft.TextAlign.CENTER),
@@ -489,7 +482,7 @@ def main(page: ft.Page):
             if not val or not val.strip():
                 show_snackbar("請輸入回覆內容！", ft.Colors.RED_400)
                 return
-            add_post(topic_id, author="熱心朋友", author_role="🌱 易壇道友", content=val.strip())
+            add_post(topic_id, author="熱心朋友", author_role="", content=val.strip())
             reply_field.value = ""
             show_snackbar("回覆發布成功！")
             refresh_current_view()
@@ -581,7 +574,7 @@ def main(page: ft.Page):
                                 spacing=4,
                                 controls=[
                                     ft.Text(topic["title"], size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
-                                    ft.Text(f"發布人: {topic['author']} ({topic['author_role']}) | 查看: {topic['views']} 次 | 總樓層: {len(topic['posts'])}", size=12, color=ft.Colors.GREY_400)
+                                    ft.Text(f"發布人: {topic['author']} | 查看: {topic['views']} 次 | 總樓層: {len(topic['posts'])}", size=12, color=ft.Colors.GREY_400)
                                 ]
                             ),
                             ft.FilledButton(
@@ -622,7 +615,7 @@ def main(page: ft.Page):
             expand=True
         )
         title_input = ft.TextField(label="主題標題", hint_text="例如：【卜卦問事】下週合約能否順利簽約？", expand=True)
-        author_input = ft.TextField(label="您的稱謂", value="易壇求知客", width=180)
+        author_input = ft.TextField(label="您的稱謂", value="熱心朋友", width=180)
         chart_type_dropdown = ft.Dropdown(
             label="盤體類型",
             options=[
@@ -655,7 +648,7 @@ def main(page: ft.Page):
                 category_id=cid,
                 title=title_input.value.strip(),
                 author=author_input.value.strip() or "朋友",
-                author_role="🌱 易壇道友",
+                author_role="",
                 content=body_input.value.strip(),
                 chart_type=chart_type_dropdown.value
             )

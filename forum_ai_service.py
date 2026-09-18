@@ -131,7 +131,7 @@ def generate_ai_reply_for_topic(topic_id: int, user_question: Optional[str] = No
     post_id = add_post(
         topic_id=topic_id,
         author="🤖 AI 駐站古典掌門 · William Lilly 傳承",
-        author_role="🤖 駐站大宗師",
+        author_role="🤖 AI 掌門",
         content=ai_text,
         is_ai=True,
         avatar="⚡"
@@ -140,7 +140,7 @@ def generate_ai_reply_for_topic(topic_id: int, user_question: Optional[str] = No
     return {
         "post_id": post_id,
         "author": "🤖 AI 駐站古典掌門 · William Lilly 傳承",
-        "author_role": "🤖 駐站大宗師",
+        "author_role": "🤖 AI 掌門",
         "avatar": "⚡",
         "content": ai_text,
         "is_ai": True

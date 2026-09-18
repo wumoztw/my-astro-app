@@ -43,7 +43,7 @@ def init_db():
         category_id INTEGER NOT NULL REFERENCES categories(id),
         title TEXT NOT NULL,
         author TEXT NOT NULL,
-        author_role TEXT DEFAULT '🌱 易壇道友',
+        author_role TEXT DEFAULT '',
         author_avatar TEXT DEFAULT '👤',
         chart_type TEXT DEFAULT 'general',
         chart_data_md TEXT DEFAULT '',
@@ -61,7 +61,7 @@ def init_db():
         topic_id INTEGER NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
         floor_number INTEGER NOT NULL,
         author TEXT NOT NULL,
-        author_role TEXT DEFAULT '🌱 易壇道友',
+        author_role TEXT DEFAULT '',
         author_avatar TEXT DEFAULT '👤',
         content TEXT NOT NULL,
         likes INTEGER DEFAULT 0,
@@ -89,6 +89,10 @@ def init_db():
         cur.execute("UPDATE posts SET content = REPLACE(content, '易友', '朋友')")
         cur.execute("UPDATE topics SET author = REPLACE(author, '易友', '朋友')")
         cur.execute("UPDATE posts SET author = REPLACE(author, '易友', '朋友')")
+        # 移除所有階級標示，論壇大家都是朋友無階級
+        cur.execute("UPDATE topics SET author_role = ''")
+        cur.execute("UPDATE posts SET author_role = '' WHERE is_ai = 0")
+        cur.execute("UPDATE posts SET author_role = '🤖 AI 掌門' WHERE is_ai = 1")
         # 將原本 classical-texts 的主題轉移至茶水間並移除該版塊
         cur.execute("SELECT id FROM categories WHERE slug = 'classical-texts'")
         ct_row = cur.fetchone()
@@ -139,13 +143,13 @@ def seed_topics_and_posts(cur):
     # 案例 1：卜卦問事
     cur.execute("""
     INSERT INTO topics (category_id, title, author, author_role, author_avatar, chart_type, chart_data_md, views, is_pinned, created_at, updated_at)
-    VALUES (1, '【卜卦求助】下週的新創公司主管面試有機會順利錄取嗎？', '星空漫步者', '📜 資深占星師', '🔭', 'horary', '上升天蠍座 14°20''，10宮主太陽在處女座 25°，1宮主火星在巨蟹座 18°落陷。月亮在天蠍座 22°落陷，正準備與太陽成六分相。', 128, 1, ?, ?)
+    VALUES (1, '【卜卦求助】下週的新創公司主管面試有機會順利錄取嗎？', '星空漫步者', '', '🔭', 'horary', '上升天蠍座 14°20''，10宮主太陽在處女座 25°，1宮主火星在巨蟹座 18°落陷。月亮在天蠍座 22°落陷，正準備與太陽成六分相。', 128, 1, ?, ?)
     """, (now, now))
     topic1_id = cur.lastrowid
 
     cur.execute("""
     INSERT INTO posts (topic_id, floor_number, author, author_role, author_avatar, content, likes, is_ai, created_at)
-    VALUES (?, 1, '星空漫步者', '📜 資深占星師', '🔭', ?, 5, 0, ?)
+    VALUES (?, 1, '星空漫步者', '', '🔭', ?, 5, 0, ?)
     """, (
         topic1_id,
         "各位朋友大家好！\n\n下週二要去面試一家心儀已久的 AI 新創公司主管職缺，想請教大家這盤的成事跡象與阻礙。\n\n**【占卜背景與盤體數據】**：\n- 上升度數：天蠍座 14°20'\n- 1宮主（我）：火星在巨蟹座 18°（落陷在第 9 宮）\n- 10宮主（職位/主管）：太陽在處女座 25°（第 11 宮）\n- 月亮（情勢進展）：天蠍座 22°（落陷在第 1 宮，入相位六分太陽處女座 25°）\n\n我自己看火星落陷感覺心態很虛，但月亮即將六分 10 宮主太陽，這是否構成光線傳遞（Translation of Light）？求高人指點！",
@@ -154,7 +158,7 @@ def seed_topics_and_posts(cur):
 
     cur.execute("""
     INSERT INTO posts (topic_id, floor_number, author, author_role, author_avatar, content, likes, is_ai, created_at)
-    VALUES (?, 2, '🤖 AI 駐站古典掌門 · William Lilly 傳承', '🤖 駐站大宗師', '⚡', ?, 12, 1, ?)
+    VALUES (?, 2, '🤖 AI 駐站古典掌門 · William Lilly 傳承', '🤖 AI 掌門', '⚡', ?, 12, 1, ?)
     """, (
         topic1_id,
         """### 🎯 掌門一針見血結論
@@ -186,13 +190,13 @@ def seed_topics_and_posts(cur):
     # 案例 2：本命推運研討
     cur.execute("""
     INSERT INTO topics (category_id, title, author, author_role, author_avatar, chart_type, chart_data_md, views, is_pinned, created_at, updated_at)
-    VALUES (2, '【本命推運研討】32歲轉職外商：法達水星大限碰上小限 10 宮獅子座的威力', '星圖旅人', '🌱 易壇道友', '🧭', 'natal', '命度天蠍 18°，白天生人。法達星限正走水星大限/月亮小限。年度小限實歲 32 歲行至第 10 宮獅子座，太陽在雙魚座第 5 宮拱木星巨蟹座。', 95, 0, ?, ?)
+    VALUES (2, '【本命推運研討】32歲轉職外商：法達水星大限碰上小限 10 宮獅子座的威力', '星圖旅人', '', '🧭', 'natal', '命度天蠍 18°，白天生人。法達星限正走水星大限/月亮小限。年度小限實歲 32 歲行至第 10 宮獅子座，太陽在雙魚座第 5 宮拱木星巨蟹座。', 95, 0, ?, ?)
     """, (now, now))
     topic2_id = cur.lastrowid
 
     cur.execute("""
     INSERT INTO posts (topic_id, floor_number, author, author_role, author_avatar, content, likes, is_ai, created_at)
-    VALUES (?, 1, '星圖旅人', '🌱 易壇道友', '🧭', ?, 3, 0, ?)
+    VALUES (?, 1, '星圖旅人', '', '🧭', ?, 3, 0, ?)
     """, (
         topic2_id,
         "朋友們好！\n\n今年剛滿 32 歲，原本在傳產當小主管，近期突然收到歐美外商的總監級職缺邀約。\n比對了一下推運：\n1. 法達星限：目前正值水星大限 / 月亮小限\n2. 年度小限：32 歲走到第 10 宮（獅子座），年度主星為太陽\n3. 本命太陽在雙魚座拱入廟巨蟹座木星\n\n這是否意味著今年是職業生涯的重要破局年？想聽聽各位與掌門的見解！",
@@ -384,7 +388,7 @@ def get_topic_detail(topic_id: int) -> Optional[Dict[str, Any]]:
     return result
 
 
-def add_topic(category_id: int, title: str, author: str, author_role: str, content: str,
+def add_topic(category_id: int, title: str, author: str, author_role: str = "", content: str = "",
               chart_type: str = "general", chart_data_md: str = "") -> int:
     """建立新主題並新增第 1 樓內容"""
     conn = get_db_connection()
@@ -412,7 +416,7 @@ def add_topic(category_id: int, title: str, author: str, author_role: str, conte
     return topic_id
 
 
-def add_post(topic_id: int, author: str, author_role: str, content: str, is_ai: bool = False, avatar: str = "👤") -> int:
+def add_post(topic_id: int, author: str, author_role: str = "", content: str = "", is_ai: bool = False, avatar: str = "👤") -> int:
     """為主題新增回覆樓層"""
     conn = get_db_connection()
     cur = conn.cursor()
