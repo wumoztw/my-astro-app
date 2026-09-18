@@ -606,14 +606,34 @@ def main(page: ft.Page):
         default_chart = "horary" if (matched_cat and matched_cat["slug"] == "horary-cases") else "natal"
 
         cat_dropdown = ft.Dropdown(
-            label="目前發布版面 (已由進入版塊鎖定)",
+            label="發布版面 (已由目前版塊鎖定)",
             options=[ft.dropdown.Option(str(c["id"]), f"{c['icon']} {c['title']}") for c in categories],
             value=str(default_category_id),
             disabled=True,
-            expand=True
+            expand=True,
+            border_color=ft.Colors.OUTLINE_VARIANT,
+            border_radius=8,
+            bgcolor=ft.Colors.SURFACE_CONTAINER_LOW
         )
-        author_input = ft.TextField(label="您的稱謂", value="熱心朋友", width=180)
-        title_input = ft.TextField(label="主題標題", hint_text="例如：【本命推運】30歲轉職與法達星限討論、或【卜卦問事】合約簽訂吉凶", expand=True)
+        author_input = ft.TextField(
+            label="您的稱謂",
+            value="熱心朋友",
+            width=200,
+            border_color=ft.Colors.OUTLINE_VARIANT,
+            focused_border_color=ft.Colors.AMBER_400,
+            border_radius=8,
+            bgcolor=ft.Colors.SURFACE_CONTAINER_LOW
+        )
+        title_input = ft.TextField(
+            label="文章主題標題",
+            hint_text="請輸入清晰簡明的文章標題（例如：【本命推運】32歲外商總監邀約與法達水星大限、或【卜卦問事】下週面試成否）",
+            border_color=ft.Colors.OUTLINE_VARIANT,
+            focused_border_color=ft.Colors.AMBER_400,
+            border_radius=8,
+            bgcolor=ft.Colors.SURFACE_CONTAINER_LOW,
+            text_size=14,
+            content_padding=14
+        )
 
         # 說明與問題細節的美化元件與工具列
         def insert_text_to_body(text_to_insert: str):
@@ -662,8 +682,8 @@ def main(page: ft.Page):
         body_input = ft.TextField(
             hint_text="請詳細描述所問問題、起盤背景，或貼入完整的星圖度數數據與推運週期...",
             multiline=True,
-            min_lines=8,
-            max_lines=14,
+            min_lines=6,
+            max_lines=10,
             text_size=13,
             bgcolor=ft.Colors.SURFACE_CONTAINER_LOW,
             border_color=ft.Colors.OUTLINE_VARIANT,
@@ -760,14 +780,18 @@ def main(page: ft.Page):
             navigate_to("thread", topic_id=tid)
 
         dialog = ft.AlertDialog(
-            title=ft.Row([ft.Icon(ft.Icons.POST_ADD, color=ft.Colors.AMBER_400), ft.Text("發起新的古典占星研討主題")]),
+            title=ft.Row([
+                ft.Icon(ft.Icons.POST_ADD, color=ft.Colors.AMBER_400, size=24),
+                ft.Text("發起新的古典占星研討主題", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
+            ]),
             content=ft.Container(
-                width=680,
+                width=720,
                 content=ft.Column(
-                    spacing=12,
+                    spacing=16,
                     tight=True,
+                    scroll=ft.ScrollMode.AUTO,
                     controls=[
-                        ft.Row([cat_dropdown, author_input]),
+                        ft.Row(spacing=12, controls=[cat_dropdown, author_input]),
                         title_input,
                         body_section,
                         auto_ai_checkbox
