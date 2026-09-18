@@ -612,18 +612,8 @@ def main(page: ft.Page):
             disabled=True,
             expand=True
         )
-        title_input = ft.TextField(label="主題標題", hint_text="例如：【本命推運】30歲轉職與法達星限討論、或【卜卦問事】合約簽訂吉凶", expand=True)
         author_input = ft.TextField(label="您的稱謂", value="熱心朋友", width=180)
-        chart_type_dropdown = ft.Dropdown(
-            label="盤體類型",
-            options=[
-                ft.dropdown.Option("horary", "🎯 卜卦問事盤"),
-                ft.dropdown.Option("natal", "🏛️ 本命流年盤"),
-                ft.dropdown.Option("general", "📜 一般占星研討"),
-            ],
-            value=default_chart,
-            width=180
-        )
+        title_input = ft.TextField(label="主題標題", hint_text="例如：【本命推運】30歲轉職與法達星限討論、或【卜卦問事】合約簽訂吉凶", expand=True)
         body_input = ft.TextField(
             label="說明與問題細節",
             hint_text="請描述所問問題、起盤背景，或貼入完整的命盤度數數據...",
@@ -648,7 +638,7 @@ def main(page: ft.Page):
                 author=author_input.value.strip() or "朋友",
                 author_role="",
                 content=body_input.value.strip(),
-                chart_type=chart_type_dropdown.value
+                chart_type=default_chart
             )
 
             # 關閉對話框
@@ -675,8 +665,8 @@ def main(page: ft.Page):
                     spacing=12,
                     tight=True,
                     controls=[
-                        ft.Row([cat_dropdown, chart_type_dropdown]),
-                        ft.Row([title_input, author_input]),
+                        ft.Row([cat_dropdown, author_input]),
+                        title_input,
                         body_input,
                         auto_ai_checkbox
                     ]
