@@ -49,7 +49,7 @@ def main(page: ft.Page):
         page.update()
 
     # 主容器（居中最大寬度 1150px）
-    content_area = ft.Container(expand=True, padding=ft.padding.symmetric(horizontal=20, vertical=10))
+    content_area = ft.Container(expand=True, padding=ft.Padding.symmetric(horizontal=20, vertical=10))
 
     # --- 頂部 Header & 統計導航列 ---
     def build_header():
@@ -122,15 +122,15 @@ def main(page: ft.Page):
                             ]
                         ),
                         bgcolor=ft.Colors.SURFACE_CONTAINER_HIGH,
-                        padding=ft.padding.symmetric(horizontal=14, vertical=6),
+                        padding=ft.Padding.symmetric(horizontal=14, vertical=6),
                         border_radius=6,
-                        border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT)
+                        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT)
                     )
                 ]
             ),
-            padding=ft.padding.symmetric(horizontal=24, vertical=12),
+            padding=ft.Padding.symmetric(horizontal=24, vertical=12),
             bgcolor=ft.Colors.SURFACE_CONTAINER_LOW,
-            border=ft.border.only(bottom=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT))
+            border=ft.Border.only(bottom=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT))
         )
 
     def toggle_theme():
@@ -160,10 +160,10 @@ def main(page: ft.Page):
                                         content=ft.Text(cat["icon"], size=30),
                                         width=52,
                                         height=52,
-                                        alignment=ft.alignment.center,
+                                        alignment=ft.Alignment.CENTER,
                                         bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                                         border_radius=26,
-                                        border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT)
+                                        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT)
                                     ),
                                     ft.Column(
                                         spacing=4,
@@ -205,7 +205,7 @@ def main(page: ft.Page):
                     padding=16,
                     bgcolor=ft.Colors.SURFACE_CONTAINER,
                     border_radius=8,
-                    border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT),
+                    border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
                     ink=True,
                     on_click=lambda _, cid=c_id: navigate_to("topics", category_id=cid)
                 )
@@ -229,10 +229,10 @@ def main(page: ft.Page):
                     ft.Text("📜 依循 William Lilly 1647 原典體系驗證", size=11, color=ft.Colors.GREY_500)
                 ]
             ),
-            padding=ft.padding.symmetric(horizontal=16, vertical=10),
+            padding=ft.Padding.symmetric(horizontal=16, vertical=10),
             bgcolor=ft.Colors.SURFACE_CONTAINER_LOW,
             border_radius=6,
-            border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT)
+            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT)
         )
 
         return ft.Column(
@@ -282,7 +282,7 @@ def main(page: ft.Page):
                                     ft.Container(
                                         content=ft.Text(badge_text, size=11, color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
                                         bgcolor=badge_color,
-                                        padding=ft.padding.symmetric(horizontal=8, vertical=3),
+                                        padding=ft.Padding.symmetric(horizontal=8, vertical=3),
                                         border_radius=4
                                     ),
                                     ft.Column(
@@ -324,7 +324,7 @@ def main(page: ft.Page):
                     padding=14,
                     bgcolor=ft.Colors.SURFACE_CONTAINER,
                     border_radius=6,
-                    border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT),
+                    border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
                     ink=True,
                     on_click=lambda _, target_id=tid: navigate_to("thread", topic_id=target_id)
                 )
@@ -387,7 +387,7 @@ def main(page: ft.Page):
                                 width=160,
                                 padding=12,
                                 bgcolor=ft.Colors.SURFACE_CONTAINER_LOW,
-                                border=ft.border.only(right=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT)),
+                                border=ft.Border.only(right=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT)),
                                 content=ft.Column(
                                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                                     spacing=6,
@@ -401,7 +401,7 @@ def main(page: ft.Page):
                                         ft.Container(
                                             content=ft.Text(p["author_role"], size=10, color=role_color, weight=ft.FontWeight.W_600),
                                             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
-                                            padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                                            padding=ft.Padding.symmetric(horizontal=6, vertical=2),
                                             border_radius=4
                                         ),
                                         ft.Divider(color=ft.Colors.OUTLINE_VARIANT, height=12),
@@ -429,7 +429,7 @@ def main(page: ft.Page):
                                                         ft.Container(
                                                             content=ft.Text("⚡ William Lilly 1647 原典驗證", size=10, color=ft.Colors.AMBER_300),
                                                             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
-                                                            padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                                                            padding=ft.Padding.symmetric(horizontal=6, vertical=2),
                                                             border_radius=4,
                                                             visible=is_ai
                                                         )
@@ -471,7 +471,7 @@ def main(page: ft.Page):
                     ),
                     bgcolor=card_bg,
                     border_radius=8,
-                    border=ft.border.all(card_border.width, card_border.color)
+                    border=ft.Border.all(card_border.width, card_border.color)
                 )
             )
 
@@ -534,7 +534,7 @@ def main(page: ft.Page):
             padding=16,
             bgcolor=ft.Colors.SURFACE_CONTAINER,
             border_radius=8,
-            border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT)
+            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT)
         )
 
         return ft.Column(
@@ -581,7 +581,7 @@ def main(page: ft.Page):
                     padding=16,
                     bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                     border_radius=8,
-                    border=ft.border.all(1, ft.Colors.AMBER_700)
+                    border=ft.Border.all(1, ft.Colors.AMBER_700)
                 ),
                 # 所有樓層
                 *posts_cards,
