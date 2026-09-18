@@ -79,10 +79,13 @@ def main(page: ft.Page):
                                 spacing=8,
                                 controls=[
                                     ft.FilledButton(
-                                        "🏠 首頁",
+                                        "🏠 回到首頁",
                                         icon=ft.Icons.HOME,
                                         on_click=lambda _: navigate_to("index"),
-                                        style=ft.ButtonStyle(bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST)
+                                        style=ft.ButtonStyle(
+                                            bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                                            color=ft.Colors.WHITE
+                                        )
                                     ),
                                     ft.FilledButton(
                                         "✍️ 發布新主題",
@@ -92,8 +95,9 @@ def main(page: ft.Page):
                                     ),
                                     ft.IconButton(
                                         icon=ft.Icons.REFRESH,
-                                        tooltip="重新整理",
-                                        on_click=lambda _: refresh_current_view()
+                                        icon_color=ft.Colors.AMBER_300,
+                                        tooltip="重新整理資料",
+                                        on_click=lambda _: (refresh_current_view(), show_snackbar("🔄 已重新整理最新資料！", ft.Colors.BLUE_GREY_700))
                                     ),
                                 ]
                             )
@@ -332,7 +336,12 @@ def main(page: ft.Page):
                         ft.Row(
                             spacing=6,
                             controls=[
-                                ft.TextButton("🏠 論壇首頁", on_click=lambda _: navigate_to("index")),
+                                ft.TextButton(
+                                    "🏠 回到首頁",
+                                    icon=ft.Icons.HOME,
+                                    style=ft.ButtonStyle(color=ft.Colors.AMBER_300),
+                                    on_click=lambda _: navigate_to("index")
+                                ),
                                 ft.Text(">", color=ft.Colors.GREY_500),
                                 ft.Text(f"{cat_info['icon']} {cat_info['title']}", weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER_200)
                             ]
@@ -539,14 +548,28 @@ def main(page: ft.Page):
                         ft.Row(
                             spacing=6,
                             controls=[
-                                ft.TextButton("🏠 論壇首頁", on_click=lambda _: navigate_to("index")),
+                                ft.TextButton(
+                                    "🏠 回到首頁",
+                                    icon=ft.Icons.HOME,
+                                    style=ft.ButtonStyle(color=ft.Colors.AMBER_300),
+                                    on_click=lambda _: navigate_to("index")
+                                ),
                                 ft.Text(">", color=ft.Colors.GREY_500),
-                                ft.TextButton(f"{topic['category_icon']} {topic['category_title']}", on_click=lambda _: navigate_to("topics", category_id=topic["category_id"])),
+                                ft.TextButton(
+                                    f"{topic['category_icon']} {topic['category_title']}",
+                                    style=ft.ButtonStyle(color=ft.Colors.AMBER_200),
+                                    on_click=lambda _: navigate_to("topics", category_id=topic["category_id"])
+                                ),
                                 ft.Text(">", color=ft.Colors.GREY_500),
-                                ft.Text(topic["title"][:25] + "...", weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER_200)
+                                ft.Text(topic["title"][:25] + "...", weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
                             ]
                         ),
-                        ft.FilledButton("⬅️ 返回版塊", icon=ft.Icons.ARROW_BACK, on_click=lambda _: navigate_to("topics", category_id=topic["category_id"]))
+                        ft.FilledButton(
+                            "⬅️ 返回版塊",
+                            icon=ft.Icons.ARROW_BACK,
+                            style=ft.ButtonStyle(bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST, color=ft.Colors.WHITE),
+                            on_click=lambda _: navigate_to("topics", category_id=topic["category_id"])
+                        )
                     ]
                 ),
                 # 主題標題牌
