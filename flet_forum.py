@@ -57,18 +57,18 @@ def main(page: ft.Page):
         return ft.Container(
             content=ft.Column(
                 spacing=8,
-                children=[
+                controls=[
                     ft.Row(
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        children=[
+                        controls=[
                             ft.Row(
                                 spacing=12,
-                                children=[
+                                controls=[
                                     ft.Icon(ft.Icons.AUTO_AWESOME, color=ft.Colors.AMBER_400, size=32),
                                     ft.Column(
                                         spacing=2,
-                                        children=[
+                                        controls=[
                                             ft.Text("🏛️ 古典占星 phpBB 迷你論壇", size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER_100),
                                             ft.Text("William Lilly 1647 原典體系 · 易壇研討中心", size=12, color=ft.Colors.GREY_400),
                                         ]
@@ -77,14 +77,14 @@ def main(page: ft.Page):
                             ),
                             ft.Row(
                                 spacing=8,
-                                children=[
-                                    ft.ElevatedButton(
+                                controls=[
+                                    ft.FilledButton(
                                         "🏠 首頁",
                                         icon=ft.Icons.HOME,
                                         on_click=lambda _: navigate_to("index"),
                                         style=ft.ButtonStyle(bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST)
                                     ),
-                                    ft.ElevatedButton(
+                                    ft.FilledButton(
                                         "✍️ 發布新主題",
                                         icon=ft.Icons.ADD_COMMENT,
                                         on_click=lambda _: open_new_topic_dialog(),
@@ -108,10 +108,10 @@ def main(page: ft.Page):
                     ft.Container(
                         content=ft.Row(
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                            children=[
+                            controls=[
                                 ft.Row(
                                     spacing=16,
-                                    children=[
+                                    controls=[
                                         ft.Text(f"🟢 AI 駐站古典掌門: 在線中", size=12, color=ft.Colors.GREEN_400, weight=ft.FontWeight.W_600),
                                         ft.Text(f"📊 總主題: {stats['total_topics']} 篇", size=12, color=ft.Colors.GREY_300),
                                         ft.Text(f"💬 總討論: {stats['total_posts']} 則", size=12, color=ft.Colors.GREY_300),
@@ -149,13 +149,13 @@ def main(page: ft.Page):
                     content=ft.Row(
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        children=[
+                        controls=[
                             # 左側：圖示與版塊資訊
                             ft.Row(
                                 spacing=16,
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                 expand=True,
-                                children=[
+                                controls=[
                                     ft.Container(
                                         content=ft.Text(cat["icon"], size=30),
                                         width=52,
@@ -168,7 +168,7 @@ def main(page: ft.Page):
                                     ft.Column(
                                         spacing=4,
                                         expand=True,
-                                        children=[
+                                        controls=[
                                             ft.Text(cat["title"], size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER_200),
                                             ft.Text(cat["description"], size=12, color=ft.Colors.GREY_400),
                                         ]
@@ -179,11 +179,11 @@ def main(page: ft.Page):
                             ft.Row(
                                 spacing=24,
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                                children=[
+                                controls=[
                                     ft.Column(
                                         spacing=2,
                                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                        children=[
+                                        controls=[
                                             ft.Text(f"{cat['topic_count']} 主題", size=13, weight=ft.FontWeight.BOLD),
                                             ft.Text(f"{cat['post_count']} 篇發言", size=11, color=ft.Colors.GREY_400),
                                         ]
@@ -191,7 +191,7 @@ def main(page: ft.Page):
                                     ft.Container(
                                         content=ft.Column(
                                             spacing=2,
-                                            children=[
+                                            controls=[
                                                 ft.Text(f"🕒 最新: {cat['last_updated'][:16]}", size=11, color=ft.Colors.GREY_300),
                                                 ft.Text("點擊進入版塊討論 ➔", size=11, color=ft.Colors.AMBER_400),
                                             ]
@@ -215,10 +215,10 @@ def main(page: ft.Page):
         legend_row = ft.Container(
             content=ft.Row(
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                children=[
+                controls=[
                     ft.Row(
                         spacing=12,
-                        children=[
+                        controls=[
                             ft.Text("👥 社群階級標示:", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_400),
                             ft.Text("🤖 駐站大宗師", size=12, color=ft.Colors.PURPLE_300, weight=ft.FontWeight.BOLD),
                             ft.Text("👑 易壇宗師", size=12, color=ft.Colors.AMBER_300),
@@ -238,10 +238,10 @@ def main(page: ft.Page):
         return ft.Column(
             spacing=14,
             scroll=ft.ScrollMode.AUTO,
-            children=[
+            controls=[
                 ft.Row(
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    children=[
+                    controls=[
                         ft.Text("📌 古典占星研討版面總覽 (Categories)", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER_100),
                         ft.Text("請選擇版塊瀏覽案例或發起請教", size=13, color=ft.Colors.GREY_400)
                     ]
@@ -272,13 +272,13 @@ def main(page: ft.Page):
                 ft.Container(
                     content=ft.Row(
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                        children=[
+                        controls=[
                             # 標題與發布者
                             ft.Row(
                                 spacing=12,
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                 expand=True,
-                                children=[
+                                controls=[
                                     ft.Container(
                                         content=ft.Text(badge_text, size=11, color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
                                         bgcolor=badge_color,
@@ -288,7 +288,7 @@ def main(page: ft.Page):
                                     ft.Column(
                                         spacing=2,
                                         expand=True,
-                                        children=[
+                                        controls=[
                                             ft.Text(t["title"], size=15, weight=ft.FontWeight.W_600, color=ft.Colors.WHITE),
                                             ft.Text(f"發起人: {t['author']} ({t['author_role']}) · 發布於 {t['created_at'][:16]}", size=11, color=ft.Colors.GREY_400)
                                         ]
@@ -298,11 +298,11 @@ def main(page: ft.Page):
                             # 回覆數與最後發言
                             ft.Row(
                                 spacing=24,
-                                children=[
+                                controls=[
                                     ft.Column(
                                         spacing=2,
                                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                        children=[
+                                        controls=[
                                             ft.Text(f"💬 {t['reply_count']}", size=13, weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER_300),
                                             ft.Text(f"👁️ {t['views']}", size=11, color=ft.Colors.GREY_400)
                                         ]
@@ -310,7 +310,7 @@ def main(page: ft.Page):
                                     ft.Container(
                                         content=ft.Column(
                                             spacing=2,
-                                            children=[
+                                            controls=[
                                                 ft.Text(f"由 {t['last_reply_author']}", size=11, color=ft.Colors.GREY_300),
                                                 ft.Text(f"🕒 {t['last_reply_time'][:16]}", size=10, color=ft.Colors.GREY_500)
                                             ]
@@ -333,20 +333,20 @@ def main(page: ft.Page):
         return ft.Column(
             spacing=12,
             scroll=ft.ScrollMode.AUTO,
-            children=[
+            controls=[
                 # 麵包屑導航
                 ft.Row(
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    children=[
+                    controls=[
                         ft.Row(
                             spacing=6,
-                            children=[
+                            controls=[
                                 ft.TextButton("🏠 論壇首頁", on_click=lambda _: navigate_to("index")),
                                 ft.Text(">", color=ft.Colors.GREY_500),
                                 ft.Text(f"{cat_info['icon']} {cat_info['title']}", weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER_200)
                             ]
                         ),
-                        ft.ElevatedButton(
+                        ft.FilledButton(
                             "✍️ 在此版發布新帖",
                             icon=ft.Icons.POST_ADD,
                             on_click=lambda _: open_new_topic_dialog(default_category_id=category_id),
@@ -381,7 +381,7 @@ def main(page: ft.Page):
                 ft.Container(
                     content=ft.Row(
                         cross_axis_alignment=ft.CrossAxisAlignment.START,
-                        children=[
+                        controls=[
                             # 左欄：phpBB 經典會員資訊卡片 (寬度 160px)
                             ft.Container(
                                 width=160,
@@ -391,7 +391,7 @@ def main(page: ft.Page):
                                 content=ft.Column(
                                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                                     spacing=6,
-                                    children=[
+                                    controls=[
                                         ft.CircleAvatar(
                                             content=ft.Text(p["author_avatar"] or "👤", size=24),
                                             radius=26,
@@ -416,14 +416,14 @@ def main(page: ft.Page):
                                 padding=16,
                                 content=ft.Column(
                                     spacing=12,
-                                    children=[
+                                    controls=[
                                         # 頂部條
                                         ft.Row(
                                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                            children=[
+                                            controls=[
                                                 ft.Row(
                                                     spacing=6,
-                                                    children=[
+                                                    controls=[
                                                         ft.Icon(ft.Icons.SCHEDULE, size=14, color=ft.Colors.GREY_400),
                                                         ft.Text(f"發布時間: {p['created_at']}", size=11, color=ft.Colors.GREY_400),
                                                         ft.Container(
@@ -451,7 +451,7 @@ def main(page: ft.Page):
                                         ft.Row(
                                             alignment=ft.MainAxisAlignment.END,
                                             spacing=8,
-                                            children=[
+                                            controls=[
                                                 ft.TextButton(
                                                     f"👍 感謝 ({p['likes']})",
                                                     icon=ft.Icons.THUMB_UP_OUTLINED,
@@ -509,19 +509,19 @@ def main(page: ft.Page):
         quick_reply_box = ft.Container(
             content=ft.Column(
                 spacing=10,
-                children=[
+                controls=[
                     ft.Text("✍️ 快速回覆此主題", size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER_100),
                     reply_field,
                     ft.Row(
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                        children=[
-                            ft.ElevatedButton(
+                        controls=[
+                            ft.FilledButton(
                                 "🤖 召喚 AI 駐站古典掌門立即解盤",
                                 icon=ft.Icons.AUTO_AWESOME,
                                 style=ft.ButtonStyle(bgcolor=ft.Colors.PURPLE_800, color=ft.Colors.WHITE),
                                 on_click=summon_ai_master
                             ),
-                            ft.ElevatedButton(
+                            ft.FilledButton(
                                 "🚀 送出回覆",
                                 icon=ft.Icons.SEND,
                                 style=ft.ButtonStyle(bgcolor=ft.Colors.AMBER_700, color=ft.Colors.WHITE),
@@ -540,14 +540,14 @@ def main(page: ft.Page):
         return ft.Column(
             spacing=16,
             scroll=ft.ScrollMode.AUTO,
-            children=[
+            controls=[
                 # 麵包屑
                 ft.Row(
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    children=[
+                    controls=[
                         ft.Row(
                             spacing=6,
-                            children=[
+                            controls=[
                                 ft.TextButton("🏠 論壇首頁", on_click=lambda _: navigate_to("index")),
                                 ft.Text(">", color=ft.Colors.GREY_500),
                                 ft.TextButton(f"{topic['category_icon']} {topic['category_title']}", on_click=lambda _: navigate_to("topics", category_id=topic["category_id"])),
@@ -555,22 +555,22 @@ def main(page: ft.Page):
                                 ft.Text(topic["title"][:25] + "...", weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER_200)
                             ]
                         ),
-                        ft.ElevatedButton("⬅️ 返回版塊", icon=ft.Icons.ARROW_BACK, on_click=lambda _: navigate_to("topics", category_id=topic["category_id"]))
+                        ft.FilledButton("⬅️ 返回版塊", icon=ft.Icons.ARROW_BACK, on_click=lambda _: navigate_to("topics", category_id=topic["category_id"]))
                     ]
                 ),
                 # 主題標題牌
                 ft.Container(
                     content=ft.Row(
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                        children=[
+                        controls=[
                             ft.Column(
                                 spacing=4,
-                                children=[
+                                controls=[
                                     ft.Text(topic["title"], size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
                                     ft.Text(f"發布人: {topic['author']} ({topic['author_role']}) | 查看: {topic['views']} 次 | 總樓層: {len(topic['posts'])}", size=12, color=ft.Colors.GREY_400)
                                 ]
                             ),
-                            ft.ElevatedButton(
+                            ft.FilledButton(
                                 "🤖 召喚 AI 掌門",
                                 icon=ft.Icons.BOLT,
                                 style=ft.ButtonStyle(bgcolor=ft.Colors.PURPLE_700, color=ft.Colors.WHITE),
@@ -669,7 +669,7 @@ def main(page: ft.Page):
                 content=ft.Column(
                     spacing=12,
                     tight=True,
-                    children=[
+                    controls=[
                         ft.Row([cat_dropdown, chart_type_dropdown]),
                         ft.Row([title_input, author_input]),
                         body_input,
@@ -679,7 +679,7 @@ def main(page: ft.Page):
             ),
             actions=[
                 ft.TextButton("取消", on_click=lambda _: close_dialog(dialog)),
-                ft.ElevatedButton("🚀 立即發布", style=ft.ButtonStyle(bgcolor=ft.Colors.AMBER_700, color=ft.Colors.WHITE), on_click=submit_new_topic)
+                ft.FilledButton("🚀 立即發布", style=ft.ButtonStyle(bgcolor=ft.Colors.AMBER_700, color=ft.Colors.WHITE), on_click=submit_new_topic)
             ]
         )
         page.overlay.append(dialog)
@@ -712,7 +712,7 @@ def main(page: ft.Page):
         ft.Column(
             expand=True,
             spacing=0,
-            children=[
+            controls=[
                 build_header(),
                 content_area
             ]
