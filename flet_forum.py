@@ -380,7 +380,7 @@ def main(page: ft.Page):
             posts_cards.append(
                 ft.Container(
                     content=ft.Row(
-                        cross_axis_alignment=ft.CrossAxisAlignment.START,
+                        vertical_alignment=ft.CrossAxisAlignment.START,
                         controls=[
                             # 左欄：phpBB 經典會員資訊卡片 (寬度 160px)
                             ft.Container(
