@@ -332,7 +332,7 @@ def main(page: ft.Page):
                             ]
                         ),
                         ft.FilledButton(
-                            "✍️ 在此版發布新帖",
+                            "✍️ 發佈新文章",
                             icon=ft.Icons.POST_ADD,
                             on_click=lambda _: open_new_topic_dialog(default_category_id=category_id),
                             style=ft.ButtonStyle(bgcolor=ft.Colors.AMBER_700, color=ft.Colors.WHITE)
