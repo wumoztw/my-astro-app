@@ -597,8 +597,8 @@ if st.session_state.report_data:
         if st.session_state.get('ai_analysis_triggered'):
             tabs_list.append('✨ AI 深度解析報告')
     
-    # Always append Community Forum Tab at the end
-    tabs_list.append('🏛️ 占星社群論壇')
+    # Always append AI Interpretation Tab at the end
+    tabs_list.append('🤖 AI解盤')
     
     all_tabs = st.tabs(tabs_list)
     
@@ -1341,7 +1341,7 @@ if st.session_state.report_data:
     # Tab: GitHub Discussions Community Forum
     with all_tabs[-1]:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-        st.subheader("🏛️ GitHub 原生古典占星社群論壇 (Discussions)")
+        st.subheader("🤖 AI解盤")
         st.markdown(
             "⚡ **全自動 AI 解盤**：發布後約 15~20 秒，**Groq LPU (openai/gpt-oss-120b)** "
             "將自動送上**直白大白話**深度剖析（包含命格底牌、法達十年大運、年度小限、黃道釋放、凶星化解與關鍵時間點）！"
@@ -1408,7 +1408,7 @@ if st.session_state.report_data:
             )
         with f_col3:
             st.link_button(
-                "📚 瀏覽論壇現有所有案例討論",
+                "📚 瀏覽現有所有案例與 AI 解盤",
                 f_payload['repo_discussions_url'],
                 use_container_width=True
             )
@@ -1428,9 +1428,9 @@ if st.session_state.report_data:
             use_container_width=True
         )
         st.markdown("---")
-        st.subheader("🏛️ 社群論壇交流")
+        st.subheader("🤖 AI解盤交流")
         st.link_button(
-            "🌐 前往 GitHub 占星論壇",
+            "🌐 前往 GitHub Discussions",
             f"{REPO_URL}/discussions",
             use_container_width=True
         )
