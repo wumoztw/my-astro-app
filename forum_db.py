@@ -79,6 +79,21 @@ def init_db():
         conn.commit()
         seed_topics_and_posts(cur)
         conn.commit()
+    else:
+        # 自動遷移更新現有資料庫名稱與順序
+        cur.execute("UPDATE categories SET title = '🏛️ 本命與流運討論區', sort_order = 1 WHERE slug = 'natal-predictive'")
+        cur.execute("UPDATE categories SET sort_order = 2 WHERE slug = 'horary-cases'")
+        cur.execute("UPDATE categories SET sort_order = 3 WHERE slug = 'astrology-lounge'")
+        # 將原本 classical-texts 的主題轉移至茶水間並移除該版塊
+        cur.execute("SELECT id FROM categories WHERE slug = 'classical-texts'")
+        ct_row = cur.fetchone()
+        if ct_row:
+            ct_id = ct_row[0]
+            cur.execute("SELECT id FROM categories WHERE slug = 'astrology-lounge'")
+            lounge_id = cur.fetchone()[0]
+            cur.execute("UPDATE topics SET category_id = ? WHERE category_id = ?", (lounge_id, ct_id))
+            cur.execute("DELETE FROM categories WHERE id = ?", (ct_id,))
+        conn.commit()
 
     conn.close()
 
@@ -86,32 +101,25 @@ def init_db():
 def seed_categories(cur):
     default_categories = [
         (
+            "natal-predictive",
+            "🏛️ 本命與流運討論區",
+            "法達星限 (Firdaria)、年度小限 (Profections)、希臘黃道釋放 (ZR) 與太陽弧生活實戰印證。",
+            "🏛️",
+            1
+        ),
+        (
             "horary-cases",
             "🎯 卜卦問事實戰版",
             "依 William Lilly 1647 原典體系探討求職、感情、失物與事態吉凶成否。",
             "🎯",
-            1
-        ),
-        (
-            "natal-predictive",
-            "🏛️ 本命與推運研討版",
-            "法達星限 (Firdaria)、年度小限 (Profections)、希臘黃道釋放 (ZR) 與太陽弧生活實戰印證。",
-            "🏛️",
             2
-        ),
-        (
-            "classical-texts",
-            "📜 古典典籍與技法考據",
-            "托勒密《四書》、阿布馬謝、多羅修斯 (Dorotheus) 原典古籍義理考證。",
-            "📜",
-            3
         ),
         (
             "astrology-lounge",
             "☕ 易友茶水間與解盤閒聊",
             "生活心得分享、疑難雜症破局心得、新手入門請教與現實反饋。",
             "☕",
-            4
+            3
         ),
     ]
     cur.executemany(

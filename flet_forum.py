@@ -29,7 +29,7 @@ from forum_ai_service import generate_ai_reply_for_topic
 init_db()
 
 def main(page: ft.Page):
-    page.title = "🏛️ 古典占星 phpBB 迷你論壇 (Classical Astrology Board)"
+    page.title = "🏛️ 古典占星迷你論壇 (Classical Astrology Board)"
     page.theme_mode = ft.ThemeMode.DARK
     page.padding = 0
     page.theme = ft.Theme(color_scheme_seed=ft.Colors.AMBER)
@@ -69,8 +69,8 @@ def main(page: ft.Page):
                                     ft.Column(
                                         spacing=2,
                                         controls=[
-                                            ft.Text("🏛️ 古典占星 phpBB 迷你論壇", size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER_100),
-                                            ft.Text("William Lilly 1647 原典體系 · 易壇研討中心", size=12, color=ft.Colors.GREY_400),
+                                            ft.Text("🏛️ 古典占星迷你論壇", size=22, weight=ft.FontWeight.BOLD, color=ft.Colors.AMBER_100),
+                                            ft.Text("William Lilly 1647 原典體系 · 占星研討中心", size=12, color=ft.Colors.GREY_400),
                                         ]
                                     )
                                 ]
