@@ -4,6 +4,8 @@
 
 線上體驗站點：[easyastrology.streamlit.app](https://easyastrology.streamlit.app/)
 
+> 📌 **2026/09/21 更新**：已移除「🤖 AI解盤」GitHub Discussions 社群論壇功能（含發文分頁、自動回覆機器人與相關工作流程），程式聚焦回歸核心排盤與推運分析。完整更新歷程請見 [更新紀錄.md](./更新紀錄.md)。
+
 ---
 
 ## 🌟 最新核心升級亮點 (2026 最新版本)
