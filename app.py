@@ -12,8 +12,7 @@ for _mod_name in (
     'logic', 'horary_engine_logic', 'dignities_logic', 'aspects_logic', 'lots_logic', 
     'time_lords_logic', 'zodiacal_releasing_logic', 'solar_arc_logic', 
     'almuten_logic', 'secondary_progressions_logic', 'tertiary_progressions_logic',
-    'thematic_reports_logic', 'horary_prompt', 'natal_prompt', 'ai_logic',
-    'github_forum_exporter'
+    'thematic_reports_logic', 'horary_prompt', 'natal_prompt', 'ai_logic'
 ):
     if _mod_name in sys.modules:
         try:
@@ -27,7 +26,6 @@ from horary_prompt import HORARY_SYSTEM_PROMPT
 from natal_prompt import NATAL_SYSTEM_PROMPT
 from thematic_reports_logic import ThematicReportsLogic
 from ai_logic import AIAssistant
-from github_forum_exporter import generate_discussion_payload, REPO_URL
 
 import streamlit.components.v1 as components
 
@@ -596,9 +594,6 @@ if st.session_state.report_data:
         ]
         if st.session_state.get('ai_analysis_triggered'):
             tabs_list.append('✨ AI 深度解析報告')
-    
-    # Always append AI Interpretation Tab at the end
-    tabs_list.append('🤖 AI解盤')
     
     all_tabs = st.tabs(tabs_list)
     
@@ -1338,85 +1333,6 @@ if st.session_state.report_data:
             
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # Tab: GitHub Discussions Community Forum
-    with all_tabs[-1]:
-        st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-        st.subheader("🤖 AI解盤")
-        st.markdown(
-            "⚡ **全自動 AI 解盤**：發布後約 15~20 秒，**Groq LPU (openai/gpt-oss-120b)** "
-            "將自動送上**直白大白話**深度剖析（包含命格底牌、法達十年大運、年度小限、黃道釋放、凶星化解與關鍵時間點）！"
-        )
-
-        q_or_theme = st.session_state.get('horary_question', '') if st.session_state.chart_type == 'horary' else "古典本命格局與推運研討"
-
-        f_payload = generate_discussion_payload(
-            chart_type=st.session_state.chart_type,
-            question_or_theme=q_or_theme,
-            report_data=st.session_state.report_data,
-            report_md=st.session_state.report_md
-        )
-
-        st.markdown("---")
-        
-        # 3 步驟圖卡引導
-        step_c1, step_c2, step_c3 = st.columns(3)
-        with step_c1:
-            st.markdown(
-                "#### 1️⃣ 複製或下載命盤\n"
-                "點擊下方代碼框右上角的 **複製** 圖示，或使用下方 **「💾 下載 Markdown 檔」** 備份。"
-            )
-        with step_c2:
-            st.markdown(
-                "#### 2️⃣ 前往 Discussions 一鍵發布\n"
-                "點擊下方 **「🌐 前往 GitHub Discussions 發布」**，**標題已為您自動帶入**，貼上內文即可送出！"
-            )
-        with step_c3:
-            st.markdown(
-                "#### 3️⃣ AI 秒級解盤與互動\n"
-                "約 15 秒後 AI 將現身送上深度大白話解析！後續在留言中輸入 `@ai` 即可隨時追問。"
-            )
-
-        with st.expander("💬 查看「留言區 @ai 追問互動」範例指南", expanded=False):
-            st.markdown("""
-            任何人在 GitHub Discussions 討論串下方留言，只要帶上 `@ai` 或 `@ai-astrologer`，AI 將在 20 秒內直接在該則留言下為你解答：
-            - 🔹 **流年轉職提問**：`@ai 請問以我的流年小限，今年下半年適合換工作還是保守為宜？`
-            - 🔹 **星體化解提問**：`@ai 請問這張盤中的火星落陷且受剋，生活中有哪些具體的能量化解管道？`
-            - 🔹 **卜卦時效追問**：`@ai-astrologer 如果依照這張卜卦盤的徵象星阻礙，若延後一個月執行勝算會變大嗎？`
-            """)
-
-        st.text_input("📌 貼文標題 (Title)：", value=f_payload['title'], help="點擊下方按鈕時已自動帶入 GitHub，若手動複製亦可使用此標題")
-
-        st.markdown("#### 📋 完整命盤發布內容 (點右上角一鍵複製)：")
-        st.code(f_payload['full_markdown_body'], language="markdown")
-
-        f_col1, f_col2, f_col3 = st.columns([1.3, 1, 1])
-        with f_col1:
-            st.link_button(
-                "🌐 前往 GitHub Discussions 發布 (標題已自動帶入)",
-                f_payload['new_discussion_url'],
-                use_container_width=True,
-                type="primary"
-            )
-        with f_col2:
-            st.download_button(
-                label="💾 下載此盤 Markdown 檔",
-                data=f_payload['full_markdown_body'],
-                file_name=f"Astrology_Discussion_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
-                mime="text/markdown",
-                use_container_width=True,
-                help="點擊將完整討論串內容（包含 YAML 元資料與完整排盤）下載為 .md 檔案"
-            )
-        with f_col3:
-            st.link_button(
-                "📚 瀏覽現有所有案例與 AI 解盤",
-                f_payload['repo_discussions_url'],
-                use_container_width=True
-            )
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # Re-declare tabs (Handled above now)
-
     with st.sidebar:
         st.markdown("---")
         st.subheader("下載文字版本命盤資訊")
@@ -1425,13 +1341,6 @@ if st.session_state.report_data:
             data=st.session_state.report_md,
             file_name=f"Chart_Report_{datetime.now().strftime('%Y%m%d')}.md",
             mime="text/markdown",
-            use_container_width=True
-        )
-        st.markdown("---")
-        st.subheader("🤖 AI解盤交流")
-        st.link_button(
-            "🌐 前往 GitHub Discussions",
-            f"{REPO_URL}/discussions",
             use_container_width=True
         )
 
