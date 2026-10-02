@@ -65,10 +65,15 @@ st.markdown("""
         line-height: 1.6;
     }
     
-    p, span, div, label, li {
+    p, li, label, .stMarkdown p {
         font-family: 'Noto Sans TC', 'Inter', sans-serif !important;
         line-height: 1.6;
         color: #0B1C30;
+    }
+
+    /* Streamlit Material Icons & UI Control Icons Protection */
+    [data-testid*="Icon"], [class*="material-symbols"], [class*="icon"], [data-testid="stSidebarCollapsedControl"] *, [data-testid="stIconMaterial"] {
+        font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
     }
 
     h1, h2, h3, h4, h5, h6 {
@@ -219,7 +224,7 @@ st.markdown("""
         h3 {
             font-size: 1.05rem !important;
         }
-        p, span, div, label {
+        p, li, label, .stMarkdown p {
             font-size: 0.92rem !important;
             line-height: 1.55 !important;
         }
