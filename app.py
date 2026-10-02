@@ -55,7 +55,7 @@ browser_tz_name = st.query_params.get("tz", "UTC")
 # --- Custom Styling (Classical Western Astrology Dashboard — Japanese Minimalist Muji Style) ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@500;600;700&family=Noto+Serif:wght@500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@500;600;700&family=Noto+Serif:wght@500;600&display=swap');
 
     /* Global Background & Font */
     .stApp {
@@ -72,8 +72,9 @@ st.markdown("""
     }
 
     /* Streamlit Material Icons & UI Control Icons Protection */
-    [data-testid*="Icon"], [class*="material-symbols"], [class*="icon"], [data-testid="stSidebarCollapsedControl"] *, [data-testid="stIconMaterial"] {
+    [data-testid*="Icon"], [data-testid*="icon"], [class*="material-symbols"], [class*="icon"], [data-testid="stSidebarCollapsedControl"] *, [data-testid="stIconMaterial"], [data-testid="stExpanderToggleIcon"] *, summary svg, summary span {
         font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+        font-style: normal !important;
     }
 
     h1, h2, h3, h4, h5, h6 {
@@ -91,10 +92,12 @@ st.markdown("""
     section[data-testid="stSidebar"] {
         background-color: #FFFFFF !important;
         border-right: 1px solid #E2E8F0 !important;
-    }
-    section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] p {
         color: #0B1C30 !important;
-        font-family: 'Inter', sans-serif !important;
+        font-family: 'Noto Sans TC', 'Inter', sans-serif !important;
+    }
+    section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] p {
+        color: #0B1C30 !important;
+        font-family: 'Noto Sans TC', 'Inter', sans-serif !important;
     }
     
     /* Input Design */
