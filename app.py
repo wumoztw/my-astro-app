@@ -114,10 +114,21 @@ st.markdown("""
     }
 
     /* Buttons / Japanese Minimalist Indigo Accent & Touch Optimization */
+    .stButton > button,
+    .stButton > button *,
+    .stButton > button p,
+    .stButton > button div,
+    .stButton > button span,
+    section[data-testid="stSidebar"] .stButton button,
+    section[data-testid="stSidebar"] .stButton button *,
+    section[data-testid="stSidebar"] .stButton button p {
+        color: #FFFFFF !important;
+        font-weight: 600 !important;
+        font-family: 'Noto Sans TC', 'Inter', sans-serif !important;
+        letter-spacing: 0.5px !important;
+    }
     .stButton > button {
         background-color: #1E3A8A !important;
-        color: #FFFFFF !important;
-        font-weight: 500 !important;
         border: none !important;
         border-radius: 6px !important;
         padding: 0.5rem 1rem !important;
@@ -126,8 +137,12 @@ st.markdown("""
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
         transition: all 0.2s ease !important;
     }
-    .stButton > button:hover {
+    .stButton > button:hover,
+    .stButton > button:hover *,
+    section[data-testid="stSidebar"] .stButton button:hover,
+    section[data-testid="stSidebar"] .stButton button:hover * {
         background-color: #172554 !important;
+        color: #FFFFFF !important;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
     }
 
