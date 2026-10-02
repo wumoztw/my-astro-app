@@ -55,19 +55,31 @@ browser_tz_name = st.query_params.get("tz", "UTC")
 # --- Custom Styling (Classical Western Astrology Dashboard — Japanese Minimalist Muji Style) ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+TC:wght@600;700&family=Noto+Serif:wght@500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@500;600;700&family=Noto+Serif:wght@500;600&display=swap');
 
     /* Global Background & Font */
     .stApp {
         background-color: #FAFAFC !important;
         color: #0B1C30 !important;
-        font-family: 'Inter', sans-serif !important;
+        font-family: 'Noto Sans TC', 'Inter', sans-serif !important;
+        line-height: 1.6;
     }
     
+    p, span, div, label, li {
+        font-family: 'Noto Sans TC', 'Inter', sans-serif !important;
+        line-height: 1.6;
+        color: #0B1C30;
+    }
+
     h1, h2, h3, h4, h5, h6 {
         font-family: 'Noto Serif TC', 'Noto Serif', serif !important;
         color: #0B1C30 !important;
         letter-spacing: 0.3px;
+    }
+    
+    /* Degree, coordinates & numerical data font */
+    .mono-data, code, pre {
+        font-family: 'JetBrains Mono', monospace !important;
     }
 
     /* Sidebar Aesthetics */
@@ -93,7 +105,7 @@ st.markdown("""
         box-shadow: 0 0 0 1px #1E3A8A !important;
     }
 
-    /* Buttons / Japanese Minimalist Indigo Accent */
+    /* Buttons / Japanese Minimalist Indigo Accent & Touch Optimization */
     .stButton > button {
         background-color: #1E3A8A !important;
         color: #FFFFFF !important;
@@ -101,6 +113,8 @@ st.markdown("""
         border: none !important;
         border-radius: 6px !important;
         padding: 0.5rem 1rem !important;
+        min-height: 40px !important;
+        touch-action: manipulation !important;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
         transition: all 0.2s ease !important;
     }
@@ -108,45 +122,68 @@ st.markdown("""
         background-color: #172554 !important;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
     }
-    
+
     /* Containers */
     .stContainer {
         border: 1px solid #E2E8F0;
         border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
+        padding: 16px;
+        margin-bottom: 16px;
         background: #FFFFFF;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
     
     /* Summary Card (Big Three) */
     .summary-card {
         background: #FFFFFF;
         border-radius: 8px;
-        padding: 18px;
+        padding: 16px;
         text-align: center;
         border: 1px solid #E2E8F0;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
     .summary-title { 
         font-family: 'Noto Serif TC', 'Noto Serif', serif;
-        font-size: 0.95rem; 
+        font-size: 0.9rem; 
         color: #64748B; 
-        margin-bottom: 8px; 
+        margin-bottom: 6px; 
         letter-spacing: 0.5px;
     }
     .summary-value { 
         font-family: 'Noto Serif TC', 'Noto Serif', serif;
-        font-size: 1.5rem; 
+        font-size: 1.35rem; 
         font-weight: 600; 
         color: #1E3A8A;
     }
 
-    /* Astrological Tables */
+    /* Tabs Horizontal Scrolling */
+    .stTabs [data-baseweb="tab-list"] {
+        overflow-x: auto !important;
+        flex-wrap: nowrap !important;
+        white-space: nowrap !important;
+        scrollbar-width: none !important;
+    }
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {
+        display: none !important;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 0.9rem !important;
+        padding: 8px 14px !important;
+        white-space: nowrap !important;
+    }
+
+    /* Table Horizontal Scroll & Responsive Container Protection */
+    div[data-testid='stTable'], div.stDataFrame, table {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        max-width: 100% !important;
+    }
     table {
         background-color: #FFFFFF !important;
         border: 1px solid #E2E8F0 !important;
         border-radius: 6px !important;
+        width: 100% !important;
+        min-width: 480px !important;
     }
     th {
         background-color: #F8FAFC !important;
@@ -164,6 +201,46 @@ st.markdown("""
     }
     tr:hover {
         background-color: #F8FAFC !important;
+    }
+
+    /* Mobile Responsive Media Query (max-width: 768px) */
+    @media (max-width: 768px) {
+        .main .block-container {
+            padding: 0.75rem !important;
+            max-width: 100vw !important;
+        }
+        h1 {
+            font-size: 1.45rem !important;
+            line-height: 1.3 !important;
+        }
+        h2 {
+            font-size: 1.2rem !important;
+        }
+        h3 {
+            font-size: 1.05rem !important;
+        }
+        p, span, div, label {
+            font-size: 0.92rem !important;
+            line-height: 1.55 !important;
+        }
+        /* Convert main content columns to single column on mobile */
+        .main [data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+            margin-bottom: 10px !important;
+        }
+        .summary-card {
+            margin-bottom: 8px !important;
+            padding: 12px 14px !important;
+        }
+        .summary-value {
+            font-size: 1.25rem !important;
+        }
+        .stContainer {
+            padding: 12px !important;
+            margin-bottom: 12px !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -625,8 +702,8 @@ if st.session_state.report_data:
     ui_title_map = {'natal': '古典占星本命盤資訊', 'horary': '古典占星卜卦盤資訊'}
     ui_title = ui_title_map.get(st.session_state.chart_type, '古典占星論命資訊')
     
-    st.markdown(f"<h1 style='text-align: center; margin-bottom: 5px; color: #000;'>{ui_title}</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; font-style: italic; color: #666; margin-bottom: 30px;'>Professional Classical Astrology Analysis System</p>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align: center; margin-bottom: 6px; color: #0B1C30;'>{ui_title}</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #64748B; font-size: 0.88rem; letter-spacing: 0.5px; margin-bottom: 24px;'>Professional Classical Astrology Analysis System</p>", unsafe_allow_html=True)
     
     sc1, sc2, sc3 = st.columns(3)
     with sc1:
@@ -1407,7 +1484,8 @@ if st.session_state.report_data:
         )
 
 else:
-    st.markdown("<br><br><div style='text-align: center;'>", unsafe_allow_html=True)
-    st.markdown("<h1 style='font-size: 2.5rem;'>古典占星命盤簡易排盤程式</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='margin-top: 50px;'>請於側邊欄輸入出生日期與時間以開始分析</p>", unsafe_allow_html=True)
+    st.markdown("<br><br><div style='text-align: center; padding: 20px;'>", unsafe_allow_html=True)
+    st.markdown("<h1 style='font-size: 1.75rem; color: #0B1C30;'>古典占星命盤簡易排盤程式</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='margin-top: 15px; color: #64748B; font-size: 0.95rem; line-height: 1.6;'>手機使用者請點擊左上角 <b>「>」</b> 按鈕即可展開輸入時間與地點側邊欄進行排盤。</p>", unsafe_allow_html=True)
+    st.markdown("<p style='margin-top: 10px; color: #64748B;'>請於側邊欄輸入出生日期與時間以開始分析</p>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
