@@ -52,57 +52,121 @@ components.html(
 # Read detected timezone (default to UTC if not yet synced)
 browser_tz_name = st.query_params.get("tz", "UTC")
 
-# --- Custom Styling (Minimalist Clean Theme) ---
+# --- Custom Styling (Deep Midnight Navy & Celestial Gold Astrology Theme) ---
 st.markdown("""
 <style>
-    /* Global Background */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+TC:wght@600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&display=swap');
+
+    /* Global Background & Font */
     .stApp {
-        background-color: #FFFFFF;
+        background: linear-gradient(135deg, #0B0F19 0%, #131826 100%) !important;
+        color: #DFE2F1 !important;
+        font-family: 'Inter', sans-serif !important;
     }
     
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Playfair Display', 'Noto Serif TC', serif !important;
+        color: #F3E5AB !important;
+        letter-spacing: 0.5px;
+    }
+
     /* Sidebar Aesthetics */
     section[data-testid="stSidebar"] {
-        background-color: #F8F9FA !important;
-        border-right: 1px solid #DEE2E6;
+        background-color: #101522 !important;
+        border-right: 1px solid rgba(212, 175, 55, 0.2) !important;
     }
-    section[data-testid="stSidebar"] label {
-        color: #212529 !important;
-        font-weight: 600 !important;
+    section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] p {
+        color: #DFE2F1 !important;
+        font-family: 'Inter', sans-serif !important;
     }
     
     /* Input Design */
-    .stTextInput input, .stNumberInput input {
-        border: 1px solid #CED4DA !important;
-        border-radius: 4px !important;
+    .stTextInput input, .stNumberInput input, .stSelectbox select, .stDateInput input, .stTimeInput input {
+        background-color: #131826 !important;
+        border: 1px solid rgba(212, 175, 55, 0.3) !important;
+        color: #DFE2F1 !important;
+        border-radius: 6px !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+    .stTextInput input:focus, .stNumberInput input:focus {
+        border-color: #D4AF37 !important;
+        box-shadow: 0 0 8px rgba(212, 175, 55, 0.4) !important;
+    }
+
+    /* Buttons / Celestial Gold Accent */
+    .stButton > button {
+        background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%) !important;
+        color: #0B0F19 !important;
+        font-weight: 600 !important;
+        border: none !important;
+        border-radius: 6px !important;
+        padding: 0.5rem 1rem !important;
+        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
+        transition: all 0.3s ease !important;
+    }
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 100%) !important;
+        box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5) !important;
     }
     
-    /* Typography */
-    h1, h2, h3 {
-        color: #212529 !important;
-    }
-    .stMarkdown, p {
-        color: #212529;
-    }
-    
-    /* Simple Container */
+    /* Containers */
     .stContainer {
-        border: 1px solid #E9ECEF;
-        border-radius: 8px;
+        border: 1px solid rgba(212, 175, 55, 0.2);
+        border-radius: 10px;
         padding: 20px;
         margin-bottom: 20px;
-        background-color: #FFFFFF;
+        background: rgba(19, 24, 38, 0.7);
+        backdrop-filter: blur(10px);
     }
     
     /* Summary Card (Big Three) */
     .summary-card {
-        background: #F8F9FA;
-        border-radius: 8px;
-        padding: 15px;
+        background: linear-gradient(145deg, #131826 0%, #1A2238 100%);
+        border-radius: 10px;
+        padding: 18px;
         text-align: center;
-        border: 1px solid #DEE2E6;
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
-    .summary-title { font-size: 0.9rem; opacity: 0.8; margin-bottom: 5px; }
-    .summary-value { font-size: 1.4rem; font-weight: bold; }
+    .summary-title { 
+        font-family: 'Playfair Display', serif;
+        font-size: 0.95rem; 
+        color: #F3E5AB; 
+        opacity: 0.9; 
+        margin-bottom: 8px; 
+        letter-spacing: 1px;
+    }
+    .summary-value { 
+        font-family: 'Playfair Display', serif;
+        font-size: 1.5rem; 
+        font-weight: 700; 
+        color: #FFFFFF;
+        text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+    }
+
+    /* Astrological Tables */
+    table {
+        background-color: #131826 !important;
+        border: 1px solid rgba(212, 175, 55, 0.2) !important;
+        border-radius: 6px !important;
+    }
+    th {
+        background-color: #1A2238 !important;
+        color: #F3E5AB !important;
+        font-family: 'Playfair Display', serif !important;
+        border-bottom: 2px solid rgba(212, 175, 55, 0.4) !important;
+        padding: 10px !important;
+    }
+    td {
+        color: #DFE2F1 !important;
+        border-bottom: 1px solid rgba(212, 175, 55, 0.1) !important;
+        padding: 8px 10px !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 0.9rem !important;
+    }
+    tr:hover {
+        background-color: rgba(212, 175, 55, 0.05) !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
