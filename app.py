@@ -52,120 +52,118 @@ components.html(
 # Read detected timezone (default to UTC if not yet synced)
 browser_tz_name = st.query_params.get("tz", "UTC")
 
-# --- Custom Styling (Deep Midnight Navy & Celestial Gold Astrology Theme) ---
+# --- Custom Styling (Classical Western Astrology Dashboard — Japanese Minimalist Muji Style) ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+TC:wght@600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+TC:wght@600;700&family=Noto+Serif:wght@500;600&display=swap');
 
     /* Global Background & Font */
     .stApp {
-        background: linear-gradient(135deg, #0B0F19 0%, #131826 100%) !important;
-        color: #DFE2F1 !important;
+        background-color: #FAFAFC !important;
+        color: #0B1C30 !important;
         font-family: 'Inter', sans-serif !important;
     }
     
     h1, h2, h3, h4, h5, h6 {
-        font-family: 'Playfair Display', 'Noto Serif TC', serif !important;
-        color: #F3E5AB !important;
-        letter-spacing: 0.5px;
+        font-family: 'Noto Serif TC', 'Noto Serif', serif !important;
+        color: #0B1C30 !important;
+        letter-spacing: 0.3px;
     }
 
     /* Sidebar Aesthetics */
     section[data-testid="stSidebar"] {
-        background-color: #101522 !important;
-        border-right: 1px solid rgba(212, 175, 55, 0.2) !important;
+        background-color: #FFFFFF !important;
+        border-right: 1px solid #E2E8F0 !important;
     }
     section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] p {
-        color: #DFE2F1 !important;
+        color: #0B1C30 !important;
         font-family: 'Inter', sans-serif !important;
     }
     
     /* Input Design */
     .stTextInput input, .stNumberInput input, .stSelectbox select, .stDateInput input, .stTimeInput input {
-        background-color: #131826 !important;
-        border: 1px solid rgba(212, 175, 55, 0.3) !important;
-        color: #DFE2F1 !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        color: #0B1C30 !important;
         border-radius: 6px !important;
         font-family: 'Inter', sans-serif !important;
     }
     .stTextInput input:focus, .stNumberInput input:focus {
-        border-color: #D4AF37 !important;
-        box-shadow: 0 0 8px rgba(212, 175, 55, 0.4) !important;
+        border-color: #1E3A8A !important;
+        box-shadow: 0 0 0 1px #1E3A8A !important;
     }
 
-    /* Buttons / Celestial Gold Accent */
+    /* Buttons / Japanese Minimalist Indigo Accent */
     .stButton > button {
-        background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%) !important;
-        color: #0B0F19 !important;
-        font-weight: 600 !important;
+        background-color: #1E3A8A !important;
+        color: #FFFFFF !important;
+        font-weight: 500 !important;
         border: none !important;
         border-radius: 6px !important;
         padding: 0.5rem 1rem !important;
-        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3) !important;
-        transition: all 0.3s ease !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+        transition: all 0.2s ease !important;
     }
     .stButton > button:hover {
-        background: linear-gradient(135deg, #F3E5AB 0%, #D4AF37 100%) !important;
-        box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5) !important;
+        background-color: #172554 !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
     }
     
     /* Containers */
     .stContainer {
-        border: 1px solid rgba(212, 175, 55, 0.2);
-        border-radius: 10px;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
         padding: 20px;
         margin-bottom: 20px;
-        background: rgba(19, 24, 38, 0.7);
-        backdrop-filter: blur(10px);
+        background: #FFFFFF;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
     
     /* Summary Card (Big Three) */
     .summary-card {
-        background: linear-gradient(145deg, #131826 0%, #1A2238 100%);
-        border-radius: 10px;
+        background: #FFFFFF;
+        border-radius: 8px;
         padding: 18px;
         text-align: center;
-        border: 1px solid rgba(212, 175, 55, 0.3);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
     .summary-title { 
-        font-family: 'Playfair Display', serif;
+        font-family: 'Noto Serif TC', 'Noto Serif', serif;
         font-size: 0.95rem; 
-        color: #F3E5AB; 
-        opacity: 0.9; 
+        color: #64748B; 
         margin-bottom: 8px; 
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
     }
     .summary-value { 
-        font-family: 'Playfair Display', serif;
+        font-family: 'Noto Serif TC', 'Noto Serif', serif;
         font-size: 1.5rem; 
-        font-weight: 700; 
-        color: #FFFFFF;
-        text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+        font-weight: 600; 
+        color: #1E3A8A;
     }
 
     /* Astrological Tables */
     table {
-        background-color: #131826 !important;
-        border: 1px solid rgba(212, 175, 55, 0.2) !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
         border-radius: 6px !important;
     }
     th {
-        background-color: #1A2238 !important;
-        color: #F3E5AB !important;
-        font-family: 'Playfair Display', serif !important;
-        border-bottom: 2px solid rgba(212, 175, 55, 0.4) !important;
+        background-color: #F8FAFC !important;
+        color: #0B1C30 !important;
+        font-family: 'Noto Serif TC', 'Noto Serif', serif !important;
+        border-bottom: 1px solid #E2E8F0 !important;
         padding: 10px !important;
     }
     td {
-        color: #DFE2F1 !important;
-        border-bottom: 1px solid rgba(212, 175, 55, 0.1) !important;
+        color: #0B1C30 !important;
+        border-bottom: 1px solid #F1F5F9 !important;
         padding: 8px 10px !important;
         font-family: 'JetBrains Mono', monospace !important;
         font-size: 0.9rem !important;
     }
     tr:hover {
-        background-color: rgba(212, 175, 55, 0.05) !important;
+        background-color: #F8FAFC !important;
     }
 </style>
 """, unsafe_allow_html=True)
