@@ -10,6 +10,77 @@ from timezonefinder import TimezoneFinder
 import pytz
 import functools
 
+def _apply_flatlib_compat():
+    """Runtime shim: make flatlib (<0.2.3) work with pyswisseph 2.08+/2.10+.
+
+    New pyswisseph returns ((lon, lat, dist, lonspeed, latspeed, distspeed), flg)
+    from calc_ut and ((lon, lat, ...), name, flg) from fixstar_ut, while old
+    flatlib indexes the result directly (-> IndexError: tuple index out of range).
+    """
+    try:
+        import swisseph
+        from flatlib.ephem import swe as fswe
+        from flatlib import utils as futils
+        import math
+    except Exception:
+        return
+    if getattr(fswe, '_agy_compat_applied', False):
+        return
+
+    def _coords(res):
+        # Unwrap (coords, flg) / (coords, name, flg) into the coords sequence.
+        if res and isinstance(res[0], (tuple, list)):
+            res = res[0]
+        return tuple(res)
+
+    def sweObject(obj, jd):
+        c = _coords(swisseph.calc_ut(jd, fswe.SWE_OBJECTS[obj]))
+        return {'id': obj, 'lon': c[0], 'lat': c[1],
+                'lonspeed': c[3], 'latspeed': c[4]}
+
+    def sweObjectLon(obj, jd):
+        return _coords(swisseph.calc_ut(jd, fswe.SWE_OBJECTS[obj]))[0]
+
+    def sweFixedStar(star, jd):
+        c = _coords(swisseph.fixstar_ut(star, jd))
+        mag = swisseph.fixstar_mag(star)
+        if isinstance(mag, (tuple, list)):
+            mag = mag[0]
+        return {'id': star, 'mag': mag, 'lon': c[0], 'lat': c[1]}
+
+    def sweHouses(jd, lat, lon, hsys):
+        hlist, ascmc = swisseph.houses(jd, lat, lon, fswe.SWE_HOUSESYS[hsys])
+        hlist = tuple(hlist) + (hlist[0],)
+        houses = [{'id': fswe.const.LIST_HOUSES[i], 'lon': hlist[i],
+                   'size': fswe.angle.distance(hlist[i], hlist[i + 1])}
+                  for i in range(12)]
+        angles = [
+            {'id': fswe.const.ASC, 'lon': ascmc[0]},
+            {'id': fswe.const.MC, 'lon': ascmc[1]},
+            {'id': fswe.const.DESC, 'lon': fswe.angle.norm(ascmc[0] + 180)},
+            {'id': fswe.const.IC, 'lon': fswe.angle.norm(ascmc[1] + 180)},
+        ]
+        return (houses, angles)
+
+    def sweHousesLon(jd, lat, lon, hsys):
+        hlist, ascmc = swisseph.houses(jd, lat, lon, fswe.SWE_HOUSESYS[hsys])
+        angles = [ascmc[0], ascmc[1],
+                  fswe.angle.norm(ascmc[0] + 180),
+                  fswe.angle.norm(ascmc[1] + 180)]
+        return (hlist, angles)
+
+    def ascdiff(decl, lat):
+        x = math.tan(math.radians(decl)) * math.tan(math.radians(lat))
+        x = max(-1.0, min(1.0, x))
+        return math.degrees(math.asin(x))
+
+    for fn in (sweObject, sweObjectLon, sweFixedStar, sweHouses, sweHousesLon):
+        setattr(fswe, fn.__name__, fn)
+    futils.ascdiff = ascdiff
+    fswe._agy_compat_applied = True
+
+_apply_flatlib_compat()
+
 @functools.lru_cache(maxsize=128)
 def _cached_geocode(location_name: str):
     """Cached geocoding to avoid repeated API calls."""
