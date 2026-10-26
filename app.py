@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import traceback
 from datetime import datetime, date, timedelta, timezone
 from flatlib import const
 
@@ -665,6 +666,8 @@ if generate_btn or horary_btn:
         }
     except Exception as e:
         st.error(f"分析錯誤: {str(e)}")
+        with st.expander("🔍 查看詳細錯誤追蹤 (Traceback)"):
+            st.code(traceback.format_exc(), language="python")
 
 # --- AI Integration Processing (Specialized Modules) ---
 if st.session_state.report_data and ai_assistant.is_configured:
