@@ -198,6 +198,40 @@ class TertiaryProgressionsLogic:
             "summary": f"三限當前處於【{current_phase['name']}】（日月角距 {round(angle, 1)}°，約處於 2.5 年微週期之第 {cycle_month} 個月，【{current_phase['stage']}】）。{current_phase['desc']}"
         }
 
+    def calculate_tertiary_planets_list(
+        self,
+        chart_prog: Chart,
+        houses: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """提取三限全星體位置與順逆行狀態"""
+        h1_lon = houses[0]['lon'] if houses else 0.0
+        planets = []
+
+        for p_id in self.CORE_PLANETS:
+            try:
+                p = chart_prog.get(p_id)
+                p_lon = p.lon
+                sign_const = const.LIST_SIGNS[int(p_lon // 30)]
+                house_num = int(((p_lon - h1_lon) % 360) // 30) + 1
+                speed = getattr(p, 'lonspeed', 1.0)
+                deg = p_lon % 30
+
+                planets.append({
+                    "id": p_id,
+                    "name": self.trans_planets.get(p_id, p_id),
+                    "sign": self.trans_signs.get(sign_const, sign_const),
+                    "degree_str": f"{int(deg)}°{int((deg % 1) * 60):02d}'",
+                    "house_num": house_num,
+                    "house_str": f"第 {house_num} 宮",
+                    "longitude": round(p_lon, 2),
+                    "is_retrograde": bool(speed < 0),
+                    "speed": round(speed, 4)
+                })
+            except Exception:
+                continue
+
+        return planets
+
     def calculate_tertiary_aspects(
         self,
         chart_prog: Chart,
@@ -277,8 +311,10 @@ class TertiaryProgressionsLogic:
         tert_moon = self.calculate_tertiary_moon(chart_prog, houses)
         lunar_phase = self.calculate_tertiary_lunar_phase(chart_prog)
         aspects = self.calculate_tertiary_aspects(chart_prog, chart_natal)
+        planets_list = self.calculate_tertiary_planets_list(chart_prog, houses)
 
         return {
+            "planets": planets_list,
             "age_years": round(age_years, 2),
             "target_date": str(eval_target_date),
             "tertiary_ephemeris_date": prog_dt.strftime("%Y/%m/%d %H:%M"),

@@ -84,6 +84,27 @@ class AspectsLogic:
             return f"{trans_planets.get(p1_id)} 接納 {trans_planets.get(p2_id)}"
         return ""
 
+    @staticmethod
+    def antiscion(lon):
+        """Antiscion: mirror across the 0 Cancer - 0 Capricorn solstice axis."""
+        return (180 - lon) % 360
+
+    @staticmethod
+    def contra_antiscion(lon):
+        """Contra-Antiscion: mirror across the 0 Aries - 0 Libra equinox axis."""
+        return (360 - lon) % 360
+
+    def get_antiscia_positions(self, chart, trans_planets):
+        """Each classical planet's natal lon with its Antiscion and Contra-Antiscion."""
+        rows = []
+        for p_id in (const.SUN, const.MOON, const.MERCURY, const.VENUS,
+                     const.MARS, const.JUPITER, const.SATURN):
+            lon = chart.get(p_id).lon
+            rows.append({'id': p_id, 'name': trans_planets.get(p_id, p_id), 'lon': lon,
+                         'antiscion': self.antiscion(lon),
+                         'contra_antiscion': self.contra_antiscion(lon)})
+        return rows
+
     def get_antiscia(self, chart, trans_planets):
         """Calculates Antiscia and Contra-Antiscia contacts."""
         findings = []
@@ -113,7 +134,12 @@ class AspectsLogic:
                         'p1': trans_planets.get(p1_id),
                         'p2': trans_planets.get(p2_id),
                         'type': '反射點 (Antiscion)',
-                        'orb': f"{round(dist_ant, 2)}°"
+                        'orb': f"{round(dist_ant, 2)}°",
+                        'p1_id': p1_id,
+                        'p2_id': p2_id,
+                        'p1_lon': p1.lon,
+                        'p2_lon': p2.lon,
+                        'antiscion_lon': antiscia[p1_id]
                     })
                     
                 # Check Contra-Antiscion
@@ -125,7 +151,12 @@ class AspectsLogic:
                         'p1': trans_planets.get(p1_id),
                         'p2': trans_planets.get(p2_id),
                         'type': '對稱點 (Contra-Antiscion)',
-                        'orb': f"{round(dist_contra, 2)}°"
+                        'orb': f"{round(dist_contra, 2)}°",
+                        'p1_id': p1_id,
+                        'p2_id': p2_id,
+                        'p1_lon': p1.lon,
+                        'p2_lon': p2.lon,
+                        'antiscion_lon': contra[p1_id]
                     })
                     
         return findings

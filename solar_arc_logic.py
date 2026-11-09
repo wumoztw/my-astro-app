@@ -168,7 +168,24 @@ class SolarArcLogic:
         # 依容許度由緊到鬆排序
         active_aspects.sort(key=lambda x: x['orb'])
 
+        planets_list = []
+        for sa_id in [const.SUN, const.MOON, const.MERCURY, const.VENUS, const.MARS, const.JUPITER, const.SATURN]:
+            if sa_id not in natal_points:
+                continue
+            sa_directed_lon = (natal_points[sa_id] + solar_arc) % 360
+            sa_sign = const.LIST_SIGNS[int(sa_directed_lon // 30)]
+            sa_deg = sa_directed_lon % 30
+            planets_list.append({
+                'id': sa_id,
+                'name': self.trans_planets.get(sa_id, sa_id),
+                'sign': self.trans_signs.get(sa_sign, sa_sign),
+                'degree_str': f"{int(sa_deg)}°{int((sa_deg%1)*60):02d}'",
+                'longitude': round(sa_directed_lon, 2),
+                'is_retrograde': False
+            })
+
         return {
+            'planets': planets_list,
             'target_date': str(target_date or date.today()),
             'age_years': round(age_years, 2),
             'solar_arc_degrees': round(solar_arc, 2),

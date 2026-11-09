@@ -75,6 +75,24 @@ class ThematicReportsLogic:
                 "sec_moon": chart_data.get("secondary_progressions", {}).get("progressed_moon", {}),
                 "tert_moon": chart_data.get("tertiary_progressions", {}).get("tertiary_moon", {}),
             })
+        elif topic == "synastry":
+            syn = chart_data.get("synastry_data") or {}
+            context.update({
+                "person_a": syn.get("person_a", chart_data.get("name", "命盤主 A")),
+                "person_b": syn.get("person_b", "合盤對象 B"),
+                "asc_b_str": syn.get("asc_b_str", ""),
+                "sun_b_str": syn.get("sun_b_str", ""),
+                "moon_b_str": syn.get("moon_b_str", ""),
+                "resonance_scores": syn.get("resonance_scores", {}),
+                "receptions": syn.get("receptions", []),
+                "b_in_a_overlays": syn.get("b_in_a_overlays", []),
+                "a_in_b_overlays": syn.get("a_in_b_overlays", []),
+                "cross_aspects": syn.get("cross_aspects", []),
+                "h7": h_map.get(7, {}),
+                "h5": h_map.get(5, {}),
+                "h10": h_map.get(10, {}),
+                "h1": h_map.get(1, {}),
+            })
 
         return context
 
@@ -83,6 +101,7 @@ class ThematicReportsLogic:
         """依據專題生成高強度、無廢話的結構化 Prompt"""
         name = chart_data.get("name", "個案")
         ctx = cls.extract_thematic_context(chart_data, topic)
+        clean_data = {k: v for k, v in chart_data.items() if k != 'chart'}
 
         if topic == "career":
             return (
@@ -147,6 +166,32 @@ class ThematicReportsLogic:
                 f"   1~3. 針對該個案感情關鍵課題，設計 3 個引號標註的具體深度問題。\n"
                 f"   4. ✍️ 自行輸入問題（若您有特定對象、合盤困擾或感情抉擇，歡迎直接輸入提問）。\n\n"
                 f"【完整星盤與推運數據】：\n{chart_data}"
+            )
+        elif topic == "synastry":
+            syn = chart_data.get("synastry_data") or {}
+            return (
+                f"請以精深嚴謹的古典占星學理（托勒密《四書》Book 4、西頓的多羅修斯、威廉·里利《基督教占星學》Book 3 合盤與接納），"
+                f"為【{ctx.get('person_a')}】與【{ctx.get('person_b')}】撰寫一份【💞 古典占星雙人合盤與宿命共鳴深度合參報告】。\n\n"
+                f"⚠️【專題格式與解讀規範】：\n"
+                f"1. 【字數與節奏】：總字數約 1,200 ~ 1,600 字，條理分明，直擊核心，禁止空泛心靈雞湯。\n"
+                f"2. 【## 1. 雙人基本盤格與量化共鳴總評】：\n"
+                f"   - 比較 A（上升 {chart_data.get('asc', '')}、太陽 {chart_data.get('sun', '')}、月亮 {chart_data.get('moon', '')}）"
+                f"與 B（上升 {ctx.get('asc_b_str')}、太陽 {ctx.get('sun_b_str')}、月亮 {ctx.get('moon_b_str')}）的元素氣質相容度。\n"
+                f"   - 解讀三項量化指數：事業協同指數、情感黏著指數、關係張力指數（{ctx.get('resonance_scores')}）。\n"
+                f"3. 【## 2. 古典互容與接納深度解碼 (Mutual Reception & Dispositorship)】：\n"
+                f"   - 分析 A、B 間的廟旺接納（{ctx.get('receptions')}）：誰欣賞、扶持、遷就誰，是否存在命運綁定的互容。\n"
+                f"4. 【## 3. 十二整宮疊合效應 (Whole Sign House Overlays — 雙方落入彼此何宮)】：\n"
+                f"   - 分析 B 的太陽、月亮、金星、火星、木星、土星、上升落入 A 整宮制各宮（b_in_a_overlays），以及 A 落入 B 各宮（a_in_b_overlays），"
+                f"強調被引動的 1/7/5/4/10/2/8 宮人生領域。\n"
+                f"5. 【## 4. 跨盤核心交角與吉凶張力 (Cross-Aspects: 日月共鳴、金火吸引與火土磨合)】：\n"
+                f"   - 評估日月、金火、木星等吉相位與凶星刑沖（cross_aspects），指出具體的甜蜜點與摩擦觸發點。\n"
+                f"6. 【## 5. 相處之道、合作/情感經營建議與避坑指南】：\n"
+                f"   - 針對情感伴侶與事業合夥，各給出 3 項可落實的建議。\n"
+                f"7. 【## 💡 延伸性問題建議（您可以直接複製詢問）】：\n"
+                f"   1~3. 針對此組合最具張力的課題，設計 3 個引號標註的具體深度問題。\n"
+                f"   4. ✍️ 自行輸入問題。\n\n"
+                f"【合盤數據 (synastry_data)】：\n{syn}\n\n"
+                f"【本命盤摘要】：\n{clean_data}"
             )
         else:
             return f"請針對個案【{name}】進行古典占星綜合解析。\n{chart_data}"

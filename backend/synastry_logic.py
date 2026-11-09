@@ -14,6 +14,18 @@ from flatlib.geopos import GeoPos
 from aspects_logic import AspectsLogic
 from dignities_logic import DignitiesLogic
 
+TRANS_PLANETS = {
+    'Sun': '太陽', 'Moon': '月亮', 'Mercury': '水星', 'Venus': '金星',
+    'Mars': '火星', 'Jupiter': '木星', 'Saturn': '土星', 'Asc': '上升點'
+}
+TRANS_SIGNS = {
+    'Aries': '牡羊座', 'Taurus': '金牛座', 'Gemini': '雙子座', 'Cancer': '巨蟹座',
+    'Leo': '獅子座', 'Virgo': '處女座', 'Libra': '天秤座', 'Scorpio': '天蠍座',
+    'Sagittarius': '射手座', 'Capricorn': '摩羯座', 'Aquarius': '水瓶座', 'Pisces': '雙魚座'
+}
+CLASSICAL_PLANETS = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']
+
+
 class SynastryLogic:
     def __init__(self):
         self.aspects_engine = AspectsLogic()
@@ -64,8 +76,12 @@ class SynastryLogic:
         """
         planets_to_check = [const.SUN, const.MOON, const.MERCURY, const.VENUS, const.MARS, const.JUPITER, const.SATURN, const.ASC]
         
-        # 取得 A 的 12 宮宮頭
-        house_cusps_a = [chart_a.get(f'House{i}').lon for i in range(1, 13)]
+        # 取得 A 的 12 宮宮頭 (整宮制：以上升星座 0° 起算)
+        try:
+            asc_a = chart_a.get(const.ASC).lon
+            house_cusps_a = [((int(asc_a // 30) + i) % 12) * 30.0 for i in range(12)]
+        except Exception:
+            house_cusps_a = [chart_a.get(f'House{i}').lon for i in range(1, 13)]
         
         overlays = []
         for p_id in planets_to_check:
@@ -123,39 +139,67 @@ class SynastryLogic:
                     if orb <= 7.0: # 古典容許度
                         cross_aspects.append({
                             'planet_a': p_a,
+                            'planet_a_zh': TRANS_PLANETS.get(p_a, p_a),
                             'planet_b': p_b,
+                            'planet_b_zh': TRANS_PLANETS.get(p_b, p_b),
+                            'angle': angle,
                             'aspect': zh_name,
+                            'aspect_name': zh_name,
                             'angle_diff': round(diff, 2),
                             'orb': round(orb, 2)
                         })
         return cross_aspects
 
+    def _dignified_planets(self, sign):
+        """回傳某星座中擁有廟(Domicile)或旺(Exaltation)尊貴的行星 {planet: 尊貴類型}"""
+        res = {}
+        ruler = self.DOMICILE_RULERS.get(sign)
+        if ruler:
+            res[ruler] = '廟'
+        for planet, ex_sign in self.EXALTATIONS.items():
+            if ex_sign == sign:
+                res.setdefault(planet, '旺')
+        return res
+
     def check_classical_reception(self, chart_a: Chart, chart_b: Chart):
         """
         檢查古典接納與互容 (Reception & Mutual Reception)
-        當 A 的行星落在 B 守護星的星座，或反之。
+        當 A 的行星落在 B 某行星的廟/旺星座，即被該行星接納；雙方互相接納則為互容。
         """
-        planets_to_check = [const.SUN, const.MOON, const.MERCURY, const.VENUS, const.MARS, const.JUPITER, const.SATURN]
-        
         receptions = []
-        # 簡化示範：分析 A 與 B 各自行星的互容關係
-        # 實作：對每個行星檢查其落入星座的守護星
-        for p_a in planets_to_check:
+        for p_a in CLASSICAL_PLANETS:
             try:
-                obj_a = chart_a.get(p_a)
-                sign_a, _ = self.get_planet_sign(obj_a.lon)
-                ruler_a = self.DOMICILE_RULERS.get(sign_a)
-                
-                # 檢查 B 是否有行星為 ruler_a
-                for p_b in planets_to_check:
-                    obj_b = chart_b.get(p_b)
-                    if p_b == ruler_a:
-                        receptions.append({
-                            'description': f'A 的 {p_a}（在 {sign_a}）受 B 的守護星 {p_b} 接納 (A 仰慕/接受 B)'
-                        })
-            except:
+                sign_a, _ = self.get_planet_sign(chart_a.get(p_a).lon)
+            except Exception:
                 continue
-                
+            for p_b in CLASSICAL_PLANETS:
+                if p_a == p_b:
+                    continue
+                try:
+                    sign_b, _ = self.get_planet_sign(chart_b.get(p_b).lon)
+                except Exception:
+                    continue
+                # B 的 p_b 是否在 A 的 p_a 所在星座擁有尊貴 (A 被 B 接納)
+                a_by_b = self._dignified_planets(sign_a).get(p_b)
+                # A 的 p_a 是否在 B 的 p_b 所在星座擁有尊貴 (B 被 A 接納)
+                b_by_a = self._dignified_planets(sign_b).get(p_a)
+                if not a_by_b and not b_by_a:
+                    continue
+                za, zb = TRANS_PLANETS[p_a], TRANS_PLANETS[p_b]
+                sa, sb = TRANS_SIGNS[sign_a], TRANS_SIGNS[sign_b]
+                if a_by_b and b_by_a:
+                    rtype = '互容 (Mutual Reception)'
+                    desc = (f'A 的{za}（在{sa}）與 B 的{zb}（在{sb}）形成互容：'
+                            f'{zb}為{sa}之{a_by_b}星，{za}為{sb}之{b_by_a}星')
+                elif a_by_b:
+                    rtype = '單向接納 (Reception)'
+                    desc = f'A 的{za}（在{sa}）受 B 的{zb}接納（{zb}為{sa}之{a_by_b}星）'
+                else:
+                    rtype = '單向接納 (Reception)'
+                    desc = f'B 的{zb}（在{sb}）受 A 的{za}接納（{za}為{sb}之{b_by_a}星）'
+                receptions.append({
+                    'planet_a': p_a, 'planet_b': p_b, 'type': rtype, 'description': desc
+                })
         return receptions
 
     def generate_synastry_report(self, name_a, dt_a, pos_a, name_b, dt_b, pos_b):
@@ -170,9 +214,33 @@ class SynastryLogic:
         cross_asp = self.calculate_cross_aspects(chart_a, chart_b)
         receptions = self.check_classical_reception(chart_a, chart_b)
         
+        house_of_b = {o['planet']: o['overlay_house'] for o in overlays_b_in_a}
+        planets_b = []
+        for p_id in CLASSICAL_PLANETS:
+            p_obj = chart_b.get(p_id)
+            lon = p_obj.lon
+            sign, deg = self.get_planet_sign(lon)
+            planets_b.append({
+                'id': p_id,
+                'name': TRANS_PLANETS[p_id],
+                'sign': TRANS_SIGNS[sign],
+                'degree_str': f"{int(deg)}°{int((deg % 1) * 60):02d}'",
+                'longitude': round(lon, 2),
+                'is_retrograde': bool(p_obj.lonspeed < 0),
+                'overlay_house': house_of_b.get(p_id)
+            })
+
+        def _pos_str(obj_id):
+            sign, deg = self.get_planet_sign(chart_b.get(obj_id).lon)
+            return f"{TRANS_SIGNS[sign]} {int(deg)}°{int((deg % 1) * 60):02d}'"
+
         return {
             'person_a': name_a,
             'person_b': name_b,
+            'planets': planets_b,
+            'asc_b_str': _pos_str(const.ASC),
+            'sun_b_str': _pos_str(const.SUN),
+            'moon_b_str': _pos_str(const.MOON),
             'b_in_a_overlays': overlays_b_in_a,
             'a_in_b_overlays': overlays_a_in_b,
             'cross_aspects': cross_asp,

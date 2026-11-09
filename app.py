@@ -327,6 +327,13 @@ def show_api_keys_dialog():
     *取得 Key 後，請複製並貼上到左側的輸入框中，即可開始使用 AI 自動解析功能！*
     """)
 
+with st.sidebar.expander("💑 雙人合盤設定 (選填 - 啟用合盤疊盤)", expanded=False):
+    enable_synastry = st.checkbox("啟用雙人合盤 (Synastry)", value=False)
+    partner_name = st.text_input("對方姓名 / 稱呼", value="合盤對象 B")
+    partner_date_raw = st.text_input("對方出生日期 (YYYY/MM/DD)", value="1992/06/15")
+    partner_time_raw = st.text_input("對方出生時間 (HH:MM)", value="12:00")
+    partner_city = st.text_input("對方出生城市", value="台北市")
+
 st.sidebar.markdown("---")
 st.sidebar.header("AI 設定 (不輸入也可排盤)")
 
@@ -437,6 +444,7 @@ if generate_btn or horary_btn:
 
         prof_info = logic.calculate_profections(chart, houses, birth_date_str, current_date=target_date)
         aspects = logic.get_aspects(chart)
+        antiscia = logic.get_antiscia(chart)
         is_day = logic.is_day_birth(chart, houses)
         f_data = logic.get_firdaria_data(birth_date_str, is_day, current_date=target_date)
         zr_data = logic.calculate_zodiacal_releasing(chart, is_day, birth_date_str, current_date=target_date) if hasattr(logic, 'calculate_zodiacal_releasing') else {}
@@ -445,6 +453,7 @@ if generate_btn or horary_btn:
         tert_prog_data = logic.calculate_tertiary_progressions(chart, houses, birth_date_str, birth_time_str, offset_str, final_lat, final_lon, target_date=target_date) if hasattr(logic, 'calculate_tertiary_progressions') else {}
         lots = logic.calculate_lots(chart, houses, is_day)
         fixed_stars = logic.get_fixed_stars(chart)
+        almuten_data = logic.calculate_almuten(chart, houses, is_day) if hasattr(logic, 'calculate_almuten') else {}
 
         # Build Markdown Report
         title_map = {'natal': '古典占星本命盤完整資料', 'horary': '古典占星卜卦盤解析資料'}
@@ -491,7 +500,15 @@ if generate_btn or horary_btn:
         else:
             md += "無顯著相位。\n"
         md += "\n"
-        
+
+        md += "## 古典映點與反映點 (Antiscia & Contra-Antiscia)\n\n"
+        if antiscia:
+            for a in antiscia:
+                md += f"- {a['p1']} - {a['p2']}：{a['type']} (誤差 {a['orb']})\n"
+        else:
+            md += "無顯著映點接觸。\n"
+        md += "\n"
+
         if st.session_state.chart_type == 'natal':
             md += "## 推運資訊\n\n"
             md += f"- 小限分限：{prof_info.get('prof_sign')} (第 {prof_info.get('prof_house_num')} 宮)\n"
@@ -653,6 +670,7 @@ if generate_btn or horary_btn:
             'planets': planets_data,
             'houses': houses,
             'aspects': aspects,
+            'antiscia': antiscia,
             'prof_info': prof_info,
             'f_data': f_data,
             'zr_data': zr_data,
@@ -662,8 +680,65 @@ if generate_btn or horary_btn:
             'is_day': is_day,
             'lots': lots,
             'fixed_stars': fixed_stars,
-            'horary_analysis': horary_analysis
+            'almuten': almuten_data,
+            'horary_analysis': horary_analysis,
+            'asc_lon': asc.lon,
+            'mc_lon': chart.get(const.MC).lon,
+            'meta': {
+                'birth_date_str': birth_date_str,
+                'birth_time_str': birth_time_str,
+                'location_city': location_city,
+                'lat': final_lat,
+                'lon': final_lon,
+                'utc_offset_str': offset_str,
+                'chart_type': st.session_state.chart_type
+            }
         }
+
+        if generate_btn and enable_synastry:
+            try:
+                p_date = datetime.strptime(partner_date_raw.replace('-', '/').strip(), '%Y/%m/%d')
+                p_time = datetime.strptime(partner_time_raw.replace('：', ':').strip(), '%H:%M')
+                p_lat, p_lon = final_lat, final_lon
+                p_city = partner_city.strip()
+                if p_city and p_city != location_city:
+                    p_coords = logic.get_location_coordinates(p_city)
+                    if p_coords:
+                        p_lat, p_lon = p_coords
+                    else:
+                        st.sidebar.warning("⚠️ 對方出生地檢索失敗，已改用本人出生地座標。")
+                p_off = offset_str
+                try:
+                    _, p_utc = logic.get_timezone_info(p_lat, p_lon, p_date)
+                    ps = '+' if p_utc >= 0 else '-'
+                    p_off = f"{ps}{int(abs(p_utc)):02d}:{int((abs(p_utc) % 1) * 60):02d}"
+                except Exception:
+                    pass
+                dt_b = Datetime(p_date.strftime('%Y/%m/%d'), p_time.strftime('%H:%M'), p_off)
+                st.session_state.report_data['synastry_data'] = logic.synastry.generate_synastry_report(
+                    "本人 A", dt, pos, partner_name.strip() or "合盤對象 B", dt_b, GeoPos(p_lat, p_lon))
+                _syn = st.session_state.report_data['synastry_data']
+                _sc = _syn.get('resonance_scores') or {}
+                smd = "\n## 💑 古典雙人合盤分析資料 (Synastry)\n\n"
+                smd += f"- 合盤對象：{_syn.get('person_b', '')}\n"
+                smd += f"- 對象太陽 / 月亮 / 上升：{_syn.get('sun_b_str', '')} / {_syn.get('moon_b_str', '')} / {_syn.get('asc_b_str', '')}\n"
+                smd += f"- 量化共鳴：事業協同 {_sc.get('business_harmony_score', '-')}｜情感黏著 {_sc.get('romantic_harmony_score', '-')}｜關係張力 {_sc.get('tension_index', '-')}\n"
+                if _sc.get('summary'):
+                    smd += f"- 總評：{_sc.get('summary')}\n"
+                for hl in _sc.get('highlights') or []:
+                    smd += f"  * {hl}\n"
+                smd += "\n### 古典接納與互容\n"
+                for r in _syn.get('receptions') or []:
+                    smd += f"- {r.get('type', '')}：{r.get('description', '')}\n"
+                smd += "\n### 宮位疊合 (B 行星落入 A 之宮位)\n"
+                for o in _syn.get('b_in_a_overlays') or []:
+                    smd += f"- {o.get('planet', '')} ({o.get('sign', '')} {o.get('degree', '')}) → 第 {o.get('overlay_house', '')} 宮\n"
+                smd += "\n### 跨盤相位\n"
+                for a in _syn.get('cross_aspects') or []:
+                    smd += f"- {a.get('planet_a_zh', '')} {a.get('aspect_name', '')} {a.get('planet_b_zh', '')} (誤差 {a.get('orb', '')})\n"
+                st.session_state.report_md += smd + "\n"
+            except Exception as syn_err:
+                st.sidebar.error(f"合盤計算錯誤: {syn_err}")
     except Exception as e:
         st.error(f"分析錯誤: {str(e)}")
         with st.expander("🔍 查看詳細錯誤追蹤 (Traceback)"):
@@ -702,6 +777,12 @@ if st.session_state.report_data and ai_assistant.is_configured:
                     f"{st.session_state.report_md}"
                 )
                 st.session_state.chat_history = [{"role": "user", "content": initial_user_msg}]
+
+            if st.session_state.report_data.get('synastry_data'):
+                if st.button("💞 啟動雙人合盤 AI 大師深度合參", use_container_width=True, type="primary"):
+                    st.session_state.ai_analysis_triggered = True
+                    p_msg = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "synastry")
+                    st.session_state.chat_history = [{"role": "user", "content": p_msg}]
 
             st.markdown("---")
             st.markdown("🎯 **三大專題深度診斷**")
@@ -743,6 +824,7 @@ if st.session_state.report_data:
     # Define tabs dynamically
     if st.session_state.chart_type == 'horary':
         tabs_list = [
+            '🧭 星盤圖譜',
             '🪐 行星與本質力量',
             '📐 相位與接納關係',
             '🔮 卜卦檢意與成事診斷',
@@ -752,6 +834,7 @@ if st.session_state.report_data:
             tabs_list.append('✨ AI 卜卦深度解析報告')
     else:
         tabs_list = [
+            '🧭 星盤圖譜',
             '行星與本質力量',
             '相位與接納',
             '特殊點位與恆星',
@@ -762,8 +845,91 @@ if st.session_state.report_data:
     
     all_tabs = st.tabs(tabs_list)
     
-    # Tab 1: Planets
+    # Tab 0: Chart graphics
     with all_tabs[0]:
+        from visuals import (render_lilly_square_chart_svg, render_circular_chart_svg,
+                             render_interactive_chart_viewer, THEMES)
+        _theme_bg = lambda key: THEMES[key]["paper"]
+        theme_label = st.radio("🎨 視覺主題", ["🏛️ 古典羊皮紙", "🌌 皇家暗夜星空"], index=0, horizontal=True)
+        theme_key = "starry_night" if "星空" in theme_label else "parchment"
+        cc1, cc2, cc3 = st.columns([2, 2, 1.4])
+        with cc1:
+            chart_style = st.radio("📐 星盤樣式", ["🔲 古典十二宮方形盤 (Lilly 預設)", "⭕ 古典整宮制圓形盤"],
+                                   index=0, horizontal=True)
+        is_circular = chart_style.startswith("⭕")
+        overlay_mode = "none"
+        with cc2:
+            if is_circular and st.session_state.chart_type == 'natal':
+                overlay_opts = {
+                    "單盤：本命星盤": "none",
+                    "雙環：本命 + 太陽弧 (Solar Arc)": "solar_arc",
+                    "雙環：本命 + 次限推運 (一日一年)": "secondary",
+                    "雙環：本命 + 三限推運 (一日一月)": "tertiary",
+                    "雙環：本命 + 合盤對象 (Synastry)": "synastry",
+                }
+                overlay_mode = overlay_opts[st.selectbox("⏳ 推運雙環疊盤 (Bi-Wheel)", list(overlay_opts), index=0)]
+                if overlay_mode == "synastry" and not d.get("synastry_data"):
+                    st.info("💡 請先於左側邊欄展開「💑 雙人合盤設定」勾選啟用並點擊「排本命盤」即可顯示雙人合盤外環！")
+        with cc3:
+            show_lots = st.checkbox("顯示赫密斯點 (福德/精神)", value=True)
+            show_all_lots = st.checkbox("展開全部 6 大赫密斯點", value=False) if show_lots else False
+            show_stars = st.checkbox("顯示恆星合相與尊貴徽章", value=True)
+            show_aspects = st.checkbox("顯示相位連線", value=True) if is_circular else True
+            show_antiscia = st.checkbox("顯示映點與至點軸線 (Antiscia)", value=False)
+        try:
+            if is_circular:
+                chart_svg = render_circular_chart_svg(d, overlay_mode=overlay_mode, show_lots=show_lots,
+                                                      show_aspects=show_aspects, theme=theme_key,
+                                                      show_all_lots=show_all_lots, show_stars=show_stars,
+                                                      show_antiscia=show_antiscia)
+                fname = "astro_circular_chart"
+            else:
+                chart_svg = render_lilly_square_chart_svg(d, show_lots=show_lots, theme=theme_key,
+                                                         show_all_lots=show_all_lots, show_stars=show_stars,
+                                                         show_antiscia=show_antiscia)
+                fname = "astro_lilly_square_chart"
+            components.html(render_interactive_chart_viewer(chart_svg, fname, bg_color=_theme_bg(theme_key)), height=920, scrolling=False)
+            st.download_button("📥 下載 SVG 向量圖", data=chart_svg.encode("utf-8"),
+                               file_name=f"{fname}.svg", mime="image/svg+xml")
+        except Exception as e:
+            st.error(f"星盤繪製錯誤: {e}")
+            with st.expander("🔍 查看詳細錯誤追蹤 (Traceback)"):
+                st.code(traceback.format_exc(), language="python")
+
+        syn = d.get("synastry_data")
+        if syn:
+            sc = syn.get("resonance_scores") or {}
+            st.markdown(f"### 💑 古典合盤關係能量量化面板：{syn.get('person_a', '')} × {syn.get('person_b', '')}")
+            st.caption(f"{syn.get('person_b', '')}：上升 {syn.get('asc_b_str', '')}｜太陽 {syn.get('sun_b_str', '')}｜月亮 {syn.get('moon_b_str', '')}")
+            m1, m2, m3 = st.columns(3)
+            m1.metric("💼 事業協同指數", sc.get("business_harmony_score", "-"))
+            m2.metric("❤️ 情感黏著指數", sc.get("romantic_harmony_score", "-"))
+            m3.metric("⚡ 關係張力指數", sc.get("tension_index", "-"))
+            for hl in sc.get("highlights") or []:
+                st.markdown(f"- {hl}")
+            with st.expander("🤝 古典接納與互容 (Receptions)", expanded=False):
+                recs = syn.get("receptions") or []
+                if recs:
+                    for r in recs:
+                        st.markdown(f"- **{r.get('type', '')}**：{r.get('description', '')}")
+                else:
+                    st.write("未發現古典接納或互容關係。")
+            with st.expander("🏠 宮位疊合表 (B 行星落入 A 之宮位)", expanded=False):
+                rows = [{"對象行星": o["planet"], "星座": o["sign"], "度數": o["degree"], "落入 A 的宮位": f"第 {o['overlay_house']} 宮"}
+                        for o in syn.get("b_in_a_overlays") or []]
+                if rows:
+                    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            with st.expander("📐 跨盤相位表 (Cross-Aspects)", expanded=False):
+                rows = [{"A 行星": a.get("planet_a_zh"), "B 行星": a.get("planet_b_zh"),
+                         "相位": a.get("aspect_name"), "容許度": a.get("orb")}
+                        for a in syn.get("cross_aspects") or []]
+                if rows:
+                    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+                else:
+                    st.write("無明顯跨盤相位。")
+
+    # Tab 1: Planets
+    with all_tabs[1]:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("行星本質與後天狀態")
         
@@ -790,7 +956,7 @@ if st.session_state.report_data:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Tab 2: Aspects
-    with all_tabs[1]:
+    with all_tabs[2]:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("行星相位與接納關係")
         if d['aspects']:
@@ -807,10 +973,26 @@ if st.session_state.report_data:
             st.table(df_a[cols_a].rename(columns=col_map_a))
         else:
             st.write("目前無顯著相位。")
+
+        st.markdown("### 🪞 古典映點與反映點 (Antiscia & Contra-Antiscia — 巨蟹/摩羯至點鏡射)")
+        if d.get('antiscia'):
+            df_ant = pd.DataFrame(d['antiscia'])
+            col_map_ant = {'p1': '行星 1', 'p2': '行星 2', 'type': '接觸類型', 'orb': '誤差'}
+            st.table(df_ant[[c for c in col_map_ant if c in df_ant.columns]].rename(columns=col_map_ant))
+        else:
+            st.write("目前無顯著映點／反映點接觸。")
+        with st.expander("📋 七大行星映點 (Antiscion) 與反映點 (Contra-Antiscion) 位置"):
+            _sign_cn = ["牡羊", "金牛", "雙子", "巨蟹", "獅子", "處女", "天秤", "天蠍", "射手", "摩羯", "水瓶", "雙魚"]
+            _fmt = lambda x: f"{_sign_cn[int(x % 360 // 30)]} {int(x % 30)}°{int((x % 1) * 60):02d}'"
+            st.table(pd.DataFrame([{
+                '行星': r['name'], '本命位置': _fmt(r['lon']),
+                '映點 (Antiscion)': _fmt(r['antiscion']),
+                '反映點 (Contra-Antiscion)': _fmt(r['contra_antiscion']),
+            } for r in logic.get_antiscia_positions(d['chart'])]))
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Tab 3: Lots & Stars (Natal) OR Radicality & Perfection (Horary)
-    with all_tabs[2]:
+    with all_tabs[3]:
         if st.session_state.chart_type == 'horary':
             ha = d.get('horary_analysis') or {}
             c = ha.get('classification', {})
@@ -1110,7 +1292,7 @@ if st.session_state.report_data:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # Tab 4: Time Lords (Natal) OR Moon Flow & Timing Clock (Horary)
-    with all_tabs[3]:
+    with all_tabs[4]:
         if st.session_state.chart_type == 'horary':
             ha = d.get('horary_analysis') or {}
             mf = ha.get('moon_flow', {})
@@ -1448,7 +1630,7 @@ if st.session_state.report_data:
 
     # Tab 5: AI Analysis (Dynamic Chat)
     if st.session_state.get('ai_analysis_triggered'):
-        with all_tabs[4]:
+        with all_tabs[5]:
             st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             if st.session_state.chart_type == "natal":
                 st.subheader("✨ AI 大師深度分析報告與對話 (本命盤專用)")

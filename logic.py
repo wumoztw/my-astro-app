@@ -103,6 +103,7 @@ from secondary_progressions_logic import SecondaryProgressionsLogic
 from tertiary_progressions_logic import TertiaryProgressionsLogic
 from thematic_reports_logic import ThematicReportsLogic
 from horary_engine_logic import HoraryEngineLogic
+from backend.synastry_logic import SynastryLogic
 import streamlit as st
 import os
 
@@ -170,7 +171,11 @@ class AstrologyLogic:
         self.tertiary_progressions = TertiaryProgressionsLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.thematic_reports = ThematicReportsLogic()
         self.horary_engine = HoraryEngineLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
+        self.synastry = SynastryLogic()
         self.tf = TimezoneFinder()
+
+    def generate_synastry_report(self, name_a, dt_a, pos_a, name_b, dt_b, pos_b):
+        return self.synastry.generate_synastry_report(name_a, dt_a, pos_a, name_b, dt_b, pos_b)
 
     def get_timezone_info(self, lat, lon, dt=None):
         """
@@ -297,6 +302,12 @@ class AstrologyLogic:
 
     def get_aspects(self, chart):
         return self.aspects.get_aspects(chart, self.TRANS_PLANETS, self.PLANET_GLYPHS, self.TRANS_ASPECTS)
+
+    def get_antiscia(self, chart):
+        return self.aspects.get_antiscia(chart, self.TRANS_PLANETS)
+
+    def get_antiscia_positions(self, chart):
+        return self.aspects.get_antiscia_positions(chart, self.TRANS_PLANETS)
 
     def calculate_lots(self, chart, houses, is_day):
         return self.lots.calculate_lots(chart, houses, is_day, self.TRANS_SIGNS, self.TRANS_HOUSES)

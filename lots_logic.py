@@ -95,6 +95,9 @@ class LotsLogic:
                     findings.append({
                         'planet': trans_planets.get(p_id),
                         'star': s_name,
-                        'orb': f"{round(diff, 2)}°"
+                        'orb': f"{round(diff, 2)}°",
+                        'planet_id': p_id,
+                        'star_lon': round(s_lon, 2),
+                        'planet_lon': round(p.lon, 2),
                     })
         return findings
