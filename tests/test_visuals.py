@@ -333,10 +333,14 @@ class TestVisuals(unittest.TestCase):
         self.assertGreater(len(cands), 0)
         self.assertIn("confidence_score", cands[0])
 
-        # 3. Clean square chart rendering
-        svg_chart = render_lilly_square_chart_svg(rd)
+        # 3. Clean square chart rendering and integrated aspect panel
+        svg_chart = render_lilly_square_chart_svg(rd, show_aspect_bar=True)
         self.assertIn("William Lilly", svg_chart)
-        self.assertIn("rect", svg_chart)
+        self.assertIn("✦ 托勒密行星主要交角與相位提示", svg_chart)
+        self.assertIn("viewBox=\"0 0 820 920\"", svg_chart)
+        svg_no_aspect = render_lilly_square_chart_svg(rd, show_aspect_bar=False)
+        self.assertNotIn("✦ 托勒密行星主要交角與相位提示", svg_no_aspect)
+        self.assertIn("viewBox=\"0 0 820 820\"", svg_no_aspect)
 
 
 if __name__ == "__main__":

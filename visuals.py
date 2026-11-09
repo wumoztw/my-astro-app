@@ -173,13 +173,13 @@ _STARS = [(0.04, 0.05, 1.6), (0.12, 0.03, 1.1), (0.2, 0.08, 0.9), (0.88, 0.04, 1
           (0.97, 0.88, 1.0), (0.85, 0.97, 0.9)]
 
 
-def _svg_open(size: int, t: Dict[str, Any]) -> List[str]:
-    out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}" '
+def _svg_open(width: int, height: int, t: Dict[str, Any]) -> List[str]:
+    out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" '
            f'font-family="{FONT}" role="img">',
-           f'<rect x="0" y="0" width="{size}" height="{size}" fill="{t["paper"]}"/>']
+           f'<rect x="0" y="0" width="{width}" height="{height}" fill="{t["paper"]}"/>']
     if t is THEMES["starry_night"]:
         for fx, fy, r in _STARS:
-            out.append(f'<circle cx="{fx * size:.1f}" cy="{fy * size:.1f}" r="{r}" fill="#F8FAFC" '
+            out.append(f'<circle cx="{fx * width:.1f}" cy="{fy * height:.1f}" r="{r}" fill="#F8FAFC" '
                        f'opacity="0.35" class="star"/>')
     return out
 
@@ -231,7 +231,8 @@ def _entry_label(p: Dict[str, Any]) -> str:
 
 def render_lilly_square_chart_svg(report_data: dict, show_lots: bool = True, theme: str = "parchment",
                                   show_all_lots: bool = False, show_stars: bool = True,
-                                  show_antiscia: bool = False) -> str:
+                                  show_antiscia: bool = False,
+                                  show_aspect_bar: bool = False) -> str:
     t = _theme(theme)
     INK, GOLD, NAVY, PAPER, CARD = t["ink"], t["gold"], t["navy"], t["center_bg"], t["card"]
     HORARY_GOLD, HORARY_FILL, MUTED = t["horary_gold"], t["horary_fill"], t["muted"]
@@ -239,8 +240,18 @@ def render_lilly_square_chart_svg(report_data: dict, show_lots: bool = True, the
     hor = n["horary"]
     if not show_stars:
         n["fixed_stars"] = []
-    
-    out = _svg_open(820, t)
+
+    # Calculate aspects list for the integrated footer panel
+    asp_list = n["rd"].get("aspects") or []
+    if not asp_list and n["rd"].get("chart"):
+        try:
+            from aspects_logic import AspectsLogic
+            asp_list = AspectsLogic().get_aspects(n["rd"]["chart"], PLANET_NAMES, PLANET_GLYPHS, {})
+        except Exception:
+            pass
+
+    svg_h = 920 if (show_aspect_bar and asp_list) else 820
+    out = _svg_open(820, svg_h, t)
     out.append(f'<rect x="30" y="30" width="760" height="760" fill="{CARD}" stroke="{INK}" stroke-width="2.5"/>')
 
     for hid, poly in HOUSE_POLYS.items():
@@ -358,7 +369,48 @@ def render_lilly_square_chart_svg(report_data: dict, show_lots: bool = True, the
         if act.get("major"):
             out.append(_text(410, y, f"法達：{PLANET_NAMES.get(act['major'], act['major'])} / {PLANET_NAMES.get(act.get('minor'), act.get('minor'))}", 11.5, INK))
             y += 17
-    out.append(_text(410, 806, "William Lilly, Christian Astrology (1647) — Traditional Square Chart", 10, MUTED))
+
+    if show_aspect_bar and asp_list:
+        # Integrated classical aspect panel within the image below the square chart
+        out.append(f'<rect x="30" y="802" width="760" height="96" rx="4" fill="{CARD}" stroke="{GOLD}" stroke-width="1.2"/>')
+        out.append(_text(410, 818, "✦ 托勒密行星主要交角與相位提示 (Ptolemaic Aspects & Orbs) ✦", 11.5, GOLD, weight="bold"))
+        out.append(f'<line x1="45" y1="825" x2="775" y2="825" stroke="{t["muted"]}" stroke-width="0.6"/>')
+
+        # Format items into 2 rows of up to 4 columns
+        items = asp_list[:8]
+        row1 = items[:4]
+        row2 = items[4:8]
+
+        asp_symbol_map = {
+            "合相": "☌ 合相", "六分相": "⚹ 六合", "四分相": "□ 刑相",
+            "三分相": "△ 拱相", "對分相": "☍ 衝相",
+            "Conjunction": "☌ 合相", "Sextile": "⚹ 六合", "Square": "□ 刑相",
+            "Trine": "△ 拱相", "Opposition": "☍ 衝相"
+        }
+
+        for r_idx, row in enumerate((row1, row2)):
+            if not row:
+                continue
+            cols_count = len(row)
+            col_w = 740 / max(1, cols_count)
+            yy = 844 + r_idx * 22
+            for c_idx, a in enumerate(row):
+                cx = 40 + c_idx * col_w + col_w / 2
+                p1_short = a.get("p1", "").split()
+                p1_str = p1_short[0] if p1_short else ""
+                p2_short = a.get("p2", "").split()
+                p2_str = p2_short[0] if p2_short else ""
+                raw_asp = a.get("aspect", "").split()[0]
+                asp_sym = a.get("aspect_sym") or asp_symbol_map.get(raw_asp, raw_asp)
+                orb_str = a.get("orb", "")
+                reception_mark = " 🤝" if a.get("reception") else ""
+                txt = f"{p1_str} {asp_sym} {p2_str} ({orb_str}{reception_mark})"
+                out.append(_text(cx, yy, txt, 11, NAVY, weight="bold"))
+
+        out.append(_text(410, 912, "William Lilly, Christian Astrology (1647) — Traditional Square Chart", 9.5, MUTED))
+    else:
+        out.append(_text(410, 806, "William Lilly, Christian Astrology (1647) — Traditional Square Chart", 10, MUTED))
+
     out.append("</svg>")
     return "\n".join(out)
 
@@ -427,9 +479,14 @@ function svgBlob(){ return new Blob([svgString()], {type:'image/svg+xml;charset=
 function toCanvas(cb){
   var url = URL.createObjectURL(svgBlob()), img = new Image();
   img.onload = function(){
-    var c = document.createElement('canvas'); c.width = SIZE; c.height = SIZE;
-    var ctx = c.getContext('2d'); ctx.fillStyle = BG; ctx.fillRect(0,0,SIZE,SIZE);
-    ctx.drawImage(img, 0, 0, SIZE, SIZE); URL.revokeObjectURL(url); cb(c);
+    var svgEl = document.querySelector('#chart-card svg');
+    var vb = svgEl ? svgEl.getAttribute('viewBox').split(' ') : [0,0,820,820];
+    var vw = parseFloat(vb[2]) || 820, vh = parseFloat(vb[3]) || 820;
+    var c = document.createElement('canvas');
+    c.width = SIZE;
+    c.height = Math.round(SIZE * (vh / vw));
+    var ctx = c.getContext('2d'); ctx.fillStyle = BG; ctx.fillRect(0,0,c.width,c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); cb(c);
   };
   img.onerror = function(){ say('⚠️ 圖片轉換失敗', true); };
   img.src = url;
