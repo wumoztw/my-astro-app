@@ -302,7 +302,7 @@ class TestVisuals(unittest.TestCase):
         self.assertIn("古典占星專業命書", html_)
         self.assertIn("測試&lt;者&gt;", html_)
         self.assertIn("AI 解析內容", html_)
-        for needle in (render_lilly_square_chart_svg(rd, True, "parchment", True, True, True, True)[:60],
+        for needle in (render_lilly_square_chart_svg(rd, True, "parchment", True, True, True)[:60],
                        render_temperament_svg(nc['temperament'])[:60],
                        render_dispositor_tree_svg(nc['dispositors'])[:60],
                        render_timeline_gantt_svg(rd)[:60]):
@@ -333,11 +333,10 @@ class TestVisuals(unittest.TestCase):
         self.assertGreater(len(cands), 0)
         self.assertIn("confidence_score", cands[0])
 
-        # 3. Square chart aspect hints
-        svg_with_aspects = render_lilly_square_chart_svg(rd, show_aspect_hints=True)
-        self.assertIn("✦ 緊密相位：", svg_with_aspects)
-        svg_no_aspects = render_lilly_square_chart_svg(rd, show_aspect_hints=False)
-        self.assertNotIn("✦ 緊密相位：", svg_no_aspects)
+        # 3. Clean square chart rendering
+        svg_chart = render_lilly_square_chart_svg(rd)
+        self.assertIn("William Lilly", svg_chart)
+        self.assertIn("rect", svg_chart)
 
 
 if __name__ == "__main__":

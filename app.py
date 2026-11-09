@@ -1006,15 +1006,13 @@ if st.session_state.report_data:
         with c_opt1:
             show_lots = st.checkbox("顯示赫密斯點 (福德/精神)", value=True)
             show_all_lots = st.checkbox("展開全部 6 大赫密斯點", value=False) if show_lots else False
-            show_aspect_hints = st.checkbox("顯示行星交角徽章提示 (Aspect Badges)", value=True, help="在方形盤各宮行星旁顯示緊密托勒密交角符號，如 ⚹六合、□刑、△拱、☍衝、☌合")
         with c_opt2:
             show_stars = st.checkbox("顯示恆星合相與尊貴徽章", value=True)
             show_antiscia = st.checkbox("顯示映點接觸 (Antiscia)", value=False)
         try:
             chart_svg = render_lilly_square_chart_svg(d, show_lots=show_lots, theme=theme_key,
                                                       show_all_lots=show_all_lots, show_stars=show_stars,
-                                                      show_antiscia=show_antiscia,
-                                                      show_aspect_hints=show_aspect_hints)
+                                                      show_antiscia=show_antiscia)
             fname = "astro_lilly_square_chart"
             components.html(render_interactive_chart_viewer(chart_svg, fname, bg_color=_theme_bg(theme_key)), height=920, scrolling=False)
             st.download_button("📥 下載 SVG 向量圖", data=chart_svg.encode("utf-8"),
@@ -1023,6 +1021,31 @@ if st.session_state.report_data:
             st.error(f"星盤繪製錯誤: {e}")
             with st.expander("🔍 查看詳細錯誤追蹤 (Traceback)"):
                 st.code(traceback.format_exc(), language="python")
+
+        # --- 行星交角與相位對照表 (Square Chart Aspect Summary Table) ---
+        st.markdown("<hr style='margin: 16px 0;'>", unsafe_allow_html=True)
+        st.subheader("📐 本命行星交角與相位速查表 (Major Aspects & Orbs)")
+        asp_list = d.get('aspects') or []
+        if not asp_list and d.get('chart'):
+            try:
+                asp_list = logic.get_aspects(d['chart'])
+            except Exception:
+                pass
+
+        if asp_list:
+            asp_table_data = []
+            for a in asp_list:
+                asp_table_data.append({
+                    '主曜 1': a.get('p1', ''),
+                    '相位交角': a.get('aspect', ''),
+                    '主曜 2': a.get('p2', ''),
+                    '容許度 (Orb)': a.get('orb', ''),
+                    '動能狀態': a.get('applying', ''),
+                    '古典接納關係': a.get('reception', '') or '—'
+                })
+            st.dataframe(pd.DataFrame(asp_table_data), use_container_width=True, height=220)
+        else:
+            st.info("目前盤內七政星無主要托勒密交角。")
 
         try:
             from visuals import render_printable_astro_book_html
