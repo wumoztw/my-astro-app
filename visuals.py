@@ -222,16 +222,49 @@ HOUSE_POLYS = {
 }
 
 
-def _entry_label(p: Dict[str, Any]) -> str:
+ASPECT_ORB_DEFS = {
+    'Sun': 15.0, 'Moon': 12.0, 'Mercury': 7.0, 'Venus': 7.0,
+    'Mars': 8.0, 'Jupiter': 9.0, 'Saturn': 9.0
+}
+ASPECT_SYMBOLS = {0: '☌', 60: '⚹', 90: '□', 120: '△', 180: '☍'}
+
+
+def _calculate_planet_aspect_badges(planets: List[Dict[str, Any]]) -> Dict[str, List[str]]:
+    """Calculates compact aspect glyph badges for classical planets."""
+    badges: Dict[str, List[str]] = {p["id"]: [] for p in planets}
+    for i in range(len(planets)):
+        for j in range(i + 1, len(planets)):
+            p1, p2 = planets[i], planets[j]
+            pid1, pid2 = p1["id"], p2["id"]
+            if pid1 not in ASPECT_ORB_DEFS or pid2 not in ASPECT_ORB_DEFS:
+                continue
+            diff = abs(p1["lon"] - p2["lon"]) % 360
+            if diff > 180:
+                diff = 360 - diff
+            max_orb = (ASPECT_ORB_DEFS[pid1] + ASPECT_ORB_DEFS[pid2]) / 2.0
+            for angle, sym in ASPECT_SYMBOLS.items():
+                if abs(diff - angle) <= max_orb:
+                    badges[pid1].append(f"{sym}{p2['glyph']}")
+                    badges[pid2].append(f"{sym}{p1['glyph']}")
+    return badges
+
+
+def _entry_label(p: Dict[str, Any], aspect_badges: Optional[Dict[str, List[str]]] = None,
+                 show_aspect_hints: bool = True) -> str:
     s = f"{p['glyph']}{TEXT_VS} {p['name']} {_dms(p['lon'])}"
     if p.get("retro"):
         s += " Ⓡ"
+    if show_aspect_hints and aspect_badges and p["id"] in aspect_badges:
+        b_list = aspect_badges[p["id"]]
+        if b_list:
+            s += " " + "".join(b_list[:3])
     return s
 
 
 def render_lilly_square_chart_svg(report_data: dict, show_lots: bool = True, theme: str = "parchment",
                                   show_all_lots: bool = False, show_stars: bool = True,
-                                  show_antiscia: bool = False) -> str:
+                                  show_antiscia: bool = False,
+                                  show_aspect_hints: bool = True) -> str:
     t = _theme(theme)
     INK, GOLD, NAVY, PAPER, CARD = t["ink"], t["gold"], t["navy"], t["center_bg"], t["card"]
     HORARY_GOLD, HORARY_FILL, MUTED = t["horary_gold"], t["horary_fill"], t["muted"]
@@ -239,6 +272,8 @@ def render_lilly_square_chart_svg(report_data: dict, show_lots: bool = True, the
     hor = n["horary"]
     if not show_stars:
         n["fixed_stars"] = []
+    
+    aspect_badges = _calculate_planet_aspect_badges(n["planets"]) if show_aspect_hints else None
     out = _svg_open(820, t)
     out.append(f'<rect x="30" y="30" width="760" height="760" fill="{CARD}" stroke="{INK}" stroke-width="2.5"/>')
 
@@ -274,7 +309,7 @@ def render_lilly_square_chart_svg(report_data: dict, show_lots: bool = True, the
         yy = y + 30 + lh
         for p in ents:
             is_sig = hor is not None and p["id"] in hor["sigs"]
-            lbl = _entry_label(p)
+            lbl = _entry_label(p, aspect_badges, show_aspect_hints)
             if p["id"] == n["almuten_id"] and not hor:
                 lbl = "👑" + lbl
             if p.get("score") is not None:
@@ -356,6 +391,19 @@ def render_lilly_square_chart_svg(report_data: dict, show_lots: bool = True, the
         act = ((n["rd"].get("f_data") or {}).get("active")) or {}
         if act.get("major"):
             out.append(_text(410, y, f"法達：{PLANET_NAMES.get(act['major'], act['major'])} / {PLANET_NAMES.get(act.get('minor'), act.get('minor'))}", 11.5, INK))
+            y += 17
+        if show_aspect_hints:
+            asp_list = n["rd"].get("aspects") or []
+            if not asp_list and n["rd"].get("chart"):
+                try:
+                    from aspects_logic import AspectsLogic
+                    asp_list = AspectsLogic().get_aspects(n["rd"]["chart"], PLANET_NAMES, PLANET_GLYPHS, {})
+                except Exception:
+                    pass
+            if asp_list:
+                asp_summary = " ｜ ".join(f"{a['p1'].split()[0]} {a.get('aspect_sym', a['aspect'].split()[0][:2])} {a['p2'].split()[0]}" for a in asp_list[:4])
+                out.append(_text(410, y, f"✦ 緊密相位：{asp_summary}", 11, GOLD, weight="bold"))
+                y += 17
     out.append(_text(410, 806, "William Lilly, Christian Astrology (1647) — Traditional Square Chart", 10, MUTED))
     out.append("</svg>")
     return "\n".join(out)
@@ -800,8 +848,9 @@ def render_printable_astro_book_html(report_data: Dict[str, Any], theme: str = "
     """
 
     s1 = svg_block("William Lilly 傳統方形星盤", lambda: render_lilly_square_chart_svg(
-        rd, show_lots=True, theme=theme, show_all_lots=True, show_stars=True, show_antiscia=True),
-        note="※ 十二整宮、四正位（中天/上升/天底/下降）、七大古典行星、映點 (Antiscia) 與六大希臘阿拉伯點")
+        rd, show_lots=True, theme=theme, show_all_lots=True, show_stars=True, show_antiscia=True,
+        show_aspect_hints=True),
+        note="※ 十二整宮、四正位、七政星、托勒密交角徽章提示 (⚹□△☍☌)、映點 (Antiscia) 與希臘阿拉伯點")
 
     s2 = ""
     if nc.get("temperament"):

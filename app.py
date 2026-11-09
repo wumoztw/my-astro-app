@@ -1002,14 +1002,19 @@ if st.session_state.report_data:
         _theme_bg = lambda key: THEMES[key]["paper"]
         theme_label = st.radio("🎨 視覺主題", ["🏛️ 古典羊皮紙", "🌌 皇家暗夜星空"], index=0, horizontal=True)
         theme_key = "starry_night" if "星空" in theme_label else "parchment"
-        show_lots = st.checkbox("顯示赫密斯點 (福德/精神)", value=True)
-        show_all_lots = st.checkbox("展開全部 6 大赫密斯點", value=False) if show_lots else False
-        show_stars = st.checkbox("顯示恆星合相與尊貴徽章", value=True)
-        show_antiscia = st.checkbox("顯示映點接觸 (Antiscia)", value=False)
+        c_opt1, c_opt2 = st.columns(2)
+        with c_opt1:
+            show_lots = st.checkbox("顯示赫密斯點 (福德/精神)", value=True)
+            show_all_lots = st.checkbox("展開全部 6 大赫密斯點", value=False) if show_lots else False
+            show_aspect_hints = st.checkbox("顯示行星交角徽章提示 (Aspect Badges)", value=True, help="在方形盤各宮行星旁顯示緊密托勒密交角符號，如 ⚹六合、□刑、△拱、☍衝、☌合")
+        with c_opt2:
+            show_stars = st.checkbox("顯示恆星合相與尊貴徽章", value=True)
+            show_antiscia = st.checkbox("顯示映點接觸 (Antiscia)", value=False)
         try:
             chart_svg = render_lilly_square_chart_svg(d, show_lots=show_lots, theme=theme_key,
                                                       show_all_lots=show_all_lots, show_stars=show_stars,
-                                                      show_antiscia=show_antiscia)
+                                                      show_antiscia=show_antiscia,
+                                                      show_aspect_hints=show_aspect_hints)
             fname = "astro_lilly_square_chart"
             components.html(render_interactive_chart_viewer(chart_svg, fname, bg_color=_theme_bg(theme_key)), height=920, scrolling=False)
             st.download_button("📥 下載 SVG 向量圖", data=chart_svg.encode("utf-8"),
@@ -1895,6 +1900,124 @@ if st.session_state.report_data:
                         st.table(pd.DataFrame(tp_rows))
                     else:
                         st.write("目前無容許度內之活躍三限對本命相位。")
+
+            # --- Subsection: Primary Directions (原級推運 / 赤道主向推運) ---
+            st.markdown("<hr style='margin: 20px 0;'>", unsafe_allow_html=True)
+            st.subheader("📐 古典原級推運 (Primary Directions / 赤道主向推進)")
+            st.markdown(
+                "依托勒密 (Ptolemy's Key) 赤道自轉主向推進法則：**「天球自轉 1° 赤經 (約 4 分鐘) ＝ 1 太陽年」**。"
+                "計算本命五大指示星（ASC 上升、MC 中天、太陽、月亮、福德點）遭遇七大推進星之五大托勒密相位精確交會年代。"
+            )
+            col_pd1, col_pd2 = st.columns([2, 1])
+            with col_pd1:
+                pd_key_sel = st.radio("推運率 (Key of Direction)", ["托勒密鑰 (Ptolemy 1° = 1.000年)", "奈博德鑰 (Naibod 1° = 1.0146年)"], horizontal=True)
+            with col_pd2:
+                pd_max_age = st.slider("推運最高年齡", min_value=30, max_value=100, value=80, step=10)
+
+            try:
+                from primary_directions_logic import calculate_primary_directions
+                key_mode = "naibod" if "奈博德" in pd_key_sel else "ptolemy"
+                pd_events = calculate_primary_directions(d, d['meta']['birth_date_str'], max_age=pd_max_age, direction_key=key_mode)
+                if pd_events:
+                    st.write(f"共計算出 **{len(pd_events)}** 組原級推進相位事件（已依觸發年齡排序）：")
+                    pd_df_rows = []
+                    for ev in pd_events:
+                        pd_df_rows.append({
+                            '年齡': f"{ev['age']:.1f} 歲",
+                            '預估應期': ev['event_date_str'],
+                            '指示星 (Significator)': f"{ev['significator_glyph']} {ev['significator']}",
+                            '推進星 (Promissor)': f"{ev['promissor_glyph']} {ev['promissor']}",
+                            '相位': f"{ev['aspect_symbol']} {ev['aspect_name']}",
+                            '赤道弧': f"{ev['arc_deg']}°",
+                            '吉凶定性': ev['nature'],
+                            '古典斷辭與影響': ev['meaning']
+                        })
+                    st.dataframe(pd.DataFrame(pd_df_rows), use_container_width=True, height=360)
+                else:
+                    st.info("於指定年齡範圍內未檢出主要原級推進事件。")
+            except Exception as e:
+                st.error(f"原級推運計算錯誤: {e}")
+
+            # --- Subsection: Rectification (生時校正) ---
+            st.markdown("<hr style='margin: 20px 0;'>", unsafe_allow_html=True)
+            st.subheader("⏱️ 古典生時校正小助手 (Astrological Rectification)")
+            st.markdown(
+                "藉由過去人生發生的重大客觀事件（如婚戀、升遷、子女出生、重大手術、置產等），"
+                "以小限宮位主星、法達星期、原級推進度數進行**逆向多維度碰撞評分**，鎖定最吻合之出生精準分秒。"
+            )
+            with st.expander("🛠️ 展開生時校正逆向比對面板", expanded=False):
+                from rectification_logic import rectify_birth_time, EVENT_TYPES
+                
+                rect_win = st.slider("生時搜索窗口 (前後 ± 分鐘)", min_value=5, max_value=45, value=15, step=5)
+                rect_step = st.select_slider("步長 (分鐘)", options=[1, 2, 3, 5], value=2)
+                
+                st.markdown("**請輸入 2～4 個過去重大生活事件**：")
+                ev_c1, ev_c2, ev_c3 = st.columns([2, 3, 1])
+                
+                if 'rect_events' not in st.session_state:
+                    st.session_state.rect_events = [
+                        {"date": "2015-06-15", "type": "career_promotion"},
+                        {"date": "2020-10-01", "type": "marriage"}
+                    ]
+                
+                with ev_c1:
+                    new_ev_date = st.date_input("事件發生日期", value=date(2018, 6, 1))
+                with ev_c2:
+                    new_ev_type = st.selectbox("事件性質", options=list(EVENT_TYPES.keys()),
+                                               format_func=lambda k: EVENT_TYPES[k]["name"])
+                with ev_c3:
+                    st.write("")
+                    st.write("")
+                    if st.button("➕ 加入事件"):
+                        st.session_state.rect_events.append({"date": new_ev_date.strftime("%Y-%m-%d"), "type": new_ev_type})
+                        st.rerun()
+
+                if st.session_state.rect_events:
+                    st.write("已加入之檢驗事件：")
+                    ev_del_cols = st.columns(len(st.session_state.rect_events))
+                    for idx, ev_item in enumerate(st.session_state.rect_events):
+                        st.caption(f"事件 {idx+1}: {ev_item['date']} ｜ {EVENT_TYPES.get(ev_item['type'], {}).get('name', ev_item['type'])}")
+
+                    if st.button("🚀 開始生時逆向校正比對", type="primary"):
+                        with st.spinner("正在逐分鐘遞推星盤並計算原級弧度與小限吻合度..."):
+                            def _chart_calc(d_str, t_str, off_str, lat_f, lon_f):
+                                dt_obj, _ = logic.validate_and_parse_datetime(d_str, t_str, off_str.replace("UTC", "").replace("+", ""))
+                                return logic.calculate_chart(dt_obj, lat_f, lon_f, d['meta']['location_city'])['chart']
+
+                            candidates = rectify_birth_time(
+                                _chart_calc,
+                                d['meta']['birth_date_str'],
+                                d['meta']['birth_time_str'],
+                                search_window_mins=rect_win,
+                                step_minutes=rect_step,
+                                utc_offset_str=d['meta']['utc_offset_str'],
+                                lat=d['meta']['lat'],
+                                lon=d['meta']['lon'],
+                                city=d['meta']['location_city'],
+                                events_list=st.session_state.rect_events
+                            )
+                            st.session_state.rect_candidates = candidates
+
+                    if st.session_state.get('rect_candidates'):
+                        cands = st.session_state.rect_candidates
+                        st.success(f"校正比對完成！共評估 {len(cands)} 組候選生時，依吻合度排序如下：")
+                        top_rows = []
+                        for c in cands[:8]:
+                            top_rows.append({
+                                '候選出生時間': c['candidate_time'],
+                                '吻合置信度': f"{c['confidence_score']:.1f} %",
+                                '上升星座': f"{c['asc_sign']} ({c['asc_deg_str']})",
+                                '天頂星座': f"{c['mc_sign']} ({c['mc_deg_str']})"
+                            })
+                        st.table(pd.DataFrame(top_rows))
+                        best = cands[0]
+                        st.markdown(f"🏆 **最佳候選生時**：`{best['candidate_time']}`（吻合度 **{best['confidence_score']}%**，上升點：{best['asc_sign']} {best['asc_deg_str']}）")
+                        st.markdown("**各事件吻合原因剖析**：")
+                        for ev_res in best['evaluations']:
+                            st.markdown(f"- **{ev_res['event_date']} ({ev_res['event_name']})** ➔ 得分 {ev_res['score']} 分")
+                            for r in ev_res['reasons']:
+                                st.markdown(f"  - {r}")
+
             st.markdown("</div>", unsafe_allow_html=True)
 
     # Tab 5: AI Analysis (Dynamic Chat)

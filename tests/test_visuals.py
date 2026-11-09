@@ -302,13 +302,42 @@ class TestVisuals(unittest.TestCase):
         self.assertIn("古典占星專業命書", html_)
         self.assertIn("測試&lt;者&gt;", html_)
         self.assertIn("AI 解析內容", html_)
-        for needle in (render_lilly_square_chart_svg(rd, True, "parchment", True, True, True)[:60],
+        for needle in (render_lilly_square_chart_svg(rd, True, "parchment", True, True, True, True)[:60],
                        render_temperament_svg(nc['temperament'])[:60],
                        render_dispositor_tree_svg(nc['dispositors'])[:60],
                        render_timeline_gantt_svg(rd)[:60]):
             self.assertIn(needle, html_)
         self.assertGreaterEqual(html_.count("<svg"), 4)
         self.assertIn("<table>", html_)
+
+    def test_primary_directions_and_aspect_hints(self):
+        from primary_directions_logic import calculate_primary_directions
+        from rectification_logic import rectify_birth_time, EVENT_TYPES
+        rd = self.natal
+        # 1. Primary directions calculation
+        dirs = calculate_primary_directions(rd, "1990/01/01", max_age=80)
+        self.assertGreater(len(dirs), 10)
+        first_d = dirs[0]
+        self.assertIn("age", first_d)
+        self.assertIn("event_date_str", first_d)
+        self.assertIn("significator", first_d)
+        self.assertIn("promissor", first_d)
+        self.assertIn("aspect_name", first_d)
+
+        # 2. Rectification calculation
+        def dummy_calc(d, t, off, lat, lon):
+            return rd['chart']
+
+        events = [{"date": "2015-06-15", "type": "career_promotion"}]
+        cands = rectify_birth_time(dummy_calc, "1990/01/01", "12:00", search_window_mins=4, step_minutes=2, events_list=events)
+        self.assertGreater(len(cands), 0)
+        self.assertIn("confidence_score", cands[0])
+
+        # 3. Square chart aspect hints
+        svg_with_aspects = render_lilly_square_chart_svg(rd, show_aspect_hints=True)
+        self.assertIn("✦ 緊密相位：", svg_with_aspects)
+        svg_no_aspects = render_lilly_square_chart_svg(rd, show_aspect_hints=False)
+        self.assertNotIn("✦ 緊密相位：", svg_no_aspects)
 
 
 if __name__ == "__main__":
