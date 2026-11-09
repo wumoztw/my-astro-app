@@ -26,7 +26,6 @@ from logic import AstrologyLogic
 from horary_prompt import HORARY_SYSTEM_PROMPT
 from natal_prompt import NATAL_SYSTEM_PROMPT
 from thematic_reports_logic import ThematicReportsLogic
-from ai_logic import AIAssistant
 
 import streamlit.components.v1 as components
 
@@ -386,18 +385,6 @@ with st.sidebar.expander("📅 太陽返照盤 / 推運目標年份設定", expa
                               value=datetime.now().year, step=1)
     sr_city = st.text_input("流年居住地城市 (預設同出生地)", value="")
 
-@st.dialog("取得免費 API Key", width="large")
-def show_api_keys_dialog():
-    st.markdown("""
-    如果你還沒有 API Key，可以前往以下平台免費註冊並取得：
-    - **Google Gemini**: [Google AI Studio](https://aistudio.google.com/app/apikey) (推薦，每天有高額免費額度)
-    - **Groq**: [GroqCloud](https://console.groq.com/keys) (推薦，提供速度極快的開源模型，免費額度高)
-    - **OpenRouter**: [OpenRouter API](https://openrouter.ai/keys) (推薦，可以使用多款頂尖的開源免費模型，如 Llama 3)
-    - **OpenAI**: [OpenAI Platform](https://platform.openai.com/api-keys) (需綁定信用卡，無免費額度)
-    
-    *取得 Key 後，請複製並貼上到左側的輸入框中，即可開始使用 AI 自動解析功能！*
-    """)
-
 with st.sidebar.expander("💑 雙人合盤設定 (選填 - 啟用合盤疊盤)", expanded=False):
     enable_synastry = st.checkbox("啟用雙人合盤 (Synastry)", value=False)
     st.selectbox("從常用書籤帶入對象資料", ["（手動輸入）"] + _profile_names(), key="partner_pick",
@@ -406,39 +393,6 @@ with st.sidebar.expander("💑 雙人合盤設定 (選填 - 啟用合盤疊盤)"
     partner_date_raw = st.text_input("對方出生日期 (YYYY/MM/DD)", key="partner_date_raw")
     partner_time_raw = st.text_input("對方出生時間 (HH:MM)", key="partner_time_raw")
     partner_city = st.text_input("對方出生城市", key="partner_city")
-
-st.sidebar.markdown("---")
-st.sidebar.header("AI 設定 (不輸入也可排盤)")
-
-ai_provider = st.sidebar.selectbox("AI 供應商", ["Gemini", "Groq", "OpenAI", "OpenRouter"])
-
-# Key label changes based on provider
-key_label = f"{ai_provider} API Key"
-ai_api_key = st.sidebar.text_input(key_label, type="password", help=f"請輸入您的 {ai_provider} API Key")
-
-if st.sidebar.button("👉 點此查閱如何取得免費 API Key", type="tertiary", help="查看各大平台的免費 API Key 註冊教學"):
-    show_api_keys_dialog()
-
-# Trigger dynamic model discovery if key or provider changed
-if (ai_api_key != st.session_state.get('last_key') or ai_provider != st.session_state.get('last_provider')):
-    st.session_state.last_key = ai_api_key
-    st.session_state.last_provider = ai_provider
-    # Initialize a temp assistant to fetch models
-    with st.sidebar:
-        with st.spinner("🔍 正在探索可用模型..."):
-            temp_assistant = AIAssistant(provider=ai_provider, api_key=ai_api_key)
-            st.session_state.dynamic_models = temp_assistant.fetch_available_models()
-    st.rerun()
-
-# Default fallback if discovery failed or key empty
-if not st.session_state.dynamic_models:
-    temp_assistant = AIAssistant(provider=ai_provider)
-    st.session_state.dynamic_models = temp_assistant.get_model_list(ai_provider)
-
-ai_model = st.sidebar.selectbox("AI 模型", st.session_state.dynamic_models)
-
-# Initialize AI Assistant with correct parameters
-ai_assistant = AIAssistant(provider=ai_provider, api_key=ai_api_key, model_name=ai_model)
 
 st.sidebar.markdown("---")
 # Buttons for calculation
@@ -820,9 +774,9 @@ if generate_btn or horary_btn:
         md += f"* 最終定位星：{natal_core['dispositors']['summary']}\n\n"
 
         md += "---\n\n"
-        md += "## 🤖 AI 自動解析已就緒\n"
+        md += "## 🤖 AI 大師解盤提示詞說明\n"
         report_type = "本命盤" if st.session_state.chart_type == 'natal' else "卜卦占星盤"
-        md += f"目前的分析模式為：**{report_type}**。請點擊側邊欄的「🚀 啟動 AI 深度解析」開始互動。\n\n"
+        md += f"命盤資料已完整彙整完成（分析模式：**{report_type}**）。您可前往「🤖 AI 解盤提示詞與使用指引」分頁一鍵複製專用 Prompt，並轉貼至 ChatGPT、Claude 或 Gemini 等網頁版 AI 工具獲得深度古典解讀！\n\n"
 
         st.session_state.report_md = md
         st.session_state.report_data = {
@@ -914,70 +868,6 @@ if generate_btn or horary_btn:
         with st.expander("🔍 查看詳細錯誤追蹤 (Traceback)"):
             st.code(traceback.format_exc(), language="python")
 
-# --- AI Integration Processing (Specialized Modules) ---
-if st.session_state.report_data and ai_assistant.is_configured:
-    with st.sidebar:
-        st.markdown("---")
-        st.subheader("🤖 AI 自動解析")
-        
-        if st.session_state.chart_type == 'horary':
-            # --- Specialized Horary AI Module ---
-            horary_question = st.text_input("📌 請輸入您想占卜的問題：", value=st.session_state.get('horary_question', '這件事會成功嗎？'), help="例如：我會不會順利錄取這份工作？")
-            st.session_state.horary_question = horary_question
-            
-            if st.button("🔮 啟動卜卦盤 AI 邏輯分析引擎", use_container_width=True, type="primary"):
-                st.session_state.ai_analysis_triggered = True
-                
-                question_block = f"\n\n--- 用戶想占卜的問題 (非常重要) ---\n問題內容：{horary_question}\n" if horary_question.strip() else ""
-                
-                initial_user_msg = (
-                    f"{HORARY_SYSTEM_PROMPT}\n\n"
-                    "--- 以下是卜卦星盤數據 ---\n\n"
-                    f"{st.session_state.report_md}"
-                    f"{question_block}"
-                )
-                st.session_state.chat_history = [{"role": "user", "content": initial_user_msg}]
-        else:
-            # --- Specialized Natal AI Module ---
-            if st.button("🚀 啟動本命盤 AI 大師深度解析", use_container_width=True, type="primary"):
-                st.session_state.ai_analysis_triggered = True
-                initial_user_msg = (
-                    f"{NATAL_SYSTEM_PROMPT}\n\n"
-                    "--- 以下是本命星盤數據 ---\n\n"
-                    f"{st.session_state.report_md}"
-                )
-                st.session_state.chat_history = [{"role": "user", "content": initial_user_msg}]
-
-            if st.session_state.report_data.get('synastry_data'):
-                if st.button("💞 啟動雙人合盤 AI 大師深度合參", use_container_width=True, type="primary"):
-                    st.session_state.ai_analysis_triggered = True
-                    p_msg = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "synastry")
-                    st.session_state.chat_history = [{"role": "user", "content": p_msg}]
-
-            st.markdown("---")
-            st.markdown("🎯 **三大專題深度診斷**")
-            thm_col1, thm_col2, thm_col3, thm_col4 = st.columns(4)
-            with thm_col1:
-                if st.button("💼 事業", use_container_width=True, help="事業職涯、貴人格局與天命專題"):
-                    st.session_state.ai_analysis_triggered = True
-                    p_msg = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "career")
-                    st.session_state.chat_history = [{"role": "user", "content": p_msg}]
-            with thm_col2:
-                if st.button("💰 財富", use_container_width=True, help="財富資產、正偏財與投資避坑專題"):
-                    st.session_state.ai_analysis_triggered = True
-                    p_msg = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "wealth")
-                    st.session_state.chat_history = [{"role": "user", "content": p_msg}]
-            with thm_col3:
-                if st.button("❤️ 婚戀", use_container_width=True, help="婚戀桃花、伴侶原型與關係經營專題"):
-                    st.session_state.ai_analysis_triggered = True
-                    p_msg = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "romance")
-                    st.session_state.chat_history = [{"role": "user", "content": p_msg}]
-            with thm_col4:
-                if st.button("📅 流年返照", use_container_width=True, help="年度太陽返照盤 + 小限 + 法達 + ZR 流年大合參"):
-                    st.session_state.ai_analysis_triggered = True
-                    p_msg = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "solar_return")
-                    st.session_state.chat_history = [{"role": "user", "content": p_msg}]
-
 # --- UI Layout ---
 if st.session_state.report_data:
     d = st.session_state.report_data
@@ -996,27 +886,25 @@ if st.session_state.report_data:
         st.markdown(f"<div class='summary-card'><div class='summary-title'>上升星座</div><div class='summary-value'>{d['asc']}</div></div>", unsafe_allow_html=True)
     
     # --- UI Layout ---
-    # Define tabs dynamically
+    # Define tabs
     if st.session_state.chart_type == 'horary':
         tabs_list = [
             '🧭 星盤圖譜',
             '🪐 行星與本質力量',
             '📐 相位與接納關係',
             '🔮 卜卦檢意與成事診斷',
-            '🌙 月亮流動與應期時鐘'
+            '🌙 月亮流動與應期時鐘',
+            '🤖 AI 解盤提示詞與使用指引'
         ]
-        if st.session_state.get('ai_analysis_triggered'):
-            tabs_list.append('✨ AI 卜卦深度解析報告')
     else:
         tabs_list = [
             '🧭 星盤圖譜',
             '行星與本質力量',
             '相位與接納',
             '特殊點位與恆星',
-            '推運時間軸 (法達/小限/ZR/太陽弧)'
+            '推運時間軸 (法達/小限/ZR/太陽弧)',
+            '🤖 AI 解盤提示詞與使用指引'
         ]
-        if st.session_state.get('ai_analysis_triggered'):
-            tabs_list.append('✨ AI 深度解析報告')
     
     all_tabs = st.tabs(tabs_list)
     
@@ -2064,57 +1952,173 @@ if st.session_state.report_data:
 
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # Tab 5: AI Analysis (Dynamic Chat)
-    if st.session_state.get('ai_analysis_triggered'):
-        with all_tabs[5]:
-            st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
-            if st.session_state.chart_type == "natal":
-                st.subheader("✨ AI 大師深度分析報告與對話 (本命盤專用)")
-            else:
-                st.subheader("🔮 AI 邏輯分析引擎報告與對話 (卜卦盤專用)")
-            
-            # Display chat history
-            for msg in st.session_state.chat_history:
-                # Skip the very first bulky data message to keep UI clean, or show a summary
-                if msg == st.session_state.chat_history[0]:
-                    with st.chat_message("user"):
-                        st.write("📊 *已上傳命盤數據進行解析...*")
-                    continue
-                
-                with st.chat_message(msg["role"]):
-                    st.markdown(msg["content"])
+    # Tab 5: AI Prompt Generator & Browser AI Guide
+    with all_tabs[5]:
+        st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
+        st.subheader("🤖 AI 大師解盤提示詞（Prompt）與轉貼指引")
+        st.markdown("""
+        現在市面上的網頁版 AI（如 **ChatGPT**、**Claude**、**Google Gemini**）具備極強的邏輯推理能力！<br>
+        本程式已替您將全盤精確數據（包含宮位、七曜尊貴分、相位互容、小限、法達大運、太陽弧與卜卦判據）轉化為純正 1647 年 William Lilly 古典大師 Prompt。
+        您可以直接**複製提示詞**，貼到您慣用的 AI 網頁版，即可開始一對一深度論命與追問！
+        """, unsafe_allow_html=True)
 
-            # Handle first generation if history only has the initial user message
-            if len(st.session_state.chat_history) == 1:
-                with st.chat_message("assistant"):
-                    # Select correct specialized prompt
-                    current_prompt = HORARY_SYSTEM_PROMPT if st.session_state.chart_type == 'horary' else NATAL_SYSTEM_PROMPT
-                    full_response = ""
-                    resp_container = st.empty()
-                    for chunk in ai_assistant.generate_chat_stream(current_prompt, st.session_state.chat_history):
-                        full_response += chunk
-                        resp_container.markdown(full_response)
-                    st.session_state.chat_history.append({"role": "assistant", "content": full_response})
-                    st.rerun()
+        st.markdown("---")
+        st.markdown("#### 🚀 三步驟快速轉貼教學")
+        step_c1, step_c2, step_c3 = st.columns(3)
+        with step_c1:
+            st.markdown("""
+            <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px; height:100%;'>
+                <div style='font-weight:700; color:#2563EB; margin-bottom:4px;'>Step 1. 選擇解析主題</div>
+                <div style='font-size:13px; color:#475569;'>在下方挑選「全盤大師診斷」或「事業/財運/婚戀/流年」專題，點擊複製按鈕。</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with step_c2:
+            st.markdown("""
+            <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px; height:100%;'>
+                <div style='font-weight:700; color:#059669; margin-bottom:4px;'>Step 2. 開啟 AI 網站</div>
+                <div style='font-size:13px; color:#475569;'>點擊下方按鈕前往 ChatGPT、Claude 或 Gemini 官方聊天網頁。</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with step_c3:
+            st.markdown("""
+            <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px; height:100%;'>
+                <div style='font-weight:700; color:#7C3AED; margin-bottom:4px;'>Step 3. 貼上並自由追問</div>
+                <div style='font-size:13px; color:#475569;'>按 <kbd>Ctrl+V</kbd> 貼上並送出，AI 將化身 William Lilly 親傳大師為您深度斷言，可隨意多輪追問！</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-            # Chat input for follow-up
-            if prompt := st.chat_input("對這張命盤有什麼想追問的嗎？"):
-                st.session_state.chat_history.append({"role": "user", "content": prompt})
-                with st.chat_message("user"):
-                    st.markdown(prompt)
-                
-                with st.chat_message("assistant"):
-                    # Select correct specialized prompt for follow-up
-                    current_prompt = HORARY_SYSTEM_PROMPT if st.session_state.chart_type == 'horary' else NATAL_SYSTEM_PROMPT
-                    full_response = ""
-                    resp_container = st.empty()
-                    for chunk in ai_assistant.generate_chat_stream(current_prompt, st.session_state.chat_history):
-                        full_response += chunk
-                        resp_container.markdown(full_response)
-                    st.session_state.chat_history.append({"role": "assistant", "content": full_response})
-                    st.rerun()
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("#### 🌐 常用網頁版 AI 工具快速跳轉")
+        ai_link1, ai_link2, ai_link3, ai_link4 = st.columns(4)
+        with ai_link1:
+            st.link_button("🟢 前往 ChatGPT (OpenAI)", "https://chatgpt.com", use_container_width=True)
+        with ai_link2:
+            st.link_button("🟠 前往 Claude (Anthropic)", "https://claude.ai", use_container_width=True)
+        with ai_link3:
+            st.link_button("🔵 前往 Google Gemini", "https://gemini.google.com", use_container_width=True)
+        with ai_link4:
+            st.link_button("🟣 前往 DeepSeek (深度求索)", "https://chat.deepseek.com", use_container_width=True)
+
+        st.markdown("---")
+        st.markdown("#### 📋 專題 Prompt 提示詞生成器")
+
+        # Prepare prompts
+        if st.session_state.chart_type == 'horary':
+            cur_q_hor = st.session_state.get('horary_question', '這件事會成功嗎？')
+            active_prompt = (
+                f"{HORARY_SYSTEM_PROMPT}\n\n"
+                "--- 以下是卜卦星盤數據 ---\n\n"
+                f"{st.session_state.report_md}\n\n"
+                f"--- 問卜具體問題 ---\n問題內容：{cur_q_hor}\n\n"
+                "請嚴格依據 1647 年 William Lilly 古典卜卦占星法則，直接給予成事判斷、阻礙分析與預期應期！"
+            )
+            st.info(f"🔮 當前問卜問題：**「{cur_q_hor}」**")
+            st.text_area("專用卜卦成事診斷 Prompt (已整合 1647 原典規格與盤體數據)：", value=active_prompt, height=280)
+            st.download_button(
+                "📥 下載此卜卦專用 Prompt 文字檔 (.txt)",
+                data=active_prompt,
+                file_name=f"Horary_Prompt_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
+                mime="text/plain",
+                use_container_width=True
+            )
+        else:
+            prompt_tabs = ["🌟 全盤大師總論", "💼 事業職涯", "💰 財富資產", "❤️ 婚戀關係", "📅 流年返照合參"]
+            if st.session_state.report_data.get('synastry_data'):
+                prompt_tabs.append("💑 雙人合盤深度合參")
             
-            st.markdown("</div>", unsafe_allow_html=True)
+            p_tab_objs = st.tabs(prompt_tabs)
+            
+            # Tab 1: Full Natal
+            with p_tab_objs[0]:
+                full_natal_prompt = (
+                    f"{NATAL_SYSTEM_PROMPT}\n\n"
+                    "--- 以下是本命星盤數據 ---\n\n"
+                    f"{st.session_state.report_md}\n\n"
+                    "請依據 1647 年《Christian Astrology》Book 3，為命盤主提供全面的人生格局、生命主星、氣質、十二宮位與重要推運時機之深度剖析。"
+                )
+                st.caption("涵蓋全盤生命主、壽主星、氣質、十二宮與大運時間軸之宏觀診斷。")
+                st.text_area("全盤深度診斷 Prompt：", value=full_natal_prompt, height=260, key="prompt_full_natal")
+                st.download_button(
+                    "📥 下載全盤診斷 Prompt (.txt)",
+                    data=full_natal_prompt,
+                    file_name=f"Natal_Full_Prompt_{datetime.now().strftime('%Y%m%d')}.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                    key="dl_full_natal_prompt"
+                )
+
+            # Tab 2: Career
+            with p_tab_objs[1]:
+                career_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "career")
+                st.caption("鎖定第 10 宮事業天頂、第 6 宮工作、第 11 宮貴人、精神點與黃道釋放法之職涯專題。")
+                st.text_area("事業職涯專題 Prompt：", value=career_p, height=260, key="prompt_career")
+                st.download_button(
+                    "📥 下載事業專題 Prompt (.txt)",
+                    data=career_p,
+                    file_name=f"Career_Prompt_{datetime.now().strftime('%Y%m%d')}.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                    key="dl_career_prompt"
+                )
+
+            # Tab 3: Wealth
+            with p_tab_objs[2]:
+                wealth_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "wealth")
+                st.caption("鎖定第 2 宮財庫、第 8 宮偏財、第 4 宮不動產、福德點與資產避坑專題。")
+                st.text_area("財富資產專題 Prompt：", value=wealth_p, height=260, key="prompt_wealth")
+                st.download_button(
+                    "📥 下載財富專題 Prompt (.txt)",
+                    data=wealth_p,
+                    file_name=f"Wealth_Prompt_{datetime.now().strftime('%Y%m%d')}.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                    key="dl_wealth_prompt"
+                )
+
+            # Tab 4: Romance
+            with p_tab_objs[3]:
+                romance_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "romance")
+                st.caption("鎖定第 7 宮夫妻、第 5 宮戀愛桃花、金星/火星與伴侶原型專題。")
+                st.text_area("婚戀關係專題 Prompt：", value=romance_p, height=260, key="prompt_romance")
+                st.download_button(
+                    "📥 下載婚戀專題 Prompt (.txt)",
+                    data=romance_p,
+                    file_name=f"Romance_Prompt_{datetime.now().strftime('%Y%m%d')}.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                    key="dl_romance_prompt"
+                )
+
+            # Tab 5: Solar Return
+            with p_tab_objs[4]:
+                sr_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "solar_return")
+                st.caption("整合年度太陽返照盤、小限、法達星限與黃道釋放法之流年大合參專題。")
+                st.text_area("年度流年專題 Prompt：", value=sr_p, height=260, key="prompt_solar_return")
+                st.download_button(
+                    "📥 下載流年專題 Prompt (.txt)",
+                    data=sr_p,
+                    file_name=f"Solar_Return_Prompt_{datetime.now().strftime('%Y%m%d')}.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                    key="dl_sr_prompt"
+                )
+
+            # Tab 6: Synastry (if present)
+            if st.session_state.report_data.get('synastry_data') and len(prompt_tabs) > 5:
+                with p_tab_objs[5]:
+                    syn_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "synastry")
+                    st.caption("雙人古典合盤能量共振、跨盤相位與接納互容深度合參專題。")
+                    st.text_area("雙人合盤專題 Prompt：", value=syn_p, height=260, key="prompt_synastry")
+                    st.download_button(
+                        "📥 下載雙人合盤專題 Prompt (.txt)",
+                        data=syn_p,
+                        file_name=f"Synastry_Prompt_{datetime.now().strftime('%Y%m%d')}.txt",
+                        mime="text/plain",
+                        use_container_width=True,
+                        key="dl_syn_prompt"
+                    )
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with st.sidebar:
         st.markdown("---")
