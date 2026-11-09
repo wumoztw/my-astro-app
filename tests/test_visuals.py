@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Unit tests for the pure-Python SVG chart engine (visuals.py)"""
-import math
 import unittest
 import xml.etree.ElementTree as ET
 from datetime import date
@@ -12,8 +11,8 @@ from flatlib.geopos import GeoPos
 
 from logic import AstrologyLogic
 from backend.synastry_logic import SynastryLogic
-from visuals import (render_lilly_square_chart_svg, render_circular_chart_svg,
-                     render_interactive_chart_viewer, spread_longitudes, draw_circular_chart,
+from visuals import (render_lilly_square_chart_svg,
+                     render_interactive_chart_viewer,
                      render_temperament_svg, render_dispositor_tree_svg,
                      render_timeline_gantt_svg, render_printable_astro_book_html)
 from profiles_logic import ProfilesManager
@@ -81,32 +80,6 @@ class TestVisuals(unittest.TestCase):
         self.assertIn("sig-badge", svg)
         self.assertIn("裁決", svg)
 
-    def test_circular_modes(self):
-        for mode in ("none", "solar_arc", "secondary", "tertiary"):
-            svg = render_circular_chart_svg(self.natal, overlay_mode=mode)
-            self.assertValidSvg(svg)
-            self.assertIn('viewBox="0 0 860 860"', svg)
-            self.assertEqual("ov-badge" in svg, mode != "none", mode)
-        self.assertValidSvg(render_circular_chart_svg(self.natal, show_lots=False, show_aspects=False))
-        hs = render_circular_chart_svg(self.horary)
-        self.assertValidSvg(hs)
-        self.assertIn("sig-badge", hs)
-
-    def test_ascendant_at_nine_o_clock(self):
-        # house 1 cusp -> left-middle: the 1st sector boundary line starts at x < center
-        svg = render_circular_chart_svg(self.natal)
-        self.assertIn("第一宮", svg)
-
-    def test_spread_longitudes(self):
-        cases = [[10.0, 10.5, 11.0, 12.0], [359.0, 0.5, 1.0], [5.0] * 5, [100.0, 250.0], [42.0]]
-        for lons in cases:
-            res = spread_longitudes(lons, 6.5)
-            self.assertEqual(len(res), len(lons))
-            self.assertTrue(all(math.isfinite(x) for x in res))
-            s = sorted(res)
-            for a, b in zip(s, s[1:] + [s[0] + 360]) if len(s) > 1 else []:
-                self.assertGreaterEqual(b - a, 6.5 - 1e-6)
-
     def test_viewer(self):
         svg = render_lilly_square_chart_svg(self.natal)
         page = render_interactive_chart_viewer(svg, "my_chart")
@@ -120,27 +93,14 @@ class TestVisuals(unittest.TestCase):
 
     def test_themes(self):
         for theme in ("parchment", "starry_night"):
-            for svg in (render_lilly_square_chart_svg(self.natal, theme=theme),
-                        render_circular_chart_svg(self.natal, theme=theme),
-                        render_circular_chart_svg(self.natal, overlay_mode="synastry", theme=theme)):
-                self.assertValidSvg(svg)
-                self.assertEqual('class="star"' in svg, theme == "starry_night")
+            svg = render_lilly_square_chart_svg(self.natal, theme=theme)
+            self.assertValidSvg(svg)
+            self.assertEqual('class="star"' in svg, theme == "starry_night")
         self.assertIn('fill="#0B1120"', render_lilly_square_chart_svg(self.natal, theme="starry_night"))
-        self.assertIn('fill="#FAF6EE"', render_circular_chart_svg(self.natal))
+        self.assertIn('fill="#FAF6EE"', render_lilly_square_chart_svg(self.natal))
         self.assertIn('fill="#0B1120"', render_interactive_chart_viewer(
-            render_circular_chart_svg(self.natal, theme="starry_night")))
-        self.assertIn('BG = "#FAF6EE"', render_interactive_chart_viewer(render_circular_chart_svg(self.natal)))
-
-    def test_synastry_overlay(self):
-        svg = render_circular_chart_svg(self.natal, overlay_mode="synastry")
-        self.assertValidSvg(svg)
-        self.assertIn("外環：合盤對象 (乙)", svg)
-        self.assertIn("內環：本命 (甲)", svg)
-        self.assertEqual(svg.count('class="ov-badge"'), 7)
-        self.assertIn("#FB7185", render_circular_chart_svg(self.natal, overlay_mode="synastry", theme="starry_night"))
-        # no synastry data -> no outer badges, still valid
-        nodata = dict(self.natal); nodata.pop("synastry_data")
-        self.assertValidSvg(render_circular_chart_svg(nodata, overlay_mode="synastry"))
+            render_lilly_square_chart_svg(self.natal, theme="starry_night")))
+        self.assertIn('BG = "#FAF6EE"', render_interactive_chart_viewer(render_lilly_square_chart_svg(self.natal)))
 
     def test_synastry_report(self):
         syn = self.natal["synastry_data"]
@@ -177,38 +137,29 @@ class TestVisuals(unittest.TestCase):
         rd['lots'] = list(rd['lots']) + [dict(rd['lots'][0], lon=(40.0 + 30 * i)) for i in range(4)]
         return rd
 
-    def test_dignity_badges_circular(self):
-        svg = render_circular_chart_svg(self._enriched())
-        self.assertValidSvg(svg)
-        self.assertIn('class="dignity-badge"', svg)
-        self.assertNotIn('class="dignity-badge"', render_circular_chart_svg(self._enriched(), show_stars=False))
-
     def test_fixed_star_markers(self):
         rd = self._enriched()
-        svg = render_circular_chart_svg(rd)
-        self.assertIn('class="fixed-star-marker"', svg)
-        self.assertIn("★軒轅十四", svg)
         self.assertValidSvg(render_lilly_square_chart_svg(rd))
         self.assertIn("★ 恆星合相", render_lilly_square_chart_svg(rd))
         self.assertNotIn("★ 恆星合相", render_lilly_square_chart_svg(rd, show_stars=False))
 
     def test_almuten_crown(self):
         rd = self._enriched()
-        for svg in (render_circular_chart_svg(rd), render_lilly_square_chart_svg(rd)):
+        for svg in (render_lilly_square_chart_svg(rd),):
             self.assertIn("👑", svg)
             self.assertIn("全盤總御星：太陽 (20分)", svg)
         self.assertNotIn("👑", render_lilly_square_chart_svg(self.natal))
 
     def test_all_six_lots(self):
         rd = self._enriched()
-        for fn in (render_circular_chart_svg, render_lilly_square_chart_svg):
+        for fn in (render_lilly_square_chart_svg,):
             svg = fn(rd, show_all_lots=True)
             self.assertValidSvg(svg)
             for g in ("⚷", "♡", "⚔", "✵"):
                 self.assertIn(g, svg)
             self.assertNotIn("⚷", fn(rd))
 
-    def test_antiscia_circular_and_square(self):
+    def test_antiscia_square(self):
         import copy
         rd = copy.copy(self.natal)
         planets = [dict(p) for p in rd["planets"]]
@@ -218,14 +169,6 @@ class TestVisuals(unittest.TestCase):
             elif p["id"] == "Moon":
                 p["lon"] = p["longitude"] = 120.0
         rd["planets"] = planets
-        svg = render_circular_chart_svg(rd, show_antiscia=True)
-        self.assertValidSvg(svg)
-        for cls in ("solstice-axis", "antiscia-point", "antiscia-line"):
-            self.assertIn(f'class="{cls}"', svg)
-        for theme, col in (("parchment", "#8B5CF6"), ("starry_night", "#C084FC")):
-            s2 = render_circular_chart_svg(rd, show_antiscia=True, theme=theme)
-            self.assertIn(f'stroke="{col}" stroke-width="1.6" stroke-dasharray="6 4"', s2)
-        self.assertNotIn("solstice-axis", render_circular_chart_svg(rd))
         sq = render_lilly_square_chart_svg(rd, show_antiscia=True)
         self.assertValidSvg(sq)
         self.assertIn("🪞 映點接觸", sq)
@@ -242,7 +185,7 @@ class TestVisuals(unittest.TestCase):
             self.assertAlmostEqual(r["antiscion"], (180 - r["lon"]) % 360)
             self.assertAlmostEqual(r["contra_antiscion"], (360 - r["lon"]) % 360)
 
-    def test_solar_return_logic_and_overlay(self):
+    def test_solar_return_logic(self):
         sr = self.natal['sr_data']
         natal_sun = self.natal['chart'].get(const.SUN).lon
         diff = abs((sr['sr_sun_lon'] - natal_sun + 180) % 360 - 180)
@@ -253,11 +196,6 @@ class TestVisuals(unittest.TestCase):
         self.assertTrue(sr['sr_asc_natal_house_theme'])
         for p in sr['active_aspects']:
             self.assertLessEqual(p['orb'], 2.0)
-        svg = render_circular_chart_svg(self.natal, overlay_mode="solar_return")
-        self.assertValidSvg(svg)
-        self.assertIn("ov-badge", svg)
-        self.assertIn("2026 太陽返照盤", svg)
-        self.assertValidSvg(render_circular_chart_svg(self.natal, overlay_mode="solar_return", theme="starry_night"))
 
     def test_solar_return_leap_birthday(self):
         from solar_return_logic import SolarReturnLogic
@@ -323,12 +261,6 @@ class TestVisuals(unittest.TestCase):
         self.assertIn(lr['lr_asc_in_natal_house'], range(1, 13))
         tr = logic.calculate_transits(n['chart'], n['houses'], 8.0, lat, lon, target_date=tgt)
         self.assertEqual(len(tr['planets']), 7)
-        rd = dict(n, lr_data=lr, transits_data=tr)
-        for mode, key in (("lunar_return", "月亮返照"), ("transits", "即時流年行運")):
-            for th in ("parchment", "starry_night"):
-                svg = render_circular_chart_svg(rd, overlay_mode=mode, theme=th)
-                self.assertValidSvg(svg)
-                self.assertIn(key, svg)
         ph = logic.calculate_planetary_hours(date(2026, 1, 1), "12:00", 8.0, lat, lon, asc_sign_const=const.LEO)
         self.assertEqual(len(ph['hours_table']), 24)
         self.assertEqual(ph['day_ruler_id'], 'Jupiter')
@@ -375,10 +307,6 @@ class TestVisuals(unittest.TestCase):
             self.assertIn(needle, html_)
         self.assertGreaterEqual(html_.count("<svg"), 4)
         self.assertIn("<table>", html_)
-
-    def test_wrapper(self):
-        self.assertIn("<svg", draw_circular_chart(self.natal))
-        self.assertIsNone(draw_circular_chart({"year": 1990}))
 
 
 if __name__ == "__main__":
