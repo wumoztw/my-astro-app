@@ -95,6 +95,35 @@ class ThematicReportsLogic:
                 "h1": h_map.get(1, {}),
             })
 
+        elif topic == "health":
+            context.update({
+                "h6": h_map.get(6, {}),
+                "h8": h_map.get(8, {}),
+                "h12": h_map.get(12, {}),
+                "h1": h_map.get(1, {}),
+                "temperament": chart_data.get("natal_core", {}).get("temperament", {}),
+                "hyleg": chart_data.get("natal_core", {}).get("hyleg_data", {}),
+                "saturn": next((p for p in planets if p.get("id") in ("Saturn", "土星")), {}),
+                "mars": next((p for p in planets if p.get("id") in ("Mars", "火星")), {}),
+            })
+        elif topic == "academics":
+            context.update({
+                "h9": h_map.get(9, {}),
+                "h3": h_map.get(3, {}),
+                "h10": h_map.get(10, {}),
+                "mercury": next((p for p in planets if p.get("id") in ("Mercury", "水星")), {}),
+                "jupiter": next((p for p in planets if p.get("id") in ("Jupiter", "木星")), {}),
+                "lot_spirit": next((l for l in lots if "精神點" in l.get("name", "")), {}),
+            })
+        elif topic == "real_estate":
+            context.update({
+                "h4": h_map.get(4, {}),
+                "h2": h_map.get(2, {}),
+                "saturn": next((p for p in planets if p.get("id") in ("Saturn", "土星")), {}),
+                "moon": next((p for p in planets if p.get("id") in ("Moon", "月亮")), {}),
+                "venus": next((p for p in planets if p.get("id") in ("Venus", "金星")), {}),
+            })
+
         return context
 
     @classmethod
@@ -220,6 +249,64 @@ class ThematicReportsLogic:
                 f"   4. ✍️ 自行輸入問題。\n\n"
                 f"【太陽返照盤數據 (sr_data)】：\n{sr}\n\n"
                 f"【完整星盤與推運數據】：\n{clean_data}"
+            )
+        elif topic == "health":
+            return (
+                f"請以精深嚴謹的西洋古典占星學理（四液氣質學說、Hyleg 生命主、Alcocoden 壽主星、第 6/8/12 宮疾病防範），"
+                f"為個案【{name}】撰寫一份條理清晰、直擊核心的【🏥 健康體質與身心精力平衡專題診斷報告】。\n\n"
+                f"⚠️【專題格式與解讀規範】：\n"
+                f"1. 【字數與節奏】：總字數約 1,000 ~ 1,400 字，著重預防性體質指引，禁止醫療診斷斷言。\n"
+                f"2. 【## 1. 古典四液氣質 (Temperament) 與體質底色】：\n"
+                f"   - 分析膽汁質 (Hot/Dry)、多血質 (Hot/Moist)、黏液質 (Cold/Moist)、抑鬱質 (Cold/Dry) 的主次比例與體能強弱。\n"
+                f"3. 【## 2. 生命活力指標 (Hyleg/Alcocoden) 與耐受力】：\n"
+                f"   - 分析本命第一宮（命宮身體）守護星狀態，評估整體元氣底蘊。\n"
+                f"4. 【## 3. 潛在脆弱器官與慢性消耗預警】：\n"
+                f"   - 第六宮（日常疾病/勞損）、第八宮（危機手術）、第十二宮（隱疾/心理慢性壓力/睡眠）之主星與落星。\n"
+                f"   - 火星（炎熱急性）與土星（寒涼慢性積累）在本命的健康影響。\n"
+                f"5. 【## 4. 身心調養與後天作息改善指南】：給出 2~3 項符合其體質特點的運動、飲食或作息建議。\n"
+                f"6. 【## 💡 延伸性問題建議（您可以直接複製詢問）】：\n"
+                f"   1~3. 針對該個案體能與壓力關鍵點，設計 3 個引號標註的具體深度問題。\n"
+                f"   4. ✍️ 自行輸入問題。\n\n"
+                f"【完整星盤與推運數據】：\n{chart_data}"
+            )
+        elif topic == "academics":
+            return (
+                f"請以精深嚴謹的古典與現代占星學理，為個案【{name}】撰寫一份條理清晰、直擊核心的【🎓 學業考運、進修出國與思維天賦專題診斷報告】。\n\n"
+                f"⚠️【專題格式與解讀規範】：\n"
+                f"1. 【字數與節奏】：總字數約 1,000 ~ 1,400 字，直擊學習方法與深造機遇。\n"
+                f"2. 【## 1. 認知思維模式與大腦天賦優勢】：\n"
+                f"   - 水星（邏輯/表達/記憶/吸收力）之星座、宮位與相位互容。\n"
+                f"   - 第三宮（基礎學習/短期考試/技能證照）之吉凶配置。\n"
+                f"3. 【## 2. 高等教育、國家考運與跨界遠行機遇】：\n"
+                f"   - 第九宮（高等學府/深造碩博/留學出國/法律哲學）星座與守護星狀態。\n"
+                f"   - 木星（學術貴人與智慧拓展）之助力。\n"
+                f"4. 【## 3. 關鍵考試推運契機與高分窗口】：\n"
+                f"   - 結合小限宮位、法達大運與太陽弧，判斷考運最旺盛或適合發表進修的時期。\n"
+                f"5. 【## 4. 高效應試與自我精進策略】：給出 2~3 條專屬學習技巧與考場心態調整指引。\n"
+                f"6. 【## 💡 延伸性問題建議（您可以直接複製詢問）】：\n"
+                f"   1~3. 針對其考運或留學方向，設計 3 個引號標註的具體深度問題。\n"
+                f"   4. ✍️ 自行輸入問題。\n\n"
+                f"【完整星盤與推運數據】：\n{chart_data}"
+            )
+        elif topic == "real_estate":
+            return (
+                f"請以精深嚴謹的西洋古典占星學理，為個案【{name}】撰寫一份條理清晰、直擊核心的【🏡 田宅置產、居住風水與原生家庭根基專題診斷報告】。\n\n"
+                f"⚠️【專題格式與解讀規範】：\n"
+                f"1. 【字數與節奏】：總字數約 1,000 ~ 1,400 字，專注於不動產與安居決策。\n"
+                f"2. 【## 1. 本命田宅格局與不動產守成能力】：\n"
+                f"   - 第四宮（田宅宮/土地房產/晚年根基）星座與守護星狀態。\n"
+                f"   - 土星（不動產自然象徵星）與月亮（居家安穩感）的配置。\n"
+                f"3. 【## 2. 買房置產、自住 vs 投資適性與避坑指南】：\n"
+                f"   - 買房時機是適合早年立業置產，還是中年後更穩健？\n"
+                f"   - 第四宮與第二宮（財庫）、第八宮（貸款）之聯動關係，防範產權糾紛或房屋裝修瑕疵。\n"
+                f"4. 【## 3. 居住環境磁場與居家風水建議】：\n"
+                f"   - 適合居住於熱鬧市區、依山傍水安靜社區或具特定氣候特色的區域。\n"
+                f"5. 【## 4. 近期買房/搬遷推運時間窗口】：\n"
+                f"   - 次限/三限月亮引動第四宮或木星過境的吉利買屋搬遷時機。\n"
+                f"6. 【## 💡 延伸性問題建議（您可以直接複製詢問）】：\n"
+                f"   1~3. 針對買房、父母相處或租屋搬遷，設計 3 個引號標註的具體深度問題。\n"
+                f"   4. ✍️ 自行輸入問題。\n\n"
+                f"【完整星盤與推運數據】：\n{chart_data}"
             )
         else:
             return f"請針對個案【{name}】進行古典占星綜合解析。\n{chart_data}"

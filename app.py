@@ -2096,7 +2096,16 @@ if st.session_state.report_data:
                 use_container_width=True
             )
         else:
-            prompt_tabs = ["🌟 全盤大師總論", "💼 事業職涯", "💰 財富資產", "❤️ 婚戀關係", "📅 流年返照合參"]
+            prompt_tabs = [
+                "🌟 全盤大師總論",
+                "💼 事業職涯",
+                "💰 財富資產",
+                "❤️ 婚戀關係",
+                "🏥 健康體質",
+                "🎓 學業考運",
+                "🏡 田宅置產",
+                "📅 流年返照合參"
+            ]
             if st.session_state.report_data.get('synastry_data'):
                 prompt_tabs.append("💑 雙人合盤深度合參")
             
@@ -2159,8 +2168,47 @@ if st.session_state.report_data:
                     key="dl_romance_prompt"
                 )
 
-            # Tab 5: Solar Return
+            # Tab 5: Health
             with p_tab_objs[4]:
+                health_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "health")
+                _render_copy_prompt_box(health_p, "health", "健康體質專題 Prompt (四液氣質、Hyleg 生命主、第 6/8/12 宮慢性消耗與作息調理)")
+                st.download_button(
+                    "📥 下載健康專題 Prompt (.txt)",
+                    data=health_p,
+                    file_name=f"Health_Prompt_{datetime.now().strftime('%Y%m%d')}.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                    key="dl_health_prompt"
+                )
+
+            # Tab 6: Academics
+            with p_tab_objs[5]:
+                academics_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "academics")
+                _render_copy_prompt_box(academics_p, "academics", "學業考運專題 Prompt (水星思維天賦、第 9 宮深造出國、國家考試與發表窗口)")
+                st.download_button(
+                    "📥 下載考運專題 Prompt (.txt)",
+                    data=academics_p,
+                    file_name=f"Academics_Prompt_{datetime.now().strftime('%Y%m%d')}.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                    key="dl_academics_prompt"
+                )
+
+            # Tab 7: Real Estate
+            with p_tab_objs[6]:
+                re_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "real_estate")
+                _render_copy_prompt_box(re_p, "real_estate", "田宅置產專題 Prompt (第 4 宮田宅、買房時機、自住 vs 投資適性與居住環境)")
+                st.download_button(
+                    "📥 下載田宅專題 Prompt (.txt)",
+                    data=re_p,
+                    file_name=f"Real_Estate_Prompt_{datetime.now().strftime('%Y%m%d')}.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                    key="dl_re_prompt"
+                )
+
+            # Tab 8: Solar Return
+            with p_tab_objs[7]:
                 sr_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "solar_return")
                 _render_copy_prompt_box(sr_p, "solar_return", "年度流年專題 Prompt (整合年度太陽返照盤、小限、法達星限與黃道釋放法之流年大合參)")
                 st.download_button(
@@ -2172,9 +2220,9 @@ if st.session_state.report_data:
                     key="dl_sr_prompt"
                 )
 
-            # Tab 6: Synastry (if present)
-            if st.session_state.report_data.get('synastry_data') and len(prompt_tabs) > 5:
-                with p_tab_objs[5]:
+            # Tab 9: Synastry (if present)
+            if st.session_state.report_data.get('synastry_data') and len(prompt_tabs) > 8:
+                with p_tab_objs[8]:
                     syn_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "synastry")
                     _render_copy_prompt_box(syn_p, "synastry", "雙人合盤專題 Prompt (雙人古典合盤能量共振、跨盤相位與接納互容深度合參)")
                     st.download_button(
@@ -2185,6 +2233,13 @@ if st.session_state.report_data:
                         use_container_width=True,
                         key="dl_syn_prompt"
                     )
+
+        st.markdown("---")
+        with st.expander("📢 好物推薦與免責聲明 (Share & Disclaimer)", expanded=False):
+            st.markdown("""
+            - **📢 分享推薦**：如果本排盤系統與 AI 大師提示詞對您有所啟發，歡迎將本站網址分享給身邊對古典占星、命理規劃感興趣的親友或社群夥伴！
+            - **⚖️ 諮詢免責聲明**：古典占星為象徵哲學、文化遺產與個人生涯規劃之參考工具。本程式與 AI 提供之分析僅供個人探索與自我覺察，不構成任何醫療、法律、財務投資之絕對保證或指令。重要人生抉擇請結合現實理性判斷。
+            """)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
