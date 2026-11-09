@@ -4,6 +4,7 @@ Pure-Python classical astrology chart engine.
 - render_lilly_square_chart_svg : William Lilly 1647 style square chart (default)
 - render_interactive_chart_viewer : HTML/Canvas wrapper with copy / download PNG / SVG
 """
+from datetime import datetime
 import html
 import re
 from typing import Any, Dict, List, Optional
@@ -753,41 +754,70 @@ def render_printable_astro_book_html(report_data: Dict[str, Any], theme: str = "
     meta = rd.get("meta") or {}
     nc = rd.get("natal_core") or {}
     alm = rd.get("almuten") or {}
-    sect = "☀️ 日間盤" if rd.get("is_day") else "🌙 夜間盤"
+    sect = "☀️ 日間盤 (Diurnal)" if rd.get("is_day") else "🌙 夜間盤 (Nocturnal)"
     name = rd.get("person_name") or meta.get("person_name") or "命盤主"
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    def svg_block(title, fn):
+    def svg_block(title, fn, note=""):
         try:
-            return f'<div class="chart"><h3>{_e(title)}</h3>{fn()}</div>'
+            note_html = f'<div class="chart-note">{_e(note)}</div>' if note else ""
+            return f'<div class="chart"><h3>{_e(title)}</h3>{fn()}{note_html}</div>'
         except Exception as ex:
             return f'<div class="chart"><h3>{_e(title)}</h3><p>（繪製失敗：{_e(ex)}）</p></div>'
 
-    cover = [f"<p>命盤主：<b>{_e(name)}</b></p>",
-             f"<p>出生：{_e(meta.get('birth_date_str', ''))} {_e(meta.get('birth_time_str', ''))}｜"
-             f"{_e(meta.get('location_city', ''))} ({_e(meta.get('lat', ''))}, {_e(meta.get('lon', ''))})｜"
-             f"UTC{_e(meta.get('utc_offset_str', ''))}</p>",
-             f"<p>{sect}｜☉ {_e(rd.get('sun', ''))}｜☽ {_e(rd.get('moon', ''))}｜ASC {_e(rd.get('asc', ''))}</p>"]
+    # Classical ornate cover card
+    cover_meta = [
+        ("命盤主姓名", f"<b>{_e(name)}</b>"),
+        ("生辰時間", f"{_e(meta.get('birth_date_str', ''))} {_e(meta.get('birth_time_str', ''))} (UTC{_e(meta.get('utc_offset_str', ''))})"),
+        ("出生經緯地", f"{_e(meta.get('location_city', ''))} ({_e(meta.get('lat', ''))}, {_e(meta.get('lon', ''))})"),
+        ("日夜盤屬性", sect),
+        ("三要核心點", f"☉ 太陽 {_e(rd.get('sun', ''))} ｜ ☽ 月亮 {_e(rd.get('moon', ''))} ｜ 🧭 上升 {_e(rd.get('asc', ''))}"),
+    ]
     if alm.get("almuten_name"):
-        cover.append(f"<p>👑 全盤總御星：{_e(alm.get('almuten_name'))} ({_e(alm.get('almuten_score', ''))})</p>")
+        cover_meta.append(("全盤總御星 (Almuten)", f"👑 <b>{_e(alm.get('almuten_name'))}</b>（權重尊貴分：{_e(alm.get('almuten_score', ''))}）"))
     if nc.get("temperament"):
-        cover.append(f"<p>🧬 四液氣質：{_e(nc['temperament'].get('summary', ''))}</p>")
+        cover_meta.append(("四液古典氣質", f"🧬 {_e(nc['temperament'].get('summary', ''))}"))
     if nc.get("hyleg_data"):
-        cover.append(f"<p>Hyleg / Alcocoden / Syzygy：{_e(nc['hyleg_data'].get('summary', ''))}</p>")
+        cover_meta.append(("壽命三要點", f"🛡️ {_e(nc['hyleg_data'].get('summary', ''))}"))
+
+    cover_table_rows = "".join(f"<tr><th>{k}</th><td>{v}</td></tr>" for k, v in cover_meta)
+    cover_html = f"""
+    <section class="cover-page">
+      <div class="cover-frame">
+        <div class="cover-ornament">✦ ✠ ✦</div>
+        <h1 class="cover-title">古典占星專業命書</h1>
+        <div class="cover-subtitle">NATAL HOROSCOPE &amp; TRADITIONAL DELINEATION</div>
+        <div class="cover-divider"></div>
+        <table class="cover-meta-table">
+          {cover_table_rows}
+        </table>
+        <div class="cover-footer-note">
+          <p>依托勒密 (Ptolemy)、多羅修斯 (Dorotheus) 與威廉·莉莉 (William Lilly) 古典法則排盤計算</p>
+          <p class="timestamp">報告生成時間：{now_str}</p>
+        </div>
+      </div>
+    </section>
+    """
 
     s1 = svg_block("William Lilly 傳統方形星盤", lambda: render_lilly_square_chart_svg(
-        rd, show_lots=True, theme=theme, show_all_lots=True, show_stars=True, show_antiscia=True))
+        rd, show_lots=True, theme=theme, show_all_lots=True, show_stars=True, show_antiscia=True),
+        note="※ 十二整宮、四正位（中天/上升/天底/下降）、七大古典行星、映點 (Antiscia) 與六大希臘阿拉伯點")
 
     s2 = ""
     if nc.get("temperament"):
-        s2 += svg_block("古典四液氣質", lambda: render_temperament_svg(nc["temperament"], theme))
+        s2 += svg_block("古典四液氣質平衡 (Temperament Balance)", lambda: render_temperament_svg(nc["temperament"], theme),
+                        note=f"質料狀態：{_e(nc['temperament'].get('dominant_qualities_str', ''))}｜體質傾向：{_e(nc['temperament'].get('dominant_temperaments_str', ''))}")
     if nc.get("dispositors"):
-        s2 += svg_block("定位星能量流向圖", lambda: render_dispositor_tree_svg(nc["dispositors"], theme))
+        s2 += svg_block("定位星能量流向階層圖 (Dispositor Tree)", lambda: render_dispositor_tree_svg(nc["dispositors"], theme),
+                        note="自終極稟賦星/互容星向下遞移之支配關係")
 
     s3 = ""
     if rd.get("f_data") and meta.get("chart_type", "natal") != "horary":
-        s3 = svg_block("75 年法達星限 × 希臘黃道釋放法 (ZR)", lambda: render_timeline_gantt_svg(rd, theme=theme))
+        s3 = svg_block("75 年古典法達星限 (Firdaria) × 希臘黃道釋放法 (Zodiacal Releasing) 時間軸",
+                       lambda: render_timeline_gantt_svg(rd, theme=theme),
+                       note="甘特長條展示主星限與子運期，標記人生關鍵釋放與重大轉換轉折年份")
 
-    tb = ["<h3>七大古典行星與尊貴</h3>" + _html_table(
+    tb = ["<h3>1. 七大古典行星與尊貴分 (Planetary Essential &amp; Accidental Dignities)</h3>" + _html_table(
         ["行星", "星座", "度數", "宮位", "尊貴分", "偶然尊貴"],
         [[p.get("name"), p.get("sign"), p.get("degree_str"), p.get("house"),
           (p.get("dignity") or {}).get("score"), "、".join(p.get("accidental") or [])]
@@ -795,48 +825,48 @@ def render_printable_astro_book_html(report_data: Dict[str, Any], theme: str = "
     if nc.get("dignities_matrix"):
         keys = ("point", "position", "house", "domicile_lord", "exaltation_lord",
                 "triplicity_lords", "term_lord", "face_lord", "detriment_fall", "net_score")
-        tb.append("<h3>五等尊貴全表</h3>" + _html_table(
+        tb.append("<h3>2. 五等尊貴全表 (Five Essential Dignities Matrix)</h3>" + _html_table(
             ["星點", "位置", "宮位", "廟主", "旺主", "三分主", "界主", "面主", "落/陷", "淨分"],
             [[r.get(k, "") for k in keys] for r in nc["dignities_matrix"]]))
-    tb.append("<h3>十二整宮與宮主星</h3>" + _html_table(
+    tb.append("<h3>3. 十二整宮與宮主星 (Houses &amp; Domicile Lords)</h3>" + _html_table(
         ["宮位", "星座", "宮主星"],
         [[h.get("id_str", h.get("id")), h.get("sign", ""), h.get("ruler", "")] for h in rd.get("houses") or []]))
     chains = (nc.get("dispositors") or {}).get("house_fly_chains") or []
     if chains:
-        tb.append("<h3>宮位飛星連鎖</h3>" + _html_table(
+        tb.append("<h3>4. 十二宮位飛星連鎖 (House Rulers Fly Chains)</h3>" + _html_table(
             list(chains[0].keys()), [[str(v) for v in c.values()] for c in chains]))
     if rd.get("aspects"):
-        tb.append("<h3>托勒密相位</h3>" + _html_table(
+        tb.append("<h3>5. 托勒密古典相位 (Ptolemaic Major Aspects)</h3>" + _html_table(
             ["行星 1", "行星 2", "相位", "容許度", "入/出相位"],
             [[a.get("p1"), a.get("p2"), a.get("aspect"), a.get("orb"), a.get("applying")] for a in rd["aspects"]]))
     if rd.get("antiscia"):
-        tb.append("<h3>映點 (Antiscia)</h3>" + _html_table(
+        tb.append("<h3>6. 映點與映點合相 (Antiscia &amp; Contra-Antiscia)</h3>" + _html_table(
             list(rd["antiscia"][0].keys()), [[str(v) for v in a.values()] for a in rd["antiscia"]]))
     if rd.get("lots"):
-        tb.append("<h3>赫密斯點</h3>" + _html_table(
+        tb.append("<h3>7. 希臘赫密斯點 (Lots / Arabic Parts)</h3>" + _html_table(
             ["名稱", "星座", "度數", "宮位"],
             [[x.get("name"), x.get("sign"), x.get("degree"), x.get("house")] for x in rd["lots"]]))
     if rd.get("fixed_stars"):
-        tb.append("<h3>恆星合相</h3>" + _html_table(
+        tb.append("<h3>8. 恆星合相 (Fixed Stars Conjunctions)</h3>" + _html_table(
             ["恆星", "行星", "容許度"], [[s.get("star"), s.get("planet"), s.get("orb")] for s in rd["fixed_stars"]]))
     sr = rd.get("sr_data")
     if sr:
-        tb.append(f"<h3>太陽返照盤 {_e(sr.get('target_year', ''))}</h3><p>{_e(sr.get('summary', ''))}</p>")
+        tb.append(f"<h3>9. 太陽返照盤 {_e(sr.get('target_year', ''))} (Solar Return)</h3><p>{_e(sr.get('summary', ''))}</p>")
     lr = rd.get("lr_data")
     if lr and lr.get("summary"):
-        tb.append(f"<h3>月亮返照盤</h3><p>{_e(lr['summary'])}</p>")
+        tb.append(f"<h3>10. 月亮返照盤 (Lunar Return)</h3><p>{_e(lr['summary'])}</p>")
     mp = rd.get("monthly_profections")
     if mp:
-        tb.append("<h3>12 個月小限</h3>" + _html_table(
+        tb.append("<h3>11. 12 個月小限輪動 (Monthly Profections)</h3>" + _html_table(
             ["月", "起", "迄", "宮位", "月主星", "主題"],
             [[r.get("month_index"), r.get("start_date"), r.get("end_date"), r.get("house_name"),
               r.get("lord_name"), r.get("focus_theme")] for r in mp]))
     syn = rd.get("synastry_data")
     if syn:
         sc = syn.get("resonance_scores") or {}
-        tb.append(f"<h3>雙人合盤：{_e(syn.get('person_a', ''))} × {_e(syn.get('person_b', ''))}</h3>"
-                  f"<p>事業協同 {_e(sc.get('business_harmony_score', '-'))}｜情感黏著 "
-                  f"{_e(sc.get('romantic_harmony_score', '-'))}｜關係張力 {_e(sc.get('tension_index', '-'))}</p>"
+        tb.append(f"<h3>12. 雙人合盤：{_e(syn.get('person_a', ''))} × {_e(syn.get('person_b', ''))}</h3>"
+                  f"<p>事業協同 {_e(sc.get('business_harmony_score', '-'))} ｜ 情感黏著 "
+                  f"{_e(sc.get('romantic_harmony_score', '-'))} ｜ 關係張力 {_e(sc.get('tension_index', '-'))}</p>"
                   + _html_table(["A 行星", "B 行星", "相位", "容許度"],
                                 [[a.get("planet_a_zh"), a.get("planet_b_zh"), a.get("aspect_name"), a.get("orb")]
                                  for a in syn.get("cross_aspects") or []]))
@@ -845,24 +875,268 @@ def render_printable_astro_book_html(report_data: Dict[str, Any], theme: str = "
     replies = [m for m in (ai_messages or []) if m.get("role") == "assistant" and m.get("content")]
     if replies:
         ai_html = '<section class="page-break"><h2>Section 5 ✨ AI 大師深度解析記錄</h2>' + "".join(
-            f'<div class="ai">{_e(m["content"])}</div>' for m in replies) + "</section>"
+            f'<div class="ai-bubble"><div class="ai-badge">✦ 大師研判筆記</div><div class="ai-body">{_e(m["content"])}</div></div>'
+            for m in replies) + "</section>"
 
     css = f"""
-@page {{ size: A4; margin: 12mm; }}
-body {{ font-family: {FONT}; background: {t['paper']}; color: {t['navy']}; margin: 0 auto; max-width: 1000px; padding: 16px; }}
-h1 {{ text-align: center; color: {t['gold']}; }} h2 {{ border-bottom: 2px solid {t['gold']}; padding-bottom: 4px; }}
-.chart svg {{ max-width: 100%; height: auto; }} .chart {{ text-align: center; margin: 12px 0; }}
-table {{ border-collapse: collapse; width: 100%; font-size: 12px; margin-bottom: 14px; }}
-th, td {{ border: 1px solid {t['muted']}; padding: 3px 6px; text-align: left; }} th {{ background: {t['center_bg']}; }}
-.ai {{ white-space: pre-wrap; border-left: 3px solid {t['gold']}; padding: 6px 12px; margin: 10px 0; }}
-.no-print {{ position: sticky; top: 0; text-align: center; padding: 8px; background: {t['card']}; }}
-.page-break {{ page-break-before: always; }}
-@media print {{ .no-print {{ display: none; }} body {{ background: #fff; padding: 0; }} .chart, table {{ page-break-inside: avoid; }} }}
+@page {{
+  size: A4;
+  margin: 16mm 14mm 18mm 14mm;
+  @top-center {{
+    content: "古典占星專業命書 ｜ {_e(name)}";
+    font-size: 9px;
+    color: {t['muted']};
+    border-bottom: 1px solid {t['muted']};
+    padding-bottom: 4px;
+    font-family: {FONT};
+  }}
+  @bottom-left {{
+    content: "依托勒密、多羅修斯與威廉·莉莉古典法則推算";
+    font-size: 9px;
+    color: {t['muted']};
+    font-family: {FONT};
+  }}
+  @bottom-right {{
+    content: "第 " counter(page) " 頁";
+    font-size: 9px;
+    color: {t['muted']};
+    font-family: {FONT};
+  }}
+}}
+* {{ box-sizing: border-box; }}
+body {{
+  font-family: {FONT};
+  background: {t['paper']};
+  color: {t['navy']};
+  margin: 0 auto;
+  max-width: 960px;
+  padding: 16px;
+  line-height: 1.55;
+  font-size: 13px;
+}}
+.no-print {{
+  position: sticky;
+  top: 0;
+  text-align: center;
+  padding: 12px;
+  background: {t['card']};
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  border-radius: 6px;
+  margin-bottom: 20px;
+  z-index: 999;
+}}
+.no-print button {{
+  background: {t['gold']};
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: bold;
+  padding: 8px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}}
+.no-print button:hover {{ opacity: 0.9; }}
+
+/* Cover Page Styling */
+.cover-page {{
+  min-height: 85vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 10px;
+}}
+.cover-frame {{
+  width: 100%;
+  border: 3px double {t['gold']};
+  padding: 36px 28px;
+  background: {t['card']};
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  border-radius: 6px;
+  text-align: center;
+}}
+.cover-ornament {{
+  font-size: 18px;
+  color: {t['gold']};
+  letter-spacing: 6px;
+  margin-bottom: 10px;
+}}
+.cover-title {{
+  font-size: 28px;
+  font-weight: bold;
+  color: {t['gold']};
+  margin: 6px 0;
+  letter-spacing: 2px;
+}}
+.cover-subtitle {{
+  font-size: 11px;
+  color: {t['muted']};
+  letter-spacing: 3px;
+  margin-bottom: 18px;
+}}
+.cover-divider {{
+  height: 2px;
+  background: linear-gradient(to right, transparent, {t['gold']}, transparent);
+  margin: 16px auto;
+  width: 80%;
+}}
+.cover-meta-table {{
+  width: 90%;
+  margin: 20px auto;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}}
+.cover-meta-table th {{
+  width: 28%;
+  padding: 8px 12px;
+  border: 1px solid {t['muted']};
+  background: {t['center_bg']};
+  color: {t['navy']};
+  font-weight: 600;
+}}
+.cover-meta-table td {{
+  padding: 8px 12px;
+  border: 1px solid {t['muted']};
+  background: {t['paper']};
+  color: {t['navy']};
+}}
+.cover-footer-note {{
+  margin-top: 30px;
+  font-size: 11px;
+  color: {t['muted']};
+  line-height: 1.6;
+}}
+.cover-footer-note .timestamp {{
+  font-size: 10px;
+  color: {t['muted']};
+  margin-top: 4px;
+}}
+
+/* Section & Headers */
+h2 {{
+  font-size: 18px;
+  color: {t['gold']};
+  border-bottom: 2px solid {t['gold']};
+  padding-bottom: 6px;
+  margin-top: 24px;
+  margin-bottom: 14px;
+  page-break-after: avoid;
+}}
+h3 {{
+  font-size: 14px;
+  color: {t['navy']};
+  margin-top: 18px;
+  margin-bottom: 8px;
+  page-break-after: avoid;
+}}
+
+/* Charts and Notes */
+.chart {{
+  text-align: center;
+  margin: 16px 0;
+  page-break-inside: avoid;
+}}
+.chart svg {{
+  max-width: 100%;
+  height: auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-radius: 4px;
+}}
+.chart-note {{
+  font-size: 11px;
+  color: {t['muted']};
+  margin-top: 6px;
+  text-align: center;
+}}
+
+/* Tables with zebra striping and page-break rules */
+table {{
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 11.5px;
+  margin-bottom: 16px;
+  page-break-inside: auto;
+}}
+tr {{
+  page-break-inside: avoid;
+  page-break-after: auto;
+}}
+thead {{
+  display: table-header-group;
+}}
+th {{
+  background: {t['center_bg']};
+  color: {t['navy']};
+  border: 1px solid {t['muted']};
+  padding: 4px 6px;
+  text-align: left;
+  font-weight: 600;
+}}
+td {{
+  border: 1px solid {t['muted']};
+  padding: 4px 6px;
+  text-align: left;
+}}
+tbody tr:nth-child(even) {{
+  background: {t['card']};
+}}
+
+/* AI Bubbles */
+.ai-bubble {{
+  border: 1px solid {t['muted']};
+  border-left: 4px solid {t['gold']};
+  background: {t['card']};
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin: 12px 0;
+  page-break-inside: avoid;
+}}
+.ai-badge {{
+  font-size: 11px;
+  font-weight: bold;
+  color: {t['gold']};
+  margin-bottom: 4px;
+}}
+.ai-body {{
+  white-space: pre-wrap;
+  font-size: 12.5px;
+  line-height: 1.6;
+}}
+
+/* Print-specific layout */
+.page-break {{
+  page-break-before: always;
+}}
+@media print {{
+  .no-print {{ display: none !important; }}
+  body {{
+    background: #fff !important;
+    color: #111 !important;
+    padding: 0;
+    max-width: 100%;
+  }}
+  .cover-frame {{
+    border: 2px solid #888;
+    background: #fff;
+    box-shadow: none;
+  }}
+  .chart, table, .ai-bubble {{
+    page-break-inside: avoid;
+  }}
+  th {{
+    background: #f0f0f0 !important;
+    color: #000 !important;
+  }}
+  tbody tr:nth-child(even) {{
+    background: #fafafa !important;
+  }}
+}}
 """
     return ('<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8">'
             f'<title>古典占星專業命書 - {_e(name)}</title><style>{css}</style></head><body>'
             '<div class="no-print"><button onclick="window.print()">🖨️ 直接列印 / 另存為 PDF (Print to PDF)</button></div>'
-            f'<header><h1>古典占星專業命書與推運全覽報告</h1>{"".join(cover)}</header>'
+            f'{cover_html}'
             f'<section class="page-break"><h2>Section 1 傳統星盤圖譜</h2>{s1}</section>'
             f'<section class="page-break"><h2>Section 2 氣質與定位星能量流向</h2>{s2}</section>'
             f'<section class="page-break"><h2>Section 3 法達星限 × ZR 時間軸</h2>{s3}</section>'

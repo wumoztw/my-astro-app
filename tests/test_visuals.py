@@ -297,7 +297,9 @@ class TestVisuals(unittest.TestCase):
                                                                   {"role": "assistant", "content": "AI 解析內容"}])
         self.assertTrue(html_.startswith("<!DOCTYPE html>"))
         self.assertIn("window.print()", html_)
-        self.assertIn("@page { size: A4; margin: 12mm; }", html_)
+        self.assertIn("@page {", html_)
+        self.assertIn("size: A4;", html_)
+        self.assertIn("古典占星專業命書", html_)
         self.assertIn("測試&lt;者&gt;", html_)
         self.assertIn("AI 解析內容", html_)
         for needle in (render_lilly_square_chart_svg(rd, True, "parchment", True, True, True)[:60],
