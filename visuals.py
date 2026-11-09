@@ -249,15 +249,10 @@ def _calculate_planet_aspect_badges(planets: List[Dict[str, Any]]) -> Dict[str, 
     return badges
 
 
-def _entry_label(p: Dict[str, Any], aspect_badges: Optional[Dict[str, List[str]]] = None,
-                 show_aspect_hints: bool = True) -> str:
+def _entry_label(p: Dict[str, Any]) -> str:
     s = f"{p['glyph']}{TEXT_VS} {p['name']} {_dms(p['lon'])}"
     if p.get("retro"):
         s += " Ⓡ"
-    if show_aspect_hints and aspect_badges and p["id"] in aspect_badges:
-        b_list = aspect_badges[p["id"]]
-        if b_list:
-            s += " " + "".join(b_list[:3])
     return s
 
 
@@ -297,23 +292,40 @@ def render_lilly_square_chart_svg(report_data: dict, show_lots: bool = True, the
         hd = n["houses"][hid - 1]
         sidx = _sign_idx(hd["lon"])
         ents = sorted(entries_by_house[hid], key=lambda p: p["lon"] % 30)
-        size = 12 if len(ents) <= 4 else 10.5
-        lh = size + 4
-        total_h = 3 * 15 + len(ents) * lh
-        y = cy - total_h / 2 + 11
+
+        # Count total display lines to avoid overflowing triangles
+        has_badges = show_aspect_hints and aspect_badges
+        extra_badge_lines = sum(1 for p in ents if has_badges and p.get("id") in aspect_badges and aspect_badges[p["id"]])
+        total_items = len(ents) + extra_badge_lines
+
+        # Dynamic size and line-height adjustment
+        if total_items <= 2:
+            size = 11.5
+            lh = 15
+        elif total_items <= 4:
+            size = 10.5
+            lh = 13.5
+        else:
+            size = 9.5
+            lh = 12
+
+        total_h = 3 * 14 + len(ents) * lh + extra_badge_lines * (lh - 2)
+        y = cy - total_h / 2 + 10
         out.append(f'<g id="house-content-{hid}">')
-        out.append(_text(cx, y, f"{ROMAN[hid - 1]}  第{CN_NUM[hid - 1]}宮", 13, GOLD, weight="bold"))
-        out.append(_text(cx, y + 15, f"{SIGN_GLYPHS[sidx]}{TEXT_VS} {SIGN_NAMES[sidx]} 0°00'", 12, NAVY))
+        out.append(_text(cx, y, f"{ROMAN[hid - 1]}  第{CN_NUM[hid - 1]}宮", 12.5, GOLD, weight="bold"))
+        out.append(_text(cx, y + 14, f"{SIGN_GLYPHS[sidx]}{TEXT_VS} {SIGN_NAMES[sidx]} 0°00'", 11.5, NAVY))
         ruler = hd.get("ruler") or ""
-        out.append(_text(cx, y + 30, f"主星 {ruler}", 10.5, MUTED))
-        yy = y + 30 + lh
+        out.append(_text(cx, y + 27, f"主星 {ruler}", 10, MUTED))
+        yy = y + 27 + lh
+
         for p in ents:
             is_sig = hor is not None and p["id"] in hor["sigs"]
-            lbl = _entry_label(p, aspect_badges, show_aspect_hints)
+            lbl = _entry_label(p)
             if p["id"] == n["almuten_id"] and not hor:
                 lbl = "👑" + lbl
             if p.get("score") is not None:
                 lbl += f" [{p['score']:+d}]" if isinstance(p["score"], int) else ""
+
             if is_sig:
                 w = len(lbl) * size * 0.62
                 out.append(f'<rect x="{cx - w / 2:.1f}" y="{yy - size:.1f}" width="{w:.1f}" height="{size + 4}" '
@@ -323,6 +335,15 @@ def render_lilly_square_chart_svg(report_data: dict, show_lots: bool = True, the
             color = t["pos_score"] if isinstance(sc, (int, float)) and sc > 0 else (
                 t["neg_score"] if isinstance(sc, (int, float)) and sc < 0 else NAVY)
             out.append(_text(cx, yy, lbl, size, color, weight="bold" if is_sig else "normal"))
+
+            # Aspect badges on a dedicated second line: small, elegant, perfectly contained
+            if has_badges and p.get("id") in aspect_badges and aspect_badges[p["id"]]:
+                b_str = " ".join(aspect_badges[p["id"]][:3])
+                badge_size = max(8.5, size - 1.5)
+                yy += (badge_size + 3)
+                out.append(_text(cx, yy, b_str, badge_size, "#6366F1" if theme != "starry_night" else "#A5B4FC",
+                                 weight="bold", extra='letter-spacing="1px"'))
+
             yy += lh
         out.append("</g>")
 
