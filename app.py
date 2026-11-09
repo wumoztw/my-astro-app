@@ -442,11 +442,31 @@ ai_assistant = AIAssistant(provider=ai_provider, api_key=ai_api_key, model_name=
 
 st.sidebar.markdown("---")
 # Buttons for calculation
+with st.sidebar.expander("🔮 卜卦占星問事設定", expanded=True):
+    horary_presets = [
+        "這件事會成功嗎？",
+        "換工作 / 面試會錄取順利嗎？",
+        "與對方的感情能復合 / 發展順利嗎？",
+        "這筆投資 / 買賣能獲利嗎？",
+        "遺失的物品 / 寵物能找回來嗎？",
+        "病情 / 手術能平安康復嗎？"
+    ]
+    def _apply_horary_preset():
+        chosen = st.session_state.get('horary_preset_select')
+        if chosen and chosen != "（自訂輸入）":
+            st.session_state.horary_question_input = chosen
+
+    st.selectbox("常用卜卦情境範本", ["（自訂輸入）"] + horary_presets, key="horary_preset_select", on_change=_apply_horary_preset)
+    horary_q_val = st.text_input("問卜具體問題 (Question)", 
+                                 value=st.session_state.get('horary_question', '這件事會成功嗎？'), 
+                                 key="horary_question_input",
+                                 placeholder="請輸入您心中聚焦的問題...")
+
 col1, col2 = st.sidebar.columns(2)
 with col1:
     generate_btn = st.button("排本命盤", use_container_width=True)
 with col2:
-    horary_btn = st.button("卜卦占星", use_container_width=True)
+    horary_btn = st.button("🔮 卜卦占星", use_container_width=True, type="primary")
 
 # --- Logic Processing ---
 if generate_btn or horary_btn:
@@ -458,6 +478,9 @@ if generate_btn or horary_btn:
         st.session_state.chart_type = "natal"
     elif horary_btn:
         st.session_state.chart_type = "horary"
+        # Store user's question from sidebar input
+        q_text = st.session_state.get('horary_question_input', '').strip()
+        st.session_state.horary_question = q_text if q_text else "這件事會成功嗎？"
 
     try:
         # Resolve location for the chart (essential for Houses)
@@ -1220,15 +1243,24 @@ if st.session_state.report_data:
             target_h_desc = c.get('house_meaning') or c.get('topic_tag') or c.get('house_name') or '合作/關係/對方'
             target_kw = c.get('matched_keyword') or c.get('topic_tag') or '通用議題'
             
-            st.markdown(f"""
-            <div style='background: #F1F5F9; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; border-left: 4px solid #3B82F6;'>
-                <div style='font-size: 13px; color: #64748B; margin-bottom: 2px;'>當前占卜問題</div>
-                <div style='font-size: 19px; font-weight: 800; color: #0F172A; margin-bottom: 6px;'>「{cur_q_text}」</div>
-                <div style='font-size: 13px; color: #334155;'>
-                    🎯 智能對焦領域：<b>第 {target_h_num} 宮（{target_h_desc}）</b> ｜ 匹配關鍵字：<span style='background:#E2E8F0; padding:2px 8px; border-radius:4px; font-weight:600;'>{target_kw}</span>
+            q_col1, q_col2 = st.columns([4, 1])
+            with q_col1:
+                st.markdown(f"""
+                <div style='background: #F1F5F9; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; border-left: 4px solid #3B82F6;'>
+                    <div style='font-size: 13px; color: #64748B; margin-bottom: 2px;'>當前占卜問題</div>
+                    <div style='font-size: 19px; font-weight: 800; color: #0F172A; margin-bottom: 6px;'>「{cur_q_text}」</div>
+                    <div style='font-size: 13px; color: #334155;'>
+                        🎯 智能對焦領域：<b>第 {target_h_num} 宮（{target_h_desc}）</b> ｜ 匹配關鍵字：<span style='background:#E2E8F0; padding:2px 8px; border-radius:4px; font-weight:600;'>{target_kw}</span>
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+            with q_col2:
+                with st.popover("✏️ 修改問題"):
+                    new_q_tab = st.text_input("輸入新問題", value=cur_q_text, key="horary_modal_q_input")
+                    if st.button("更新問題並重新研判", key="horary_update_q_btn", type="primary", use_container_width=True):
+                        st.session_state.horary_question = new_q_tab.strip() or "這件事會成功嗎？"
+                        st.session_state.horary_question_input = st.session_state.horary_question
+                        st.rerun()
 
             sig_col1, sig_col2, sig_col3 = st.columns(3)
             with sig_col1:
