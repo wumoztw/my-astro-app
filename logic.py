@@ -98,7 +98,10 @@ from lots_logic import LotsLogic
 from time_lords_logic import TimeLordsLogic
 from zodiacal_releasing_logic import ZodiacalReleasingLogic
 from solar_arc_logic import SolarArcLogic
+from solar_return_logic import SolarReturnLogic
+from predictive_extensions_logic import PredictiveExtensionsLogic
 from almuten_logic import AlmutenLogic
+from classical_natal_core_logic import ClassicalNatalCoreLogic
 from secondary_progressions_logic import SecondaryProgressionsLogic
 from tertiary_progressions_logic import TertiaryProgressionsLogic
 from thematic_reports_logic import ThematicReportsLogic
@@ -166,7 +169,10 @@ class AstrologyLogic:
         self.time_lords = TimeLordsLogic()
         self.zodiacal_releasing = ZodiacalReleasingLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.solar_arc = SolarArcLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
+        self.solar_return = SolarReturnLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
+        self.pred_ext = PredictiveExtensionsLogic(self.TRANS_SIGNS, self.TRANS_PLANETS, self.PLANET_GLYPHS, self.dignities)
         self.almuten = AlmutenLogic(self.dignities, self.TRANS_PLANETS, self.TRANS_SIGNS)
+        self.natal_core = ClassicalNatalCoreLogic(self.dignities, self.TRANS_PLANETS, self.TRANS_SIGNS, self.PLANET_GLYPHS)
         self.secondary_progressions = SecondaryProgressionsLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.tertiary_progressions = TertiaryProgressionsLogic(self.TRANS_SIGNS, self.TRANS_PLANETS)
         self.thematic_reports = ThematicReportsLogic()
@@ -376,9 +382,41 @@ class AstrologyLogic:
             chart, birth_dt_str, birth_time_str, utc_offset_str, lat, lon, target_date, max_orb
         )
 
+    def calculate_solar_return(self, chart, houses, birth_dt_str, utc_offset_hours, sr_lat, sr_lon, target_year=None, sr_city=""):
+        """計算太陽返照盤 (Solar Return) 精確時刻、返照四軸與返照-本命相位"""
+        return self.solar_return.calculate_solar_return(
+            chart, houses, birth_dt_str, utc_offset_hours, sr_lat, sr_lon, target_year, sr_city
+        )
+
+    def calculate_lunar_return(self, chart, houses, utc_offset_hours, lr_lat, lr_lon, target_date=None, lr_city=""):
+        """計算月亮返照盤 (Lunar Return)"""
+        return self.pred_ext.calculate_lunar_return(chart, houses, utc_offset_hours, lr_lat, lr_lon, target_date, lr_city)
+
+    def calculate_transits(self, chart, houses, utc_offset_hours, lat, lon, target_date=None, target_time_str="12:00"):
+        """計算即時流年行運與觸發相位"""
+        return self.pred_ext.calculate_transits(chart, houses, utc_offset_hours, lat, lon, target_date, target_time_str)
+
+    def calculate_planetary_hours(self, target_date, birth_time_str, utc_offset_hours, lat, lon, asc_sign_const=None):
+        """迦勒底行星時 24 小時表與卜卦真卦檢驗"""
+        return self.pred_ext.calculate_planetary_hours(target_date, birth_time_str, utc_offset_hours, lat, lon, asc_sign_const)
+
+    def calculate_monthly_profections_calendar(self, chart, houses, birth_dt_str, target_year):
+        """年度 12 個月流月小限日曆"""
+        return self.pred_ext.calculate_monthly_profections_calendar(chart, houses, birth_dt_str, target_year)
+
     def calculate_almuten(self, chart, houses, is_day: bool):
         """計算古典全盤總御星 (Almuten Figuris / Lord of Geniture)"""
         return self.almuten.calculate_almuten_figuris(chart, houses, is_day)
+
+    def calculate_natal_core(self, chart, houses, planets_data, is_day, almuten_data=None):
+        """古典本命核心：氣質、生命主/壽主星/朔望、定位星鏈、尊貴全表"""
+        nc = self.natal_core
+        return {
+            'temperament': nc.calculate_temperament(chart, houses, is_day, almuten_data),
+            'hyleg_data': nc.calculate_hyleg_alcocoden_syzygy(chart, houses, is_day),
+            'dispositors': nc.calculate_dispositorship_chain(chart, houses, planets_data),
+            'dignities_matrix': nc.calculate_essential_dignities_matrix(chart, houses, is_day),
+        }
 
     def calculate_secondary_progressions(self, chart, houses, birth_dt_str: str, birth_time_str: str, utc_offset_str: str, lat: float, lon: float, target_date=None):
         """計算次限推運法 (Secondary Progressions 一日一年) 月亮、30年月相與活躍相位"""

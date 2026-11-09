@@ -11,8 +11,8 @@ import importlib
 # Ensure fresh module reloading in Streamlit Cloud when git updates
 for _mod_name in (
     'logic', 'horary_engine_logic', 'dignities_logic', 'aspects_logic', 'lots_logic', 
-    'time_lords_logic', 'zodiacal_releasing_logic', 'solar_arc_logic', 
-    'almuten_logic', 'secondary_progressions_logic', 'tertiary_progressions_logic',
+    'time_lords_logic', 'zodiacal_releasing_logic', 'solar_arc_logic', 'solar_return_logic', 'predictive_extensions_logic',
+    'almuten_logic', 'classical_natal_core_logic', 'secondary_progressions_logic', 'tertiary_progressions_logic',
     'thematic_reports_logic', 'horary_prompt', 'natal_prompt', 'ai_logic'
 ):
     if _mod_name in sys.modules:
@@ -290,15 +290,26 @@ if 'chart_type' not in st.session_state:
 # --- Sidebar Inputs ---
 st.sidebar.header("時間與地點資料輸入")
 
+from profiles_logic import ProfilesManager
+if 'saved_profiles' not in st.session_state:
+    st.session_state.saved_profiles = ProfilesManager.load_from_file()
+for _k, _v in (("person_name", "命盤主"), ("date_input_raw", "1900/01/01"), ("time_input_raw", "12:00"),
+               ("location_city", "台北市"), ("manual_lon", 121.50), ("manual_lat", 25.03), ("utc_offset", 8.0),
+               ("partner_name", "合盤對象 B"), ("partner_date_raw", "1992/06/15"),
+               ("partner_time_raw", "12:00"), ("partner_city", "台北市")):
+    st.session_state.setdefault(_k, _v)
+
+person_name = st.sidebar.text_input("命盤主姓名 / 稱呼", key="person_name")
+
 # Date/Time Input via Text
-date_input_raw = st.sidebar.text_input("日期 (YYYY/MM/DD)", value="1900/01/01")
+date_input_raw = st.sidebar.text_input("日期 (YYYY/MM/DD)", key="date_input_raw")
 try:
     birth_date = datetime.strptime(date_input_raw.strip(), '%Y/%m/%d').date()
 except ValueError:
     st.sidebar.error("請依照 YYYY/MM/DD 格式輸入日期")
     st.stop()
 
-time_input_raw = st.sidebar.text_input("時間 (HH:MM)", value="12:00")
+time_input_raw = st.sidebar.text_input("時間 (HH:MM)", key="time_input_raw")
 try:
     time_str = time_input_raw.replace('：', ':').strip()
     birth_time = datetime.strptime(time_str, '%H:%M').time()
@@ -308,12 +319,72 @@ except ValueError:
 
 st.sidebar.markdown("---")
 
-location_city = st.sidebar.text_input("輸入城市名稱", "台北市")
+location_city = st.sidebar.text_input("輸入城市名稱", key="location_city")
 
 with st.sidebar.expander("自行手動輸入經緯度與時區", expanded=False):
-    manual_lon = st.number_input("經度 (Longitude)", value=121.50, format="%.2f")
-    manual_lat = st.number_input("緯度 (Latitude)", value=25.03, format="%.2f")
-    utc_offset = st.number_input("時區偏移 (UTC Offset)", value=8.0, step=0.5)
+    manual_lon = st.number_input("經度 (Longitude)", key="manual_lon", format="%.2f")
+    manual_lat = st.number_input("緯度 (Latitude)", key="manual_lat", format="%.2f")
+    utc_offset = st.number_input("時區偏移 (UTC Offset)", key="utc_offset", step=0.5)
+
+def _profile_names():
+    return [p["name"] for p in st.session_state.saved_profiles]
+
+
+def _load_profile_cb():
+    p = next((p for p in st.session_state.saved_profiles if p["name"] == st.session_state.get("profile_pick")), None)
+    if p:
+        st.session_state.update(person_name=p["name"], date_input_raw=p["date"], time_input_raw=p["time"],
+                                location_city=p["city"], manual_lat=p["lat"], manual_lon=p["lon"], utc_offset=p["tz"])
+
+
+def _save_profile_cb():
+    ss = st.session_state
+    nm = (ss.person_name or "").strip()
+    if not nm:
+        return
+    ss.saved_profiles = ProfilesManager.save_profile(ss.saved_profiles, nm, ss.date_input_raw.strip(),
+                                                     ss.time_input_raw.strip(), ss.location_city.strip(),
+                                                     ss.manual_lat, ss.manual_lon, ss.utc_offset)
+    ProfilesManager.save_to_file(ss.saved_profiles)
+
+
+def _delete_profile_cb():
+    ss = st.session_state
+    ss.saved_profiles = ProfilesManager.delete_profile(ss.saved_profiles, ss.get("profile_pick"))
+    ProfilesManager.save_to_file(ss.saved_profiles)
+
+
+def _partner_pick_cb():
+    p = next((p for p in st.session_state.saved_profiles if p["name"] == st.session_state.get("partner_pick")), None)
+    if p:
+        st.session_state.update(partner_name=p["name"], partner_date_raw=p["date"],
+                                partner_time_raw=p["time"], partner_city=p["city"])
+
+
+with st.sidebar.expander("🗂️ 常用命盤書籤 / 案例快選", expanded=False):
+    if st.session_state.saved_profiles:
+        st.selectbox("選擇書籤", _profile_names(), key="profile_pick")
+        bc1, bc2 = st.columns(2)
+        bc1.button("📂 載入選中命盤", on_click=_load_profile_cb, use_container_width=True)
+        bc2.button("🗑️ 刪除選中書籤", on_click=_delete_profile_cb, use_container_width=True)
+    st.button("💾 儲存當前輸入至書籤", on_click=_save_profile_cb, use_container_width=True)
+    st.download_button("📤 匯出書籤 JSON", data=ProfilesManager.export_profiles_json(st.session_state.saved_profiles),
+                       file_name="saved_profiles.json", mime="application/json", use_container_width=True)
+    _imp = st.file_uploader("匯入書籤 JSON", type=["json"], key="profiles_upload")
+    _imp_txt = st.text_area("或貼上書籤 JSON", key="profiles_json_text", height=80)
+    if st.button("📥 匯入書籤", use_container_width=True):
+        try:
+            _src = _imp.getvalue().decode("utf-8") if _imp else _imp_txt
+            st.session_state.saved_profiles = ProfilesManager.import_profiles_json(st.session_state.saved_profiles, _src)
+            ProfilesManager.save_to_file(st.session_state.saved_profiles)
+            st.success("✅ 書籤匯入成功")
+        except Exception as _ex:
+            st.error(f"匯入失敗：{_ex}")
+
+with st.sidebar.expander("📅 太陽返照盤 / 推運目標年份設定", expanded=False):
+    sr_year = st.number_input("太陽返照盤目標年份 (Solar Return Year)", min_value=1900, max_value=2100,
+                              value=datetime.now().year, step=1)
+    sr_city = st.text_input("流年居住地城市 (預設同出生地)", value="")
 
 @st.dialog("取得免費 API Key", width="large")
 def show_api_keys_dialog():
@@ -329,10 +400,12 @@ def show_api_keys_dialog():
 
 with st.sidebar.expander("💑 雙人合盤設定 (選填 - 啟用合盤疊盤)", expanded=False):
     enable_synastry = st.checkbox("啟用雙人合盤 (Synastry)", value=False)
-    partner_name = st.text_input("對方姓名 / 稱呼", value="合盤對象 B")
-    partner_date_raw = st.text_input("對方出生日期 (YYYY/MM/DD)", value="1992/06/15")
-    partner_time_raw = st.text_input("對方出生時間 (HH:MM)", value="12:00")
-    partner_city = st.text_input("對方出生城市", value="台北市")
+    st.selectbox("從常用書籤帶入對象資料", ["（手動輸入）"] + _profile_names(), key="partner_pick",
+                 on_change=_partner_pick_cb)
+    partner_name = st.text_input("對方姓名 / 稱呼", key="partner_name")
+    partner_date_raw = st.text_input("對方出生日期 (YYYY/MM/DD)", key="partner_date_raw")
+    partner_time_raw = st.text_input("對方出生時間 (HH:MM)", key="partner_time_raw")
+    partner_city = st.text_input("對方出生城市", key="partner_city")
 
 st.sidebar.markdown("---")
 st.sidebar.header("AI 設定 (不輸入也可排盤)")
@@ -451,9 +524,37 @@ if generate_btn or horary_btn:
         sa_data = logic.calculate_solar_arcs(chart, birth_date_str, birth_time_str, offset_str, final_lat, final_lon, target_date=target_date) if hasattr(logic, 'calculate_solar_arcs') else {}
         sec_prog_data = logic.calculate_secondary_progressions(chart, houses, birth_date_str, birth_time_str, offset_str, final_lat, final_lon, target_date=target_date) if hasattr(logic, 'calculate_secondary_progressions') else {}
         tert_prog_data = logic.calculate_tertiary_progressions(chart, houses, birth_date_str, birth_time_str, offset_str, final_lat, final_lon, target_date=target_date) if hasattr(logic, 'calculate_tertiary_progressions') else {}
+        sr_data = {}
+        try:
+            sr_lat, sr_lon_v, sr_city_used = final_lat, final_lon, ""
+            if sr_city.strip():
+                sr_coords = logic.get_location_coordinates(sr_city.strip())
+                if sr_coords:
+                    sr_lat, sr_lon_v, sr_city_used = sr_coords[0], sr_coords[1], sr_city.strip()
+                else:
+                    st.warning(f"找不到流年居住地「{sr_city}」，太陽返照盤改用出生地。")
+            sr_tz, sr_off = logic.get_timezone_info(sr_lat, sr_lon_v, datetime(int(sr_year), 7, 1, 12, 0))
+            if sr_off is None:
+                sr_off = utc_offset
+            sr_data = logic.calculate_solar_return(chart, houses, birth_date_str, sr_off, sr_lat, sr_lon_v,
+                                                   target_year=int(sr_year), sr_city=sr_city_used or location_city)
+        except Exception as sr_err:
+            st.warning(f"太陽返照盤計算失敗：{sr_err}")
+        lr_data, transits_data, planetary_hours, monthly_profections = {}, {}, {}, []
+        try:
+            lr_data = logic.calculate_lunar_return(chart, houses, utc_offset, final_lat, final_lon,
+                                                   target_date=target_date, lr_city=location_city)
+            transits_data = logic.calculate_transits(chart, houses, utc_offset, final_lat, final_lon,
+                                                     target_date=target_date, target_time_str=datetime.now().strftime('%H:%M'))
+            monthly_profections = logic.calculate_monthly_profections_calendar(chart, houses, birth_date_str, int(sr_year))
+            planetary_hours = logic.calculate_planetary_hours(birth_date_str, birth_time_str, utc_offset, final_lat, final_lon,
+                                                              asc_sign_const=asc.sign)
+        except Exception as pe_err:
+            st.warning(f"預測擴充模組計算失敗：{pe_err}")
         lots = logic.calculate_lots(chart, houses, is_day)
-        fixed_stars = logic.get_fixed_stars(chart)
+        fixed_stars =logic.get_fixed_stars(chart)
         almuten_data = logic.calculate_almuten(chart, houses, is_day) if hasattr(logic, 'calculate_almuten') else {}
+        natal_core = logic.calculate_natal_core(chart, houses, planets_data, is_day, almuten_data)
 
         # Build Markdown Report
         title_map = {'natal': '古典占星本命盤完整資料', 'horary': '古典占星卜卦盤解析資料'}
@@ -656,6 +757,38 @@ if generate_btn or horary_btn:
             md += f"- **古典應期推估**：約 **{t.get('estimated_timeframe', '')}** (時間單位：{t.get('time_unit', '')}，剩餘度數：{t.get('delta_degrees', 0)}°)\n"
             md += f"  * 節奏動能：{t.get('pacing_description', '')}\n\n"
 
+        if st.session_state.chart_type == 'natal' and sr_data:
+            md += "---\n\n"
+            md += f"## 📅 {sr_year} 年度太陽返照盤 (Solar Return)\n\n"
+            md += f"- 返照時刻：{sr_data.get('sr_datetime_local', '')} ({sr_data.get('sr_city', '')})\n"
+            md += f"- 返照上升：{sr_data.get('sr_asc_str', '')}｜返照天頂：{sr_data.get('sr_mc_str', '')}\n"
+            md += f"- 返照上升落入本命第 {sr_data.get('sr_asc_in_natal_house', '')} 宮：{sr_data.get('sr_asc_natal_house_theme', '')}\n"
+            md += f"- 年度主星 (Lord of the Year)：{sr_data.get('sr_ruler_name', '')}\n"
+            for p in sr_data.get('planets', []):
+                md += (f"  * 返照{p['name']}：{p['sign']} {p['degree_str']}{' Ⓡ' if p['is_retrograde'] else ''} "
+                       f"(返照第 {p['sr_house_num']} 宮 / 本命第 {p['natal_house_num']} 宮)\n")
+            for a in sr_data.get('active_aspects', [])[:10]:
+                md += f"  * 返照{a['sr_planet_name']} {a['aspect']} 本命{a['natal_planet_name']} (容許度 {a['orb_str']})\n"
+            md += "\n"
+
+        if st.session_state.chart_type == 'natal' and (lr_data or transits_data or monthly_profections):
+            md += "---\n\n## 🌕 月亮返照 / ⚡ 即時行運 / 📈 流月小限\n\n"
+            if lr_data:
+                md += f"- 月亮返照：{lr_data.get('summary', '')}\n"
+            if transits_data:
+                md += f"- 即時行運：{transits_data.get('summary', '')}\n"
+            for r in monthly_profections:
+                md += f"  * 流月 {r['month_index']:02d} ({r['start_date']}~{r['end_date']})：第 {r['house_num']} 宮 {r['sign']}，{r['lord_name']}｜{r['vitality_tag']}\n"
+            md += "\n"
+        if planetary_hours:
+            md += f"- 行星時：{planetary_hours['day_ruler_name']}日，當下行星時主星 {planetary_hours['active_hour']['ruler_name']}；{planetary_hours.get('horary_radicality', '')}\n\n"
+
+        _hd = natal_core['hyleg_data']
+        md += "## 🧬 古典本命核心（演算法精算值）\n"
+        md += f"* 四液氣質：{natal_core['temperament']['summary']}\n"
+        md += f"* 生命主/壽主星/產前朔望：{_hd['summary']}\n"
+        md += f"* 最終定位星：{natal_core['dispositors']['summary']}\n\n"
+
         md += "---\n\n"
         md += "## 🤖 AI 自動解析已就緒\n"
         report_type = "本命盤" if st.session_state.chart_type == 'natal' else "卜卦占星盤"
@@ -675,12 +808,18 @@ if generate_btn or horary_btn:
             'f_data': f_data,
             'zr_data': zr_data,
             'sa_data': sa_data,
+            'sr_data': sr_data,
+            'lr_data': lr_data,
+            'transits_data': transits_data,
+            'planetary_hours': planetary_hours,
+            'monthly_profections': monthly_profections,
             'sec_prog_data': sec_prog_data,
             'tert_prog_data': tert_prog_data,
             'is_day': is_day,
             'lots': lots,
             'fixed_stars': fixed_stars,
             'almuten': almuten_data,
+            'natal_core': natal_core,
             'horary_analysis': horary_analysis,
             'asc_lon': asc.lon,
             'mc_lon': chart.get(const.MC).lon,
@@ -691,7 +830,8 @@ if generate_btn or horary_btn:
                 'lat': final_lat,
                 'lon': final_lon,
                 'utc_offset_str': offset_str,
-                'chart_type': st.session_state.chart_type
+                'chart_type': st.session_state.chart_type,
+                'person_name': person_name.strip() or '命盤主'
             }
         }
 
@@ -786,7 +926,7 @@ if st.session_state.report_data and ai_assistant.is_configured:
 
             st.markdown("---")
             st.markdown("🎯 **三大專題深度診斷**")
-            thm_col1, thm_col2, thm_col3 = st.columns(3)
+            thm_col1, thm_col2, thm_col3, thm_col4 = st.columns(4)
             with thm_col1:
                 if st.button("💼 事業", use_container_width=True, help="事業職涯、貴人格局與天命專題"):
                     st.session_state.ai_analysis_triggered = True
@@ -801,6 +941,11 @@ if st.session_state.report_data and ai_assistant.is_configured:
                 if st.button("❤️ 婚戀", use_container_width=True, help="婚戀桃花、伴侶原型與關係經營專題"):
                     st.session_state.ai_analysis_triggered = True
                     p_msg = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "romance")
+                    st.session_state.chat_history = [{"role": "user", "content": p_msg}]
+            with thm_col4:
+                if st.button("📅 流年返照", use_container_width=True, help="年度太陽返照盤 + 小限 + 法達 + ZR 流年大合參"):
+                    st.session_state.ai_analysis_triggered = True
+                    p_msg = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "solar_return")
                     st.session_state.chat_history = [{"role": "user", "content": p_msg}]
 
 # --- UI Layout ---
@@ -846,6 +991,12 @@ if st.session_state.report_data:
     all_tabs = st.tabs(tabs_list)
     
     # Tab 0: Chart graphics
+    def _render_planetary_hours_table(ph):
+        st.table(pd.DataFrame([{
+            '時序': r['hour_index'], '晝夜': r['period'], '起': r['start_time'], '迄': r['end_time'],
+            '時主星': f"{r['ruler_glyph']} {r['ruler_name']}", '擇日吉凶': r['electional_meaning'],
+        } for r in ph.get('hours_table', [])]))
+
     with all_tabs[0]:
         from visuals import (render_lilly_square_chart_svg, render_circular_chart_svg,
                              render_interactive_chart_viewer, THEMES)
@@ -866,6 +1017,9 @@ if st.session_state.report_data:
                     "雙環：本命 + 次限推運 (一日一年)": "secondary",
                     "雙環：本命 + 三限推運 (一日一月)": "tertiary",
                     "雙環：本命 + 合盤對象 (Synastry)": "synastry",
+                    "雙環：本命 + 太陽返照盤 (Solar Return)": "solar_return",
+                    "雙環：本命 + 月亮返照盤 (Lunar Return)": "lunar_return",
+                    "雙環：本命 + 即時流年行運 (Transits)": "transits",
                 }
                 overlay_mode = overlay_opts[st.selectbox("⏳ 推運雙環疊盤 (Bi-Wheel)", list(overlay_opts), index=0)]
                 if overlay_mode == "synastry" and not d.get("synastry_data"):
@@ -895,6 +1049,16 @@ if st.session_state.report_data:
             st.error(f"星盤繪製錯誤: {e}")
             with st.expander("🔍 查看詳細錯誤追蹤 (Traceback)"):
                 st.code(traceback.format_exc(), language="python")
+
+        try:
+            from visuals import render_printable_astro_book_html
+            book_html = render_printable_astro_book_html(d, theme=theme_key, ai_messages=st.session_state.chat_history)
+            st.download_button("📜 下載完整圖文命書 (HTML / 可列印 PDF)", data=book_html.encode("utf-8"),
+                               file_name=f"Astro_Book_{datetime.now().strftime('%Y%m%d')}.html", mime="text/html",
+                               use_container_width=True, key="book_dl_tab")
+        except Exception as e:
+            book_html = None
+            st.error(f"命書匯出錯誤: {e}")
 
         syn = d.get("synastry_data")
         if syn:
@@ -946,7 +1110,40 @@ if st.session_state.report_data:
             })
         st.table(pd.DataFrame(rows))
         st.markdown("</div>", unsafe_allow_html=True)
-        
+
+        _nc = d.get('natal_core')
+        if _nc:
+            from visuals import render_temperament_svg, render_dispositor_tree_svg
+            _nc_theme = locals().get('theme_key', 'parchment')
+            with st.expander("📐 古典七曜與敏感點五等尊貴全表 (廟/旺/三分/埃及界/面)", expanded=False):
+                _dm = pd.DataFrame(_nc['dignities_matrix']).fillna('—')
+                st.table(_dm.rename(columns={
+                    'point': '星點', 'position': '位置', 'house': '宮位', 'domicile_lord': '廟主 +5',
+                    'exaltation_lord': '旺主 +4', 'triplicity_lords': '三分主 +3', 'term_lord': '埃及界主 +2',
+                    'face_lord': '迦勒底面主 +1', 'detriment_fall': '落/陷', 'net_score': '淨分'}))
+            with st.expander("🧬 古典四液氣質與寒熱乾濕量化儀 (Temperament) ＋ 👑 生命主 (Hyleg)、壽主星 (Alcocoden) 與產前朔望 (SAN)", expanded=False):
+                _tp = _nc['temperament']
+                components.html(render_temperament_svg(_tp, _nc_theme), height=240)
+                st.markdown(_tp['summary'])
+                st.table(pd.DataFrame(_tp['factors']).rename(columns={
+                    'factor': '因子', 'detail': '內容', 'weight': '權重', 'qualities': '寒熱乾濕', 'humor': '氣質'}))
+                _hd = _nc['hyleg_data']
+                st.markdown(f"**{_hd['summary']}**")
+                st.table(pd.DataFrame([{
+                    '候選': c['name'], '位置': c['position'], '宮位': c['house'],
+                    '位於生命宮': '是' if c['in_hylegical_house'] else '否',
+                    '獲主星相位': len(c['ruler_aspects']), '採用': '✅' if c['qualifies'] else ''}
+                    for c in _hd['candidates']]))
+            with st.expander("🪐 十二宮飛星連鎖與最終定位星能量流向圖 (Dispositorship Chain)", expanded=False):
+                _dp = _nc['dispositors']
+                components.html(render_dispositor_tree_svg(_dp, _nc_theme), height=300)
+                st.markdown(_dp['summary'])
+                st.table(pd.DataFrame([{
+                    '宮位': f['house_name'], '星座': f['sign'], '宮主星': f['ruler_name'],
+                    '飛入': f"第 {f['flies_to_house']} 宮", '主星落座': f['ruler_sign'],
+                    '尊貴分': f['ruler_dignity_score'], '解讀': f['interpretation']}
+                    for f in _dp['house_fly_chains']]))
+
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("十二宮位表")
         df_h = pd.DataFrame(d['houses'])
@@ -1263,6 +1460,18 @@ if st.session_state.report_data:
                     st.markdown(f"<div style='background:#FFFBEB;border:1px solid #FCD34D;{card_style_base}'><b>土星落入 7 宮</b><br><span style='color:#D97706;font-size:12px;'>占斷研判易受干擾</span></div>", unsafe_allow_html=True)
                 else:
                     st.markdown(f"<div style='background:#F0FDF4;border:1px solid #86EFAC;{card_style_base}'><b>土星無落 7 宮</b><br><span style='color:#16A34A;font-size:12px;'>落第 {saturn_h} 宮 (客觀明朗)</span></div>", unsafe_allow_html=True)
+            ph_d = d.get('planetary_hours') or {}
+            if ph_d:
+                rad_txt = ph_d.get('horary_radicality', '')
+                ah = ph_d.get('active_hour', {})
+                rad_ok = rad_txt.startswith("✅")
+                st.markdown(f"<div style='background:{'#F0FDF4' if rad_ok else '#FFFBEB'};border:1px solid {'#86EFAC' if rad_ok else '#FCD34D'};border-radius:6px;padding:10px;margin-top:10px;'>"
+                            f"<b>🗓️ 迦勒底行星時真卦檢驗 (Planetary Hour Radicality)</b><br>"
+                            f"<span style='font-size:13px;'>{ph_d.get('day_ruler_name', '')}日 · 當下行星時：{ah.get('ruler_glyph', '')} {ah.get('ruler_name', '')} "
+                            f"({ah.get('start_time', '')}-{ah.get('end_time', '')})<br>{rad_txt}</span></div>", unsafe_allow_html=True)
+                with st.expander("🗓️ 查看當日 24 小時迦勒底行星時與擇日吉凶表"):
+                    st.caption(f"日出 {ph_d.get('sunrise_str', '')} / 日落 {ph_d.get('sunset_str', '')}")
+                    _render_planetary_hours_table(ph_d)
             st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
         else:
             st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
@@ -1437,6 +1646,15 @@ if st.session_state.report_data:
                     st.markdown("**剛脫離的離相位清單**：")
                     st.table(pd.DataFrame(mf['all_separating']).rename(columns={'target_planet': '目標星體', 'aspect_name': '相位類型', 'orb': '脫離交角差', 'is_applying': '入相標記'}))
         else:
+            from visuals import render_timeline_gantt_svg, render_interactive_chart_viewer as _viewer, THEMES as _THEMES
+            st.subheader("📊 法達星限 × 黃道釋放法 (ZR) 75 年互動式甘特時間軸")
+            try:
+                gantt_svg = render_timeline_gantt_svg(d, theme=theme_key)
+                components.html(_viewer(gantt_svg, "astro_timeline_gantt", bg_color=_THEMES[theme_key]["paper"]),
+                                height=640, scrolling=False)
+            except Exception as e:
+                st.error(f"時間軸繪製錯誤: {e}")
+            st.markdown("---")
             st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             st.subheader("推運資訊摘要")
             pi = d['prof_info']
@@ -1490,6 +1708,88 @@ if st.session_state.report_data:
                             '巔峰屬性': p['peak_type']
                         })
                     st.table(pd.DataFrame(l1_list))
+            st.markdown("---")
+
+            # --- Solar Return Section ---
+            st.subheader("📅 年度太陽返照盤 (Solar Return Chart) 深度指標")
+            srd = d.get('sr_data') or {}
+            if srd:
+                st.info(f"**{srd.get('target_year')} 年太陽返照時刻**：`{srd.get('sr_datetime_local')}` ({srd.get('sr_city', '')})")
+                sr_c1, sr_c2, sr_c3 = st.columns(3)
+                sr_c1.metric("返照上升 (SR ASC)", srd.get('sr_asc_str', ''))
+                sr_c2.metric("返照天頂 (SR MC)", srd.get('sr_mc_str', ''))
+                sr_c3.metric("年度主星 (Year Ruler)", srd.get('sr_ruler_name', ''))
+                st.success(f"**返照上升落入本命第 {srd.get('sr_asc_in_natal_house')} 宮**：{srd.get('sr_asc_natal_house_theme', '')}")
+                st.table(pd.DataFrame([{
+                    '星體': p['name'], '星座': p['sign'], '度數': p['degree_str'],
+                    '逆行': 'Ⓡ' if p['is_retrograde'] else '',
+                    '返照宮位': p['sr_house_num'], '本命宮位': p['natal_house_num']
+                } for p in srd.get('planets', [])]))
+                if srd.get('active_aspects'):
+                    st.markdown("**返照-本命緊密相位 (容許度 <= 2°)**：")
+                    st.table(pd.DataFrame([{
+                        '返照星': a['sr_planet_name'], '相位': a['aspect'],
+                        '本命星': a['natal_planet_name'], '誤差': a['orb_str']
+                    } for a in srd['active_aspects']]))
+                else:
+                    st.write("目前無容許度 <= 2° 之返照-本命相位。")
+            else:
+                st.write("尚無太陽返照盤資料，請重新點擊「排本命盤」。")
+            st.markdown("---")
+
+            # --- Phase 2 predictive extensions ---
+            with st.expander("📈 年度 12 個月流月小限日曆 (Monthly Profections 12-Month Calendar)", expanded=True):
+                mp = d.get('monthly_profections') or []
+                if mp:
+                    st.table(pd.DataFrame([{
+                        '月序': r['month_index'], '起': r['start_date'], '迄': r['end_date'],
+                        '小限宮位': r['house_name'], '星座': r['sign'], '月主星': r['lord_name'],
+                        '吉凶能量': r['vitality_tag'], '主題': r['focus_theme'],
+                    } for r in mp]))
+                else:
+                    st.write("尚無流月小限資料。")
+            with st.expander("🌕 當月月亮返照盤 (Lunar Return Chart) 深度指標"):
+                lrd = d.get('lr_data') or {}
+                if lrd:
+                    st.info(lrd.get('summary', ''))
+                    lc1, lc2, lc3 = st.columns(3)
+                    lc1.metric("返照上升 (LR ASC)", lrd.get('lr_asc_str', ''))
+                    lc2.metric("返照天頂 (LR MC)", lrd.get('lr_mc_str', ''))
+                    lc3.metric("當月主星", lrd.get('lr_ruler_name', ''))
+                    st.table(pd.DataFrame([{
+                        '星體': p['name'], '星座': p['sign'], '度數': p['degree_str'],
+                        '逆行': 'Ⓡ' if p['is_retrograde'] else '',
+                        '返照宮位': p['lr_house_num'], '本命宮位': p['natal_house_num'],
+                    } for p in lrd.get('planets', [])]))
+                    if lrd.get('active_aspects'):
+                        st.table(pd.DataFrame([{
+                            '返照星': a['lr_planet_name'], '相位': a['aspect'],
+                            '本命星': a['natal_planet_name'], '誤差': a['orb_str'],
+                        } for a in lrd['active_aspects']]))
+                else:
+                    st.write("尚無月亮返照盤資料。")
+            with st.expander("⚡ 即時流年行運 (Real-Time Transits) 過境宮位與觸發相位表"):
+                trd = d.get('transits_data') or {}
+                if trd:
+                    st.info(trd.get('summary', ''))
+                    st.table(pd.DataFrame([{
+                        '行運星': p['name'], '星座': p['sign'], '度數': p['degree_str'],
+                        '逆行': 'Ⓡ' if p['is_retrograde'] else '', '過境宮位': p['natal_house_str'],
+                    } for p in trd.get('planets', [])]))
+                    if trd.get('active_aspects'):
+                        st.table(pd.DataFrame([{
+                            '行運星': a['transit_planet_name'], '相位': a['aspect'],
+                            '本命星': a['natal_planet_name'], '誤差': a['orb_str'], '古典解讀': a['meaning'],
+                        } for a in trd['active_aspects']]))
+                else:
+                    st.write("尚無即時行運資料。")
+            with st.expander("🗓️ 當日 24 小時古典行星時與擇日吉時良辰表 (Planetary Hours)"):
+                phd = d.get('planetary_hours') or {}
+                if phd:
+                    st.caption(f"{phd.get('day_ruler_name', '')}日 · 日出 {phd.get('sunrise_str', '')} / 日落 {phd.get('sunset_str', '')}")
+                    _render_planetary_hours_table(phd)
+                else:
+                    st.write("尚無行星時資料。")
             st.markdown("---")
 
             # --- Solar Arc Directions (SAD) Section ---
@@ -1690,6 +1990,10 @@ if st.session_state.report_data:
             mime="text/markdown",
             use_container_width=True
         )
+        if book_html:
+            st.download_button("📜 下載完整圖文命書 (HTML / 可列印 PDF)", data=book_html.encode("utf-8"),
+                               file_name=f"Astro_Book_{datetime.now().strftime('%Y%m%d')}.html", mime="text/html",
+                               use_container_width=True, key="book_dl_side")
 
 else:
     st.markdown("<br><br><div style='text-align: center; padding: 20px;'>", unsafe_allow_html=True)

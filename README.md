@@ -104,6 +104,7 @@
 | **圖形星盤引擎** | William Lilly 1647 / 整宮制 | `visuals.py`：方形盤、圓形盤、四大雙環疊盤、雙主題與 PNG/SVG 匯出 |
 | **映點與反映點** | 古典 Antiscia / Contra-Antiscia | `aspects_logic.py`：至點鏡射軸線、七曜映點與接觸計算 |
 | **古典雙人合盤** | 古典 Synastry | `backend/synastry_logic.py`：事業協同、情感黏著、關係張力指數 |
+| **十大進階功能大滿貫** | 返照 / 行運 / 時間軸 / 氣質 / 書籤 / 命書 | 1 太陽返照盤 (`solar_return_logic.py`)、2 月亮返照盤、3 即時行運、4 75 年法達×ZR 甘特時間軸 SVG、5 四液氣質 SVG、6 Hyleg/Alcocoden/Syzygy、7 十二宮飛星與定位星樹狀 SVG、8 五等尊貴全表 (`classical_natal_core_logic.py`)、9 十二月小限與 24h 迦勒底星時/卜卦根源性 (`predictive_extensions_logic.py`)、🗂️ 常用命盤書籤管理與 JSON 匯出入 (`profiles_logic.py`)、🖨️ 一鍵匯出圖文合一可列印 HTML/PDF 命書 (`visuals.py`) |
 
 ---
 
@@ -139,7 +140,7 @@ pip install -r requirements.txt
 
 ### 3. 運行單元測試
 ```bash
-# 執行全套單元測試 (46/46 tests 全部通過)
+# 執行全套單元測試 (54/54 tests 全部通過)
 python3 -m unittest discover tests
 ```
 

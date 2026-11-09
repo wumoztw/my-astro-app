@@ -157,6 +157,7 @@ class ZodiacalReleasingLogic:
 
         active_l1 = None
         active_l2 = None
+        active_l1_l2s = []
         upcoming_peaks = []
 
         total_years_accum = 0
@@ -247,6 +248,11 @@ class ZodiacalReleasingLogic:
 
             if cur_l1_start <= target_ts < cur_l1_end:
                 active_l1 = l1_info
+                active_l1_l2s = [{
+                    'sign': p['sign'], 'sign_const': p['sign_const'], 'ruler': p['ruler'],
+                    'start_date': p['start'].strftime('%Y/%m/%d'), 'end_date': p['end'].strftime('%Y/%m/%d'),
+                    'is_peak': p['is_peak'], 'is_lb': p['is_lb'],
+                } for p in l2_periods]
 
             total_years_accum += years
             cur_l1_start = cur_l1_end
@@ -285,5 +291,6 @@ class ZodiacalReleasingLogic:
                 for s, desc in peak_map.items()
             ],
             'upcoming_peaks': upcoming_peaks,
+            'active_l2_periods': active_l1_l2s,
             'l1_periods': l1_periods
         }

@@ -47,6 +47,9 @@ OVERLAY_STYLE = {
     "solar_arc": ("#C2410C", "太陽弧推運 (Solar Arc)"),
     "secondary": ("#6D28D9", "次限推運 (Secondary)"),
     "tertiary": ("#0F766E", "三限推運 (Tertiary)"),
+    "solar_return": ("#D97706", "太陽返照盤 (Solar Return)"),
+    "lunar_return": ("#0284C7", "月亮返照盤 (Lunar Return)"),
+    "transits": ("#059669", "即時流年行運 (Real-Time Transits)"),
 }
 ASPECTS = {0: ("合", "#64748B"), 60: ("六分", "#2563EB"), 90: ("四分", "#DC2626"),
            120: ("三分", "#16A34A"), 180: ("對分", "#B91C1C")}
@@ -458,7 +461,8 @@ def _antiscia_summary(contacts: List[Dict[str, Any]], limit: int = 4) -> str:
 
 def _overlay_planets(n: Dict[str, Any], mode: str) -> List[Dict[str, Any]]:
     key = {"solar_arc": "sa_data", "secondary": "sec_prog_data", "tertiary": "tert_prog_data",
-           "synastry": "synastry_data"}.get(mode)
+           "synastry": "synastry_data", "solar_return": "sr_data",
+           "lunar_return": "lr_data", "transits": "transits_data"}.get(mode)
     data = n["rd"].get(key) or {}
     res = []
     for p in data.get("planets") or []:
@@ -485,6 +489,13 @@ def render_circular_chart_svg(report_data: dict, overlay_mode: str = "none",
     ov_color, ov_label = OVERLAY_STYLE.get(overlay, (INK, ""))
     if overlay == "synastry":
         ov_color = t["synastry"]
+    elif overlay == "solar_return" and theme == "starry_night":
+        ov_color = "#F59E0B"
+    elif overlay == "lunar_return" and theme == "starry_night":
+        ov_color = "#38BDF8"
+    elif overlay == "transits" and theme == "starry_night":
+        ov_color = "#34D399"
+    sr = n["rd"].get("sr_data") or {}
     ov_planets = _overlay_planets(n, overlay) if overlay != "none" else []
     syn = n["rd"].get("synastry_data") or {}
     name_a = syn.get("person_a") or "本命"
@@ -632,7 +643,8 @@ def render_circular_chart_svg(report_data: dict, overlay_mode: str = "none",
             for nid, nlon in node_pos.items():
                 diff = _angdiff(p["lon"], nlon)
                 for ang in (0, 60, 90, 120, 180):
-                    if abs(diff - ang) <= (5.0 if overlay == "synastry" else 1.5) and not (ang == 0 and p["id"] == nid):
+                    orb_lim = 5.0 if overlay == "synastry" else (2.5 if overlay in ("solar_return", "lunar_return", "transits") else 1.5)
+                    if abs(diff - ang) <= orb_lim and not (ang == 0 and p["id"] == nid):
                         x1, y1 = _pt(p["lon"], anchor, R_ASP - 2)
                         x2, y2 = _pt(nlon, anchor, R_ASP - 2)
                         out.append(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{ov_color}" '
@@ -684,8 +696,17 @@ def render_circular_chart_svg(report_data: dict, overlay_mode: str = "none",
     ly = 40
     if overlay != "none":
         out.append(f'<circle cx="22" cy="{ly - 4}" r="6" fill="{t["ov_badge_bg"]}" stroke="{ov_color}" stroke-width="2"/>')
-        out.append(_text(34, ly, (f"外環：合盤對象 ({name_b})" if overlay == "synastry" else f"外環：{ov_label}"),
-                         11, ov_color, anchor="start", weight="bold"))
+        if overlay == "synastry":
+            ring_label = f"外環：合盤對象 ({name_b})"
+        elif overlay == "solar_return" and sr:
+            ring_label = f"外環：{sr.get('target_year', '')} 太陽返照盤 (SR ASC: {sr.get('sr_asc_str', '')})"
+        elif overlay == "lunar_return" and n["rd"].get("lr_data"):
+            ring_label = f"外環：月亮返照盤 ({n['rd']['lr_data'].get('lr_date_str', '')} LR ASC: {n['rd']['lr_data'].get('lr_asc_str', '')})"
+        elif overlay == "transits" and n["rd"].get("transits_data"):
+            ring_label = f"外環：即時流年行運 ({n['rd']['transits_data'].get('target_datetime', '')})"
+        else:
+            ring_label = f"外環：{ov_label}"
+        out.append(_text(34, ly, ring_label, 11, ov_color, anchor="start", weight="bold"))
         out.append(_text(34, ly + 16, (f"內環：本命 ({name_a})" if overlay == "synastry" else "內環：本命 (Natal)"),
                          11, NAVY, anchor="start"))
     if hor:
@@ -772,6 +793,185 @@ document.getElementById('btn-svg').onclick = function(){
 </script></body></html>"""
 
 
+SIGN_EN = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio",
+           "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
+FIRDARIA_GLYPHS = dict(PLANET_GLYPHS, **{"North Node": "☊", "South Node": "☋"})
+FIRDARIA_NAMES = dict(PLANET_NAMES, **{"North Node": "北交點", "South Node": "南交點"})
+FIRDARIA_COLORS = {"Sun": "#B45309", "Moon": "#475569", "Mercury": "#0E7490", "Venus": "#BE185D",
+                   "Mars": "#B91C1C", "Jupiter": "#6D28D9", "Saturn": "#374151",
+                   "North Node": "#047857", "South Node": "#7C2D12"}
+TIMELINE_MAX_AGE = 75
+
+
+def _to_date(v: Any):
+    from datetime import date as _date, datetime as _dt
+    if hasattr(v, "to_pydatetime"):
+        return v.floor("D").to_pydatetime().date()
+    if isinstance(v, _dt):
+        return v.date()
+    if isinstance(v, _date):
+        return v
+    if isinstance(v, str):
+        for fmt in ("%Y/%m/%d", "%Y-%m-%d"):
+            try:
+                return _dt.strptime(v[:10], fmt).date()
+            except ValueError:
+                pass
+    return None
+
+
+def render_timeline_gantt_svg(report_data: dict, theme: str = "parchment") -> str:
+    """75-year horizontal Gantt: Firdaria major/minor (top) x Zodiacal Releasing Spirit L1/L2 (bottom)."""
+    from datetime import date as _date
+    t = _theme(theme)
+    INK, NAVY, MUTED, GOLD, CARD = t["ink"], t["navy"], t["muted"], t["gold"], t["card"]
+    rd = report_data or {}
+    f_data = rd.get("f_data") or {}
+    timeline = f_data.get("timeline") or []
+    spirit = (rd.get("zr_data") or {}).get("spirit") or {}
+    meta = rd.get("meta") or {}
+
+    birth = _to_date(timeline[0]["start"]) if timeline else _to_date(meta.get("birth_date_str"))
+    birth = birth or _date(1990, 1, 1)
+    target = _to_date(spirit.get("target_date")) or _date.today()
+    now_age = max(0.0, (target - birth).days / 365.25)
+
+    X0, X1 = 44.0, 892.0
+    W_, H_ = 920, 440
+
+    def ax(age: float) -> float:
+        return X0 + max(0.0, min(float(TIMELINE_MAX_AGE), age)) / TIMELINE_MAX_AGE * (X1 - X0)
+
+    def age_of(d) -> float:
+        dd = _to_date(d)
+        return (dd - birth).days / 365.25 if dd else 0.0
+
+    out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W_} {H_}" font-family="{FONT}" role="img" '
+           f'class="timeline-gantt">',
+           f'<rect x="0" y="0" width="{W_}" height="{H_}" fill="{t["paper"]}"/>']
+
+    def block(x_a, x_b, y, h, fill, label_lines, stroke=None, sw=1.0, cls="", title="", txt="#FFFFFF"):
+        w = max(x_b - x_a, 0.5)
+        out.append(f'<g class="{cls}"><rect x="{x_a:.1f}" y="{y}" width="{w:.1f}" height="{h}" rx="3" fill="{fill}" '
+                   f'stroke="{stroke or INK}" stroke-width="{sw}"/>'
+                   + (f'<title>{_e(title)}</title>' if title else "") + '</g>')
+        n_l = len(label_lines)
+        for i, (s, sz) in enumerate(label_lines):
+            if s:
+                out.append(_text((x_a + x_b) / 2, y + h / 2 + (i - (n_l - 1) / 2) * 13 + 4, s, sz, txt,
+                                 weight="bold" if i == 0 else "normal"))
+
+    out.append(_text(W_ / 2, 22, "法達星限 × 黃道釋放法 75 年生命時間軸", 15, NAVY, weight="bold"))
+    # age axis
+    for a in range(0, TIMELINE_MAX_AGE + 1, 5):
+        x = ax(a)
+        out.append(f'<line x1="{x:.1f}" y1="44" x2="{x:.1f}" y2="50" stroke="{INK}" stroke-width="1"/>')
+        out.append(f'<line x1="{x:.1f}" y1="50" x2="{x:.1f}" y2="312" stroke="{MUTED}" stroke-width="0.4" '
+                   f'stroke-dasharray="2 4" opacity="0.6"/>')
+        out.append(_text(x, 36, f"{a}", 9.5, INK, weight="bold"))
+        out.append(_text(x, 322, f"{birth.year + a}", 8.5, MUTED))
+    out.append(_text(12, 36, "歲", 9, MUTED, anchor="start"))
+    out.append(_text(12, 322, "年", 9, MUTED, anchor="start"))
+
+    # --- Firdaria
+    out.append(_text(X0, 60, "波斯法達星限 · 主運 (Major) 與當前主運七段副運 (Minor)", 11, GOLD, anchor="start", weight="bold"))
+    active = f_data.get("active") or {}
+    active_major_item = None
+    for item in timeline:
+        a0, a1 = age_of(item["start"]), age_of(item["end"])
+        if a0 >= TIMELINE_MAX_AGE:
+            continue
+        lord = item["lord"]
+        xa, xb = ax(a0), ax(a1)
+        is_act = a0 <= now_age < a1
+        if is_act:
+            active_major_item = item
+        yrs = round(a1 - a0)
+        wide = xb - xa
+        lines = [(FIRDARIA_GLYPHS.get(lord, "") + TEXT_VS, 15)]
+        if wide >= 50:
+            lines.append((FIRDARIA_NAMES.get(lord, lord), 10))
+        lines.append((f"{round(a0)}–{round(a1)}", 8.5 if wide >= 34 else 7.5))
+        block(xa, xb, 64, 46, FIRDARIA_COLORS.get(lord, "#475569"), lines,
+              stroke=t["asc_col"] if is_act else INK, sw=2.4 if is_act else 1.0, cls="firdaria-major",
+              title=f"{FIRDARIA_NAMES.get(lord, lord)} 主運 {yrs} 年 ({round(a0)}–{round(a1)} 歲)")
+    if active_major_item:
+        out.append(_text(X0, 126, f"當前主運 {FIRDARIA_NAMES.get(active_major_item['lord'], active_major_item['lord'])} 之七段副運：",
+                         9.5, MUTED, anchor="start"))
+        for sub in active_major_item.get("subs", []):
+            a0, a1 = age_of(sub["start"]), age_of(sub["end"])
+            minor = sub["minor"]
+            is_act_sub = (sub["start"] == active.get("start")) or a0 <= now_age < a1
+            lines = [(FIRDARIA_GLYPHS.get(minor, "") + TEXT_VS, 12)]
+            block(ax(a0), ax(a1), 131, 30, FIRDARIA_COLORS.get(minor, "#475569"), lines,
+                  stroke="#FACC15" if is_act_sub else INK, sw=2.8 if is_act_sub else 0.8, cls="firdaria-minor",
+                  title=f"{FIRDARIA_NAMES.get(minor, minor)} 副運 {a0:.1f}–{a1:.1f} 歲" + (" ◀ 當前" if is_act_sub else ""))
+
+    # --- Zodiacal Releasing
+    out.append(f'<line x1="{X0}" y1="176" x2="{X1}" y2="176" stroke="{INK}" stroke-width="0.8"/>')
+    out.append(_text(X0, 192, "希臘黃道釋放法 (ZR) · 精神點 L1 主運 與 當前 L1 之 L2 子運", 11, GOLD, anchor="start", weight="bold"))
+    l1s = spirit.get("l1_periods") or []
+    for p in l1s:
+        a0, a1 = age_of(p["start"]), age_of(p["end"])
+        if a0 >= TIMELINE_MAX_AGE:
+            continue
+        idx = SIGN_EN.index(p["sign_const"]) if p.get("sign_const") in SIGN_EN else 0
+        peak_type = p.get("peak_type", "")
+        if p.get("is_peak") and "Major" in peak_type:
+            fill, txt, kind = "#F59E0B", "#1C1917", "巔峰期"
+        elif p.get("is_peak"):
+            fill, txt, kind = "#0D9488", "#FFFFFF", "角宮期"
+        else:
+            fill, txt, kind = "#64748B", "#FFFFFF", "一般期"
+        is_act = a0 <= now_age < a1
+        block(ax(a0), ax(a1), 198, 44, fill,
+              [(f"{SIGN_GLYPHS[idx]}{TEXT_VS} {SIGN_NAMES[idx]}", 11), (f"{p.get('years', round(a1 - a0))}年 · {round(a0)}–{round(a1)}", 8.5)],
+              stroke=t["asc_col"] if is_act else INK, sw=2.4 if is_act else 1.0, cls="zr-l1", txt=txt,
+              title=f"{p.get('sign_name', SIGN_NAMES[idx])} L1 {kind} {p.get('start_date', '')}~{p.get('end_date', '')}")
+
+    l2s = spirit.get("active_l2_periods") or []
+    act_l1 = spirit.get("active_l1") or {}
+    out.append(_text(X0, 262, f"當前 L1 ({act_l1.get('sign_name', '—')}) 之 L2 子運展開：", 9.5, MUTED, anchor="start"))
+    for p in l2s:
+        a0, a1 = age_of(p["start_date"]), age_of(p["end_date"])
+        idx = SIGN_EN.index(p["sign_const"]) if p.get("sign_const") in SIGN_EN else 0
+        is_act = a0 <= now_age < a1
+        fill = "#0D9488" if p.get("is_peak") else "#94A3B8"
+        wide = ax(a1) - ax(a0)
+        block(ax(a0), ax(a1), 268, 30, fill, [(f"{SIGN_GLYPHS[idx]}{TEXT_VS}" if wide >= 14 else "", 11)],
+              stroke="#FACC15" if is_act else INK, sw=2.8 if is_act else 0.7, cls="zr-l2", txt="#0F172A",
+              title=f"L2 {SIGN_NAMES[idx]} {p['start_date']}~{p['end_date']}" + (" ⚡ LB 換宮跳躍" if p.get("is_lb") else ""))
+        if p.get("is_lb"):
+            bx = ax(a1)
+            out.append(f'<g class="zr-lb"><rect x="{bx - 40:.1f}" y="300" width="80" height="14" rx="7" fill="#DC2626" '
+                       f'stroke="#FACC15" stroke-width="1.2"/>' + _text(bx, 310, "⚡ LB 換宮跳躍", 8.5, "#FFFFFF", weight="bold")
+                       + f'<line x1="{bx:.1f}" y1="298" x2="{bx:.1f}" y2="300" stroke="#DC2626" stroke-width="2"/></g>')
+
+    # --- NOW cursor
+    nx = ax(now_age)
+    out.append(f'<g class="timeline-now-line"><line x1="{nx:.1f}" y1="42" x2="{nx:.1f}" y2="318" stroke="{t["asc_col"]}" '
+               f'stroke-width="2.4"/><polygon points="{nx - 5:.1f},42 {nx + 5:.1f},42 {nx:.1f},50" fill="{t["asc_col"]}"/>'
+               f'<rect x="{min(max(nx - 78, 4), W_ - 160):.1f}" y="330" width="156" height="17" rx="8" fill="{t["asc_col"]}"/>'
+               + _text(min(max(nx, 82), W_ - 82), 342, f"NOW / 當前 {now_age:.1f} 歲 ({target.year})", 10, "#FFFFFF", weight="bold")
+               + '</g>')
+
+    # --- summary + legend
+    act_l2 = spirit.get("active_l2") or {}
+    summary = (f"此刻：法達 {FIRDARIA_NAMES.get(active.get('major'), active.get('major', '—'))} 主運 / "
+               f"{FIRDARIA_NAMES.get(active.get('minor'), active.get('minor', '—'))} 副運　·　"
+               f"ZR 精神點 L1 {act_l1.get('sign_name', '—')}（{act_l1.get('peak_type') or '一般期'}）/ L2 {act_l2.get('sign_name', '—')}")
+    out.append(_text(X0, 372, summary, 10.5, NAVY, anchor="start", weight="bold"))
+    lx = X0
+    for fill, lbl in (("#F59E0B", "L1 巔峰期 (第十宮頂峰)"), ("#0D9488", "角宮期 / 角宮 L2"), ("#64748B", "一般期"),
+                      ("#DC2626", "⚡ LB 換宮跳躍")):
+        out.append(f'<rect x="{lx:.1f}" y="388" width="12" height="12" rx="2" fill="{fill}" stroke="{INK}" stroke-width="0.6"/>')
+        out.append(_text(lx + 17, 398, lbl, 9.5, MUTED, anchor="start"))
+        lx += 17 + len(lbl) * 9.5 + 22
+    out.append(_text(X0, 420, "紅框＝當前主運/L1；金框＝當前副運/L2；縱向紅線＝當前年齡。時間軸以平均太陽年 365.25 日換算。", 9, MUTED, anchor="start"))
+    out.append('</svg>')
+    return "".join(out)
+
+
 def render_interactive_chart_viewer(svg_str: str, filename_prefix: str = "astro_chart",
                                     bg_color: str = "#FAF6EE") -> str:
     m = re.search(r'<rect[^>]*\bfill="(#[0-9A-Fa-f]{3,8})"', svg_str or "")
@@ -784,6 +984,98 @@ def render_interactive_chart_viewer(svg_str: str, filename_prefix: str = "astro_
             .replace("__PREFIX__", prefix).replace("__BG__", bg_color).replace("__SVG__", svg_str))
 
 
+_HUMOR_ROWS = [("choleric", "🔥 膽汁質 Choleric", "#DC2626"), ("sanguine", "💨 多血質 Sanguine", "#D97706"),
+               ("melancholic", "🌍 抑鬱質 Melancholic", "#7C6F57"), ("phlegmatic", "💧 黏液質 Phlegmatic", "#2563EB")]
+
+
+def _svg_canvas(w: int, h: int, t: Dict[str, Any], defs: str = "") -> List[str]:
+    return [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" font-family="{FONT}" role="img">',
+            f'<defs>{defs}</defs>',
+            f'<rect x="0" y="0" width="{w}" height="{h}" rx="10" fill="{t["paper"]}"/>']
+
+
+def render_temperament_svg(temperament_data: Dict[str, Any], theme: str = "parchment") -> str:
+    """四液氣質橫條 + 冷熱/乾濕菱形象限指示器 (viewBox 760x220)"""
+    t = _theme(theme)
+    td = temperament_data or {}
+    humors, quals = td.get("humors", {}), td.get("qualities", {})
+    out = _svg_canvas(760, 220, t)
+    out.append(_text(20, 26, "古典四液氣質 Four Humors", 15, t["navy"], "start", "bold"))
+    for i, (key, label, col) in enumerate(_HUMOR_ROWS):
+        y = 40 + i * 36
+        pct = max(0.0, min(100.0, float(humors.get(key, 0) or 0)))
+        out.append(_text(20, y + 16, label, 13, t["ink"], "start"))
+        out.append(f'<rect x="170" y="{y}" width="300" height="22" rx="6" fill="{t["card"]}" '
+                   f'stroke="{t["muted"]}" stroke-width="0.8"/>')
+        out.append(f'<rect class="humor-bar" x="170" y="{y}" width="{3.0 * pct:.1f}" height="22" rx="6" fill="{col}"/>')
+        out.append(_text(480, y + 16, f"{pct:.1f}%", 13, t["navy"], "start", "bold"))
+    cx, cy, r = 640, 112, 66
+    out.append(f'<polygon points="{cx},{cy - r} {cx + r},{cy} {cx},{cy + r} {cx - r},{cy}" fill="{t["card"]}" '
+               f'stroke="{t["gold"]}" stroke-width="1.5"/>')
+    out.append(f'<line x1="{cx - r}" y1="{cy}" x2="{cx + r}" y2="{cy}" stroke="{t["muted"]}" stroke-width="0.6"/>')
+    out.append(f'<line x1="{cx}" y1="{cy - r}" x2="{cx}" y2="{cy + r}" stroke="{t["muted"]}" stroke-width="0.6"/>')
+    out.append(_text(cx + r + 4, cy + 4, "熱", 12, t["asc_col"], "start"))
+    out.append(_text(cx - r - 4, cy + 4, "冷", 12, t["mc_col"], "end"))
+    out.append(_text(cx, cy - r - 6, "濕", 12, t["muted"]))
+    out.append(_text(cx, cy + r + 16, "乾", 12, t["muted"]))
+    hot, cold = float(quals.get("hot", 0)), float(quals.get("cold", 0))
+    dry, moist = float(quals.get("dry", 0)), float(quals.get("moist", 0))
+    px = cx + r * 0.9 * (hot - cold) / ((hot + cold) or 1.0)
+    py = cy - r * 0.9 * (moist - dry) / ((dry + moist) or 1.0)
+    out.append(f'<circle class="temp-dot" cx="{px:.1f}" cy="{py:.1f}" r="6" fill="{t["gold"]}" '
+               f'stroke="{t["navy"]}" stroke-width="1.2"/>')
+    out.append(_text(20, 208, f"主導：{td.get('dominant_temperament', '')}", 12, t["gold"], "start", "bold"))
+    out.append("</svg>")
+    return "".join(out)
+
+
+def render_dispositor_tree_svg(dispositor_data: Dict[str, Any], theme: str = "parchment") -> str:
+    """七曜定位星有向圖：弧形箭頭、自守雙金環、互容雙向金箭頭 (viewBox 760x280)"""
+    t = _theme(theme)
+    dd = dispositor_data or {}
+    nxt = {e["planet_id"]: e["dispositor_id"] for e in dd.get("planet_dispositor_edges", [])}
+    final = dd.get("final_dispositor")
+    defs = "".join(
+        f'<marker id="{mid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
+        f'orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="{col}"/></marker>'
+        for mid, col in (("arrow", t["ink"]), ("arrow-gold", t["gold"])))
+    out = _svg_canvas(760, 280, t, defs)
+    out.append(_text(20, 24, "七曜定位星能量流向 Dispositor Graph", 14, t["navy"], "start", "bold"))
+    pos = {p: (80 + i * 100, 170) for i, p in enumerate(CLASSICAL)}
+    R = 24
+    drawn = set()
+    for p, d in nxt.items():
+        if p == d or p not in pos or d not in pos or (d, p) in drawn:
+            continue
+        drawn.add((p, d))
+        (x1, y1), (x2, y2) = pos[p], pos[d]
+        mutual = nxt.get(d) == p
+        up = -1 if (CLASSICAL.index(p) + CLASSICAL.index(d)) % 2 == 0 else 1
+        ctrl_y = y1 + up * (30 + abs(x2 - x1) * 0.28)
+        col, mk, sw = (t["gold"], "arrow-gold", 2.2) if mutual else (t["ink"], "arrow", 1.4)
+        sx, ex = (x1 + R, x2 - R) if x2 > x1 else (x1 - R, x2 + R)
+        start_mk = f' marker-start="url(#{mk})"' if mutual else ""
+        out.append(f'<path class="disp-edge{" mutual" if mutual else ""}" '
+                   f'd="M{sx:.1f},{y1} Q{(x1 + x2) / 2:.1f},{ctrl_y:.1f} {ex:.1f},{y2}" fill="none" '
+                   f'stroke="{col}" stroke-width="{sw}" marker-end="url(#{mk})"{start_mk}/>')
+    for p in CLASSICAL:
+        x, y = pos[p]
+        is_self = nxt.get(p) == p
+        if is_self:
+            out.append(f'<circle class="self-ring" cx="{x}" cy="{y}" r="{R + 6}" fill="none" '
+                       f'stroke="{t["gold"]}" stroke-width="1.6"/>')
+        out.append(f'<circle cx="{x}" cy="{y}" r="{R}" fill="{t["card"]}" '
+                   f'stroke="{t["gold"] if is_self else t["muted"]}" stroke-width="{2.4 if is_self else 1.2}"/>')
+        out.append(_text(x, y + 8, PLANET_GLYPHS[p] + TEXT_VS, 22, t["navy"]))
+        out.append(_text(x, y + R + 24, PLANET_NAMES[p], 11, t["muted"]))
+        if is_self:
+            out.append(_text(x, y + R + 40, "👑 最終定位星" if p == final else "👑 自守廟星", 11, t["gold"],
+                             "middle", "bold"))
+    out.append(_text(20, 268, dd.get("summary", ""), 12, t["gold"], "start"))
+    out.append("</svg>")
+    return "".join(out)
+
+
 def draw_circular_chart(user_data_or_report_data):
     """Backward-compatible wrapper: returns circular chart SVG, or None on failure."""
     try:
@@ -792,3 +1084,140 @@ def draw_circular_chart(user_data_or_report_data):
     except Exception as exc:
         print(f"Error in draw_circular_chart: {exc}")
     return None
+
+
+# ------------------------------------------------------- printable astro book
+def _html_table(headers: List[str], rows: List[List[Any]]) -> str:
+    if not rows:
+        return ""
+    head = "".join(f"<th>{_e(h)}</th>" for h in headers)
+    body = "".join("<tr>" + "".join(f"<td>{_e(c)}</td>" for c in r) + "</tr>" for r in rows)
+    return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
+
+
+def render_printable_astro_book_html(report_data: Dict[str, Any], theme: str = "parchment",
+                                     ai_messages: Optional[List[Dict[str, str]]] = None) -> str:
+    """Self-contained print-optimised HTML book (save as PDF via the browser print dialog)."""
+    rd = report_data or {}
+    t = _theme(theme)
+    meta = rd.get("meta") or {}
+    nc = rd.get("natal_core") or {}
+    alm = rd.get("almuten") or {}
+    sect = "☀️ 日間盤" if rd.get("is_day") else "🌙 夜間盤"
+    name = rd.get("person_name") or meta.get("person_name") or "命盤主"
+
+    def svg_block(title, fn):
+        try:
+            return f'<div class="chart"><h3>{_e(title)}</h3>{fn()}</div>'
+        except Exception as ex:
+            return f'<div class="chart"><h3>{_e(title)}</h3><p>（繪製失敗：{_e(ex)}）</p></div>'
+
+    cover = [f"<p>命盤主：<b>{_e(name)}</b></p>",
+             f"<p>出生：{_e(meta.get('birth_date_str', ''))} {_e(meta.get('birth_time_str', ''))}｜"
+             f"{_e(meta.get('location_city', ''))} ({_e(meta.get('lat', ''))}, {_e(meta.get('lon', ''))})｜"
+             f"UTC{_e(meta.get('utc_offset_str', ''))}</p>",
+             f"<p>{sect}｜☉ {_e(rd.get('sun', ''))}｜☽ {_e(rd.get('moon', ''))}｜ASC {_e(rd.get('asc', ''))}</p>"]
+    if alm.get("almuten_name"):
+        cover.append(f"<p>👑 全盤總御星：{_e(alm.get('almuten_name'))} ({_e(alm.get('almuten_score', ''))})</p>")
+    if nc.get("temperament"):
+        cover.append(f"<p>🧬 四液氣質：{_e(nc['temperament'].get('summary', ''))}</p>")
+    if nc.get("hyleg_data"):
+        cover.append(f"<p>Hyleg / Alcocoden / Syzygy：{_e(nc['hyleg_data'].get('summary', ''))}</p>")
+
+    s1 = svg_block("William Lilly 傳統方形星盤", lambda: render_lilly_square_chart_svg(
+        rd, show_lots=True, theme=theme, show_all_lots=True, show_stars=True, show_antiscia=True))
+    s1 += svg_block("整宮制圓形星盤", lambda: render_circular_chart_svg(
+        rd, overlay_mode="solar_return" if rd.get("sr_data") else "none", show_lots=True, show_aspects=True,
+        theme=theme, show_all_lots=True, show_stars=True, show_antiscia=True))
+
+    s2 = ""
+    if nc.get("temperament"):
+        s2 += svg_block("古典四液氣質", lambda: render_temperament_svg(nc["temperament"], theme))
+    if nc.get("dispositors"):
+        s2 += svg_block("定位星能量流向圖", lambda: render_dispositor_tree_svg(nc["dispositors"], theme))
+
+    s3 = ""
+    if rd.get("f_data") and meta.get("chart_type", "natal") != "horary":
+        s3 = svg_block("75 年法達星限 × 希臘黃道釋放法 (ZR)", lambda: render_timeline_gantt_svg(rd, theme=theme))
+
+    tb = ["<h3>七大古典行星與尊貴</h3>" + _html_table(
+        ["行星", "星座", "度數", "宮位", "尊貴分", "偶然尊貴"],
+        [[p.get("name"), p.get("sign"), p.get("degree_str"), p.get("house"),
+          (p.get("dignity") or {}).get("score"), "、".join(p.get("accidental") or [])]
+         for p in rd.get("planets") or []])]
+    if nc.get("dignities_matrix"):
+        keys = ("point", "position", "house", "domicile_lord", "exaltation_lord",
+                "triplicity_lords", "term_lord", "face_lord", "detriment_fall", "net_score")
+        tb.append("<h3>五等尊貴全表</h3>" + _html_table(
+            ["星點", "位置", "宮位", "廟主", "旺主", "三分主", "界主", "面主", "落/陷", "淨分"],
+            [[r.get(k, "") for k in keys] for r in nc["dignities_matrix"]]))
+    tb.append("<h3>十二整宮與宮主星</h3>" + _html_table(
+        ["宮位", "星座", "宮主星"],
+        [[h.get("id_str", h.get("id")), h.get("sign", ""), h.get("ruler", "")] for h in rd.get("houses") or []]))
+    chains = (nc.get("dispositors") or {}).get("house_fly_chains") or []
+    if chains:
+        tb.append("<h3>宮位飛星連鎖</h3>" + _html_table(
+            list(chains[0].keys()), [[str(v) for v in c.values()] for c in chains]))
+    if rd.get("aspects"):
+        tb.append("<h3>托勒密相位</h3>" + _html_table(
+            ["行星 1", "行星 2", "相位", "容許度", "入/出相位"],
+            [[a.get("p1"), a.get("p2"), a.get("aspect"), a.get("orb"), a.get("applying")] for a in rd["aspects"]]))
+    if rd.get("antiscia"):
+        tb.append("<h3>映點 (Antiscia)</h3>" + _html_table(
+            list(rd["antiscia"][0].keys()), [[str(v) for v in a.values()] for a in rd["antiscia"]]))
+    if rd.get("lots"):
+        tb.append("<h3>赫密斯點</h3>" + _html_table(
+            ["名稱", "星座", "度數", "宮位"],
+            [[x.get("name"), x.get("sign"), x.get("degree"), x.get("house")] for x in rd["lots"]]))
+    if rd.get("fixed_stars"):
+        tb.append("<h3>恆星合相</h3>" + _html_table(
+            ["恆星", "行星", "容許度"], [[s.get("star"), s.get("planet"), s.get("orb")] for s in rd["fixed_stars"]]))
+    sr = rd.get("sr_data")
+    if sr:
+        tb.append(f"<h3>太陽返照盤 {_e(sr.get('target_year', ''))}</h3><p>{_e(sr.get('summary', ''))}</p>")
+    lr = rd.get("lr_data")
+    if lr and lr.get("summary"):
+        tb.append(f"<h3>月亮返照盤</h3><p>{_e(lr['summary'])}</p>")
+    mp = rd.get("monthly_profections")
+    if mp:
+        tb.append("<h3>12 個月小限</h3>" + _html_table(
+            ["月", "起", "迄", "宮位", "月主星", "主題"],
+            [[r.get("month_index"), r.get("start_date"), r.get("end_date"), r.get("house_name"),
+              r.get("lord_name"), r.get("focus_theme")] for r in mp]))
+    syn = rd.get("synastry_data")
+    if syn:
+        sc = syn.get("resonance_scores") or {}
+        tb.append(f"<h3>雙人合盤：{_e(syn.get('person_a', ''))} × {_e(syn.get('person_b', ''))}</h3>"
+                  f"<p>事業協同 {_e(sc.get('business_harmony_score', '-'))}｜情感黏著 "
+                  f"{_e(sc.get('romantic_harmony_score', '-'))}｜關係張力 {_e(sc.get('tension_index', '-'))}</p>"
+                  + _html_table(["A 行星", "B 行星", "相位", "容許度"],
+                                [[a.get("planet_a_zh"), a.get("planet_b_zh"), a.get("aspect_name"), a.get("orb")]
+                                 for a in syn.get("cross_aspects") or []]))
+
+    ai_html = ""
+    replies = [m for m in (ai_messages or []) if m.get("role") == "assistant" and m.get("content")]
+    if replies:
+        ai_html = '<section class="page-break"><h2>Section 5 ✨ AI 大師深度解析記錄</h2>' + "".join(
+            f'<div class="ai">{_e(m["content"])}</div>' for m in replies) + "</section>"
+
+    css = f"""
+@page {{ size: A4; margin: 12mm; }}
+body {{ font-family: {FONT}; background: {t['paper']}; color: {t['navy']}; margin: 0 auto; max-width: 1000px; padding: 16px; }}
+h1 {{ text-align: center; color: {t['gold']}; }} h2 {{ border-bottom: 2px solid {t['gold']}; padding-bottom: 4px; }}
+.chart svg {{ max-width: 100%; height: auto; }} .chart {{ text-align: center; margin: 12px 0; }}
+table {{ border-collapse: collapse; width: 100%; font-size: 12px; margin-bottom: 14px; }}
+th, td {{ border: 1px solid {t['muted']}; padding: 3px 6px; text-align: left; }} th {{ background: {t['center_bg']}; }}
+.ai {{ white-space: pre-wrap; border-left: 3px solid {t['gold']}; padding: 6px 12px; margin: 10px 0; }}
+.no-print {{ position: sticky; top: 0; text-align: center; padding: 8px; background: {t['card']}; }}
+.page-break {{ page-break-before: always; }}
+@media print {{ .no-print {{ display: none; }} body {{ background: #fff; padding: 0; }} .chart, table {{ page-break-inside: avoid; }} }}
+"""
+    return ('<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8">'
+            f'<title>古典占星專業命書 - {_e(name)}</title><style>{css}</style></head><body>'
+            '<div class="no-print"><button onclick="window.print()">🖨️ 直接列印 / 另存為 PDF (Print to PDF)</button></div>'
+            f'<header><h1>古典占星專業命書與推運全覽報告</h1>{"".join(cover)}</header>'
+            f'<section class="page-break"><h2>Section 1 雙模星盤圖譜</h2>{s1}</section>'
+            f'<section class="page-break"><h2>Section 2 氣質與定位星能量流向</h2>{s2}</section>'
+            f'<section class="page-break"><h2>Section 3 法達星限 × ZR 時間軸</h2>{s3}</section>'
+            f'<section class="page-break"><h2>Section 4 核心星盤與推運結構化報告</h2>{"".join(tb)}</section>'
+            f'{ai_html}</body></html>')

@@ -5,6 +5,7 @@ Thematic Reports Logic (三大精準專題深度報表)
 1. 💼 事業職涯與貴人格局專題 (Career & Status Analysis)
 2. 💰 財富資產與偏財投資專題 (Wealth & Assets Analysis)
 3. ❤️ 婚戀桃花與人際關係專題 (Romance & Relationship Analysis)
+4. 📅 年度太陽返照盤與流年運勢專題 (Solar Return & Annual Forecast)
 """
 
 from typing import Dict, Any, Optional
@@ -192,6 +193,33 @@ class ThematicReportsLogic:
                 f"   4. ✍️ 自行輸入問題。\n\n"
                 f"【合盤數據 (synastry_data)】：\n{syn}\n\n"
                 f"【本命盤摘要】：\n{clean_data}"
+            )
+        elif topic == "solar_return":
+            sr = chart_data.get("sr_data") or {}
+            return (
+                f"請以精深嚴謹的古典占星學理（Abu Ma'shar《論年度運轉》、Bonatti、William Lilly《基督教占星學》太陽返照盤），"
+                f"為個案【{name}】撰寫一份【📅 年度太陽返照盤與流年運勢大合參報告】（{sr.get('target_year', '')} 年）。\n\n"
+                f"⚠️【專題格式與解讀規範】：\n"
+                f"1. 【字數與節奏】：總字數約 1,200 ~ 1,600 字，條理分明，直擊核心，禁止空泛心靈雞湯。\n"
+                f"2. 【## 1. 年度主題定調】：\n"
+                f"   - 返照時刻 {sr.get('sr_datetime_local', '')}，返照上升 {sr.get('sr_asc_str', '')}、天頂 {sr.get('sr_mc_str', '')}。\n"
+                f"   - 返照上升落入本命第 {sr.get('sr_asc_in_natal_house', '')} 宮（{sr.get('sr_asc_natal_house_theme', '')}），"
+                f"此為全年核心主題。\n"
+                f"   - 返照年度主星（Lord of the Year）：{sr.get('sr_ruler_name', '')}，分析其在返照盤與本命盤的落宮、尊貴與相位。\n"
+                f"3. 【## 2. 年度小限 (Annual Profection) 合參】：\n"
+                f"   - 結合小限年度主星（{(chart_data.get('prof_info') or {}).get('lord_of_year', '')}）與返照年度主星，判斷兩者是否同星、互容或相位呼應。\n"
+                f"4. 【## 3. 返照七曜與返照-本命緊密相位】：\n"
+                f"   - 逐一解讀返照七曜落入返照宮與本命宮；重點分析 active_aspects（容許度 <= 2°）所引動的事件領域。\n"
+                f"5. 【## 4. 法達星限與黃道釋放法 (ZR) 時間領主交叉驗證】：\n"
+                f"   - 當前法達主運／副運：{(chart_data.get('f_data') or {}).get('active', {})}。\n"
+                f"   - ZR 精神點 L1／L2 是否處於巔峰期或換宮跳躍 (LB)：{((chart_data.get('zr_data') or {}).get('spirit') or {}).get('active_l1', {})}。\n"
+                f"   - 說明各時間領主與返照盤主題疊加後，全年吉凶強弱與關鍵月份。\n"
+                f"6. 【## 5. 全年行動指南】：事業、財務、感情、健康各給出 1~2 項可落實的建議與需留意的時段。\n"
+                f"7. 【## 💡 延伸性問題建議（您可以直接複製詢問）】：\n"
+                f"   1~3. 針對該年度最具張力的課題，設計 3 個引號標註的具體深度問題。\n"
+                f"   4. ✍️ 自行輸入問題。\n\n"
+                f"【太陽返照盤數據 (sr_data)】：\n{sr}\n\n"
+                f"【完整星盤與推運數據】：\n{clean_data}"
             )
         else:
             return f"請針對個案【{name}】進行古典占星綜合解析。\n{chart_data}"

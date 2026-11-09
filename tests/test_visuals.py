@@ -13,7 +13,10 @@ from flatlib.geopos import GeoPos
 from logic import AstrologyLogic
 from backend.synastry_logic import SynastryLogic
 from visuals import (render_lilly_square_chart_svg, render_circular_chart_svg,
-                     render_interactive_chart_viewer, spread_longitudes, draw_circular_chart)
+                     render_interactive_chart_viewer, spread_longitudes, draw_circular_chart,
+                     render_temperament_svg, render_dispositor_tree_svg,
+                     render_timeline_gantt_svg, render_printable_astro_book_html)
+from profiles_logic import ProfilesManager
 
 
 def build_report(horary=False):
@@ -37,6 +40,8 @@ def build_report(horary=False):
         'meta': {'birth_date_str': d, 'birth_time_str': t, 'location_city': '台北市', 'lat': lat, 'lon': lon,
                  'utc_offset_str': off, 'chart_type': 'horary' if horary else 'natal'},
     }
+    rd['zr_data'] = logic.calculate_zodiacal_releasing(chart, is_day, d, current_date=tgt)
+    rd['sr_data'] = logic.calculate_solar_return(chart, houses, d, 8.0, lat, lon, target_year=2026, sr_city='台北市')
     if not horary:
         dt_b = Datetime("1992/06/15", "12:00", "+08:00")
         rd['synastry_data'] = SynastryLogic().generate_synastry_report(
@@ -236,6 +241,140 @@ class TestVisuals(unittest.TestCase):
         for r in rows:
             self.assertAlmostEqual(r["antiscion"], (180 - r["lon"]) % 360)
             self.assertAlmostEqual(r["contra_antiscion"], (360 - r["lon"]) % 360)
+
+    def test_solar_return_logic_and_overlay(self):
+        sr = self.natal['sr_data']
+        natal_sun = self.natal['chart'].get(const.SUN).lon
+        diff = abs((sr['sr_sun_lon'] - natal_sun + 180) % 360 - 180)
+        self.assertLess(diff, 0.01)
+        self.assertEqual(len(sr['planets']), 7)
+        self.assertIn(sr['sr_asc_in_natal_house'], range(1, 13))
+        self.assertTrue(sr['sr_datetime_local'].startswith("2026/"))
+        self.assertTrue(sr['sr_asc_natal_house_theme'])
+        for p in sr['active_aspects']:
+            self.assertLessEqual(p['orb'], 2.0)
+        svg = render_circular_chart_svg(self.natal, overlay_mode="solar_return")
+        self.assertValidSvg(svg)
+        self.assertIn("ov-badge", svg)
+        self.assertIn("2026 太陽返照盤", svg)
+        self.assertValidSvg(render_circular_chart_svg(self.natal, overlay_mode="solar_return", theme="starry_night"))
+
+    def test_solar_return_leap_birthday(self):
+        from solar_return_logic import SolarReturnLogic
+        jd = SolarReturnLogic().find_solar_return_jd(340.0, 2027, 2, 29)
+        self.assertLess(abs(((340.0 - __import__('swisseph').calc_ut(jd, 0)[0][0] + 180) % 360) - 180), 1e-5)
+
+    def test_timeline_gantt_svg(self):
+        from visuals import render_timeline_gantt_svg
+        for theme in ("parchment", "starry_night"):
+            svg = render_timeline_gantt_svg(self.natal, theme=theme)
+            self.assertValidSvg(svg)
+            self.assertIn('viewBox="0 0 920 440"', svg)
+            self.assertIn('class="timeline-now-line"', svg)
+            self.assertEqual(svg.count('class="firdaria-major"'), 9)
+            self.assertIn('class="zr-l1"', svg)
+            self.assertIn('class="zr-l2"', svg)
+        self.assertValidSvg(render_timeline_gantt_svg({}))
+
+    def test_solar_return_prompt(self):
+        from thematic_reports_logic import ThematicReportsLogic
+        p = ThematicReportsLogic.generate_thematic_prompt(self.natal, "solar_return")
+        self.assertIn("太陽返照盤", p)
+        self.assertIn(self.natal['sr_data']['sr_asc_str'], p)
+        self.assertIn("法達", p)
+
+    def test_natal_core(self):
+        logic = AstrologyLogic()
+        n = self.natal
+        al = logic.calculate_almuten(n['chart'], n['houses'], n['is_day'])
+        nc = logic.calculate_natal_core(n['chart'], n['houses'], n['planets'], n['is_day'], al)
+        tp = nc['temperament']
+        self.assertAlmostEqual(sum(tp['humors'].values()), 100.0, delta=0.5)
+        self.assertEqual(set(tp['qualities']), {'hot', 'cold', 'dry', 'moist'})
+        self.assertEqual(len(tp['factors']), 7)
+        hd = nc['hyleg_data']
+        for k in ('syzygy', 'hyleg', 'alcocoden', 'candidates', 'summary'):
+            self.assertIn(k, hd)
+        self.assertIn(hd['syzygy']['syzygy_house'], range(1, 13))
+        self.assertIn(hd['hyleg']['house'], range(1, 13))
+        dp = nc['dispositors']
+        self.assertEqual(len(dp['house_fly_chains']), 12)
+        self.assertEqual(len(dp['planet_dispositor_edges']), 7)
+        self.assertEqual(len(nc['dignities_matrix']), 11)
+        for svg in (render_temperament_svg(tp, "parchment"), render_temperament_svg(tp, "starry_night")):
+            self.assertValidSvg(svg)
+            self.assertIn('viewBox="0 0 760 220"', svg)
+        for th in ("parchment", "starry_night"):
+            svg = render_dispositor_tree_svg(dp, th)
+            self.assertValidSvg(svg)
+            self.assertIn('viewBox="0 0 760 280"', svg)
+            if len(dp['self_dispositors']) < 7:
+                self.assertIn('marker-end="url(#arrow', svg)
+
+    def test_predictive_extensions(self):
+        logic = AstrologyLogic()
+        n = self.natal
+        tgt = date(2026, 1, 1)
+        lat, lon = 25.033, 121.565
+        lr = logic.calculate_lunar_return(n['chart'], n['houses'], 8.0, lat, lon, target_date=tgt, lr_city='台北市')
+        diff = abs(((lr['lr_moon_lon'] - lr['natal_moon_lon'] + 180) % 360) - 180)
+        self.assertLess(diff, 0.01)
+        self.assertEqual(len(lr['planets']), 7)
+        self.assertIn(lr['lr_asc_in_natal_house'], range(1, 13))
+        tr = logic.calculate_transits(n['chart'], n['houses'], 8.0, lat, lon, target_date=tgt)
+        self.assertEqual(len(tr['planets']), 7)
+        rd = dict(n, lr_data=lr, transits_data=tr)
+        for mode, key in (("lunar_return", "月亮返照"), ("transits", "即時流年行運")):
+            for th in ("parchment", "starry_night"):
+                svg = render_circular_chart_svg(rd, overlay_mode=mode, theme=th)
+                self.assertValidSvg(svg)
+                self.assertIn(key, svg)
+        ph = logic.calculate_planetary_hours(date(2026, 1, 1), "12:00", 8.0, lat, lon, asc_sign_const=const.LEO)
+        self.assertEqual(len(ph['hours_table']), 24)
+        self.assertEqual(ph['day_ruler_id'], 'Jupiter')
+        self.assertEqual(ph['hours_table'][0]['ruler_id'], 'Jupiter')
+        self.assertIn(ph['active_hour']['ruler_id'], ('Saturn', 'Jupiter', 'Mars', 'Sun', 'Venus', 'Mercury', 'Moon'))
+        self.assertTrue(ph['horary_radicality'][:1] in ("✅", "⚠"))
+        ph_polar = logic.calculate_planetary_hours(date(2026, 6, 21), "02:00", 0.0, 80.0, 0.0, asc_sign_const=const.ARIES)
+        self.assertEqual(len(ph_polar['hours_table']), 24)
+        mp = logic.calculate_monthly_profections_calendar(n['chart'], n['houses'], "1990/01/01", 2026)
+        self.assertEqual(len(mp), 12)
+        self.assertEqual(sorted(r['house_num'] for r in mp), list(range(1, 13)))
+        self.assertEqual(mp[0]['start_date'], "2026/01/01")
+
+    def test_profiles_manager(self):
+        pm = ProfilesManager
+        base = pm.default_profiles()
+        lst = pm.save_profile(base, "小明", "1985/05/05", "08:30", "高雄市", 22.62, 120.31, 8.0)
+        self.assertEqual(len(lst), len(base) + 1)
+        lst = pm.save_profile(lst, "小明", "1985/05/06", "08:30", "高雄市", 22.62, 120.31, 8.0)
+        self.assertEqual(len(lst), len(base) + 1)
+        self.assertEqual([p for p in lst if p["name"] == "小明"][0]["date"], "1985/05/06")
+        again = pm.import_profiles_json(pm.default_profiles(), pm.export_profiles_json(lst))
+        self.assertEqual(again, lst)
+        self.assertEqual(len(pm.delete_profile(lst, "小明")), len(base))
+        with self.assertRaises(ValueError):
+            pm.import_profiles_json([], "not json")
+
+    def test_printable_book(self):
+        logic = AstrologyLogic()
+        n = self.natal
+        nc = logic.calculate_natal_core(n['chart'], n['houses'], n['planets'], n['is_day'])
+        rd = dict(n, natal_core=nc, person_name="測試<者>")
+        html_ = render_printable_astro_book_html(rd, ai_messages=[{"role": "user", "content": "q"},
+                                                                  {"role": "assistant", "content": "AI 解析內容"}])
+        self.assertTrue(html_.startswith("<!DOCTYPE html>"))
+        self.assertIn("window.print()", html_)
+        self.assertIn("@page { size: A4; margin: 12mm; }", html_)
+        self.assertIn("測試&lt;者&gt;", html_)
+        self.assertIn("AI 解析內容", html_)
+        for needle in (render_lilly_square_chart_svg(rd, True, "parchment", True, True, True)[:60],
+                       render_temperament_svg(nc['temperament'])[:60],
+                       render_dispositor_tree_svg(nc['dispositors'])[:60],
+                       render_timeline_gantt_svg(rd)[:60]):
+            self.assertIn(needle, html_)
+        self.assertGreaterEqual(html_.count("<svg"), 5)
+        self.assertIn("<table>", html_)
 
     def test_wrapper(self):
         self.assertIn("<svg", draw_circular_chart(self.natal))
