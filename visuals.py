@@ -930,6 +930,41 @@ def render_printable_astro_book_html(report_data: Dict[str, Any], theme: str = "
                                 [[a.get("planet_a_zh"), a.get("planet_b_zh"), a.get("aspect_name"), a.get("orb")]
                                  for a in syn.get("cross_aspects") or []]))
 
+    # 13. 三大生活實戰專題核心評估指標 (健康、學業考運、田宅置產)
+    if meta.get("chart_type", "natal") != "horary":
+        health_hyleg = (nc.get("hyleg_data") or {}).get("summary", "命宮與第一宮守護星狀態正常")
+        health_temp = (nc.get("temperament") or {}).get("summary", "氣質平衡")
+        tb.append("<h3>13. 🏥 健康體質與身心精力平衡核心評估 (Health & Temperament)</h3>" + _html_table(
+            ["健康評估項目", "古典學理依據", "本盤狀態與調養重點"],
+            [
+                ["四液氣質 (Temperament)", "Asc 星座、月亮與命主星之冷熱乾濕", _e(health_temp)],
+                ["生命主與活力 (Hyleg)", "希臘托勒密生命主星與壽星評估", _e(health_hyleg)],
+                ["慢性消耗與壓力宮位", "第 6 宮日常勞損、第 8 宮危機、第 12 宮隱匿壓力", "請參照 6/8/12 宮主星落入宮位與凶星刑沖情況進行後天作息調養"]
+            ]
+        ))
+
+        mercury_p = next((p for p in (rd.get("planets") or []) if p.get("name") in ("水星", "Mercury")), {})
+        m_pos = f"{mercury_p.get('sign', '')} {mercury_p.get('degree_str', '')} (第 {mercury_p.get('house', '')} 宮)" if mercury_p else "—"
+        tb.append("<h3>14. 🎓 學業考運、進修出國與思維天賦評估 (Academics & Intellect)</h3>" + _html_table(
+            ["考運與思維指標", "象徵宮位 / 自然主星", "本命盤座標配置"],
+            [
+                ["認知與表達邏輯", "水星 (Mercury)", _e(m_pos)],
+                ["短期考試與技能證照", "第 3 宮 (兄弟宮 / 基礎教育)", f"第 3 宮主星與星體配置"],
+                ["高等學術與留學深造", "第 9 宮 (遷移宮 / 高等智慧)", f"第 9 宮主星與木星助力評估"]
+            ]
+        ))
+
+        h4_info = next((h for h in (rd.get("houses") or []) if str(h.get("id")) in ("4", "IV")), {})
+        h4_str = f"{h4_info.get('sign', '')}，守護星：{h4_info.get('ruler', '')}" if h4_info else "—"
+        tb.append("<h3>15. 🏡 田宅置產、居住風水與資產守成評估 (Real Estate & Property)</h3>" + _html_table(
+            ["置產房地產指標", "象徵宮位 / 自然主星", "本命盤座標配置"],
+            [
+                ["田宅宮與不動產根基", "第 4 宮 (田宅宮 / 土地父母)", _e(h4_str)],
+                ["土地自然象徵星", "土星 (Saturn) 與月亮 (居所安穩)", "評估土星尊貴分與月亮落宮"],
+                ["買房置產與貸款連動", "第 2 宮 (自有財庫) × 第 8 宮 (銀行融資)", "評估 2/8 宮主星相位與田宅宮吉凶"]
+            ]
+        ))
+
     ai_html = ""
     replies = [m for m in (ai_messages or []) if m.get("role") == "assistant" and m.get("content")]
     if replies:
