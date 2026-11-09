@@ -728,13 +728,20 @@ if generate_btn or horary_btn:
             md += f"  * 裁決說明：{p.get('verdict_desc', '')}\n"
             if p.get('direct_perfections'):
                 for dp in p['direct_perfections']:
-                    md += f"  * 直接入相位：{dp['source']} 與 {dp['target']} 呈 {dp['aspect']} (剩餘 {dp['delta_deg']}°)\n"
+                    s_name = dp.get('source', '')
+                    t_name = dp.get('target', '')
+                    asp_name = dp.get('aspect', '')
+                    d_deg = dp.get('delta_deg', '')
+                    md += f"  * 直接入相位：{s_name} 與 {t_name} 呈 {asp_name} (剩餘 {d_deg}°)\n"
             if p.get('translation_of_light'):
                 for tol in p['translation_of_light']:
-                    md += f"  * 光線傳遞：{tol['translator']} 傳遞光線予 {tol['receiver']}\n"
+                    t_name = tol.get('translator', '')
+                    r_name = tol.get('receiver', tol.get('direction', ''))
+                    md += f"  * 光線傳遞：{t_name} 傳遞光線予 {r_name}\n"
             if p.get('collection_of_light'):
                 for col in p['collection_of_light']:
-                    md += f"  * 光線收集：{col['collector']} 收集雙方光線\n"
+                    c_name = col.get('collector', '')
+                    md += f"  * 光線收集：{c_name} 收集雙方光線\n"
             if p.get('reception_details'):
                 for rec in p['reception_details']:
                     md += f"  * 互容關係：{rec['reception_type']} ({rec['meaning']})\n"
@@ -1335,9 +1342,13 @@ if st.session_state.report_data:
             # Row 2: Translation of Light
             if p.get('translation_of_light'):
                 tol0 = p['translation_of_light'][0]
+                t_src = tol0.get('source', '')
+                t_recv = tol0.get('receiver', '')
+                t_dir = tol0.get('direction', '')
+                t_desc = f"從 {t_src} 離相，奔向與 {t_recv} 成相" if (t_src and t_recv) else t_dir
                 st.markdown(f"""
                 <div style='background:#F0FDF4; border:1px solid #86EFAC; border-left:4px solid #16A34A; border-radius:6px; padding:10px 14px; margin-bottom:8px;'>
-                    <b>2. 光線傳遞 (Translation of Light)</b>：<span style='color:#16A34A; font-weight:bold;'>【成立 - 熱心貴人】</span> 第三方星體 <b>{tol0['translator']}</b> 從 {tol0['source']} 離相，奔向與 {tol0['receiver']} 成相，從中撮合！
+                    <b>2. 光線傳遞 (Translation of Light)</b>：<span style='color:#16A34A; font-weight:bold;'>【成立 - 熱心貴人】</span> 第三方星體 <b>{tol0.get('translator', '')}</b> {t_desc}，從中撮合！
                 </div>
                 """, unsafe_allow_html=True)
             else:

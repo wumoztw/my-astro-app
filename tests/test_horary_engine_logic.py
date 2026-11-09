@@ -92,6 +92,12 @@ class TestHoraryEngineLogic(unittest.TestCase):
         self.assertIn("lord_q_id", perf)
         self.assertIn("is_perfected", perf)
 
+        # 測試 translation_of_light 結構完整性（若有傳遞光線，必須具備 source, receiver, translator）
+        for tol in perf.get("translation_of_light", []):
+            self.assertIn("translator", tol)
+            self.assertIn("source", tol)
+            self.assertIn("receiver", tol)
+
         # 測試應期計算
         timing = self.engine.calculate_timing(chart, houses, perf)
         self.assertIn("delta_degrees", timing)

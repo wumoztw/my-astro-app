@@ -309,6 +309,8 @@ class HoraryEngineLogic:
                     translation_of_light.append({
                         "translator": trans_name,
                         "translator_id": trans_p_id,
+                        "source": lord_1_name,
+                        "receiver": lord_q_name,
                         "direction": f"{trans_name} 離開 {lord_1_name} ({asp_to_1['aspect_name']}) ➔ 奔向 {lord_q_name} ({asp_to_q['aspect_name']})",
                         "applying_aspect": asp_to_q["aspect_name"],
                         "orb": asp_to_q["orb"],
@@ -320,6 +322,8 @@ class HoraryEngineLogic:
                     translation_of_light.append({
                         "translator": trans_name,
                         "translator_id": trans_p_id,
+                        "source": lord_q_name,
+                        "receiver": lord_1_name,
                         "direction": f"{trans_name} 離開 {lord_q_name} ({asp_to_q['aspect_name']}) ➔ 奔向 {lord_1_name} ({asp_to_1['aspect_name']})",
                         "applying_aspect": asp_to_1["aspect_name"],
                         "orb": asp_to_1["orb"],
