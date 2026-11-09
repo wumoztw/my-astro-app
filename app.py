@@ -1953,13 +1953,77 @@ if st.session_state.report_data:
             st.markdown("</div>", unsafe_allow_html=True)
 
     # Tab 5: AI Prompt Generator & Browser AI Guide
+    def _render_copy_prompt_box(prompt_text: str, element_id: str, box_label: str = "Prompt 內容"):
+        import json as _json
+        p_json = _json.dumps(prompt_text)
+        st.caption(box_label)
+        components.html(
+            f"""
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin-bottom: 10px;">
+                <button id="btn_{element_id}" onclick="copyText_{element_id}()" style="
+                    background: #2563EB; color: white; border: none; border-radius: 6px;
+                    padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
+                    display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                    transition: all 0.2s ease;
+                ">
+                    📋 一鍵複製 Prompt 到剪貼簿
+                </button>
+                <span id="msg_{element_id}" style="margin-left: 12px; font-size: 13px; color: #16A34A; font-weight: 600; display: none;">
+                    ✅ 已成功複製到剪貼簿！請至 AI 聊天室按 Ctrl+V 貼上
+                </span>
+            </div>
+            <script>
+                function copyText_{element_id}() {{
+                    const text = {p_json};
+                    if (navigator.clipboard && window.isSecureContext) {{
+                        navigator.clipboard.writeText(text).then(showSuccess_{element_id}).catch(fallbackCopy_{element_id});
+                    }} else {{
+                        fallbackCopy_{element_id}();
+                    }}
+                }}
+                function fallbackCopy_{element_id}() {{
+                    const text = {p_json};
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed";
+                    textArea.style.left = "-999999px";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {{
+                        document.execCommand('copy');
+                        showSuccess_{element_id}();
+                    }} catch (err) {{
+                        alert("複製失敗，請手動選取下方文字框內容按 Ctrl+C 複製");
+                    }}
+                    document.body.removeChild(textArea);
+                }}
+                function showSuccess_{element_id}() {{
+                    const btn = document.getElementById("btn_{element_id}");
+                    const msg = document.getElementById("msg_{element_id}");
+                    btn.style.background = "#16A34A";
+                    btn.innerHTML = "✅ 已複製！";
+                    msg.style.display = "inline";
+                    setTimeout(() => {{
+                        btn.style.background = "#2563EB";
+                        btn.innerHTML = "📋 一鍵複製 Prompt 到剪貼簿";
+                        msg.style.display = "none";
+                    }}, 3500);
+                }}
+            </script>
+            """,
+            height=46,
+            scrolling=False
+        )
+        st.text_area("文本預覽（可手動選取複製）：", value=prompt_text, height=240, key=f"area_{element_id}")
+
     with all_tabs[5]:
         st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("🤖 AI 大師解盤提示詞（Prompt）與轉貼指引")
         st.markdown("""
         現在市面上的網頁版 AI（如 **ChatGPT**、**Claude**、**Google Gemini**）具備極強的邏輯推理能力！<br>
         本程式已替您將全盤精確數據（包含宮位、七曜尊貴分、相位互容、小限、法達大運、太陽弧與卜卦判據）轉化為純正 1647 年 William Lilly 古典大師 Prompt。
-        您可以直接**複製提示詞**，貼到您慣用的 AI 網頁版，即可開始一對一深度論命與追問！
+        您可以直接**一鍵複製提示詞**，貼到您慣用的 AI 網頁版，即可開始一對一深度論命與追問！
         """, unsafe_allow_html=True)
 
         st.markdown("---")
@@ -1968,8 +2032,8 @@ if st.session_state.report_data:
         with step_c1:
             st.markdown("""
             <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px; height:100%;'>
-                <div style='font-weight:700; color:#2563EB; margin-bottom:4px;'>Step 1. 選擇解析主題</div>
-                <div style='font-size:13px; color:#475569;'>在下方挑選「全盤大師診斷」或「事業/財運/婚戀/流年」專題，點擊複製按鈕。</div>
+                <div style='font-weight:700; color:#2563EB; margin-bottom:4px;'>Step 1. 選擇主題並複製</div>
+                <div style='font-size:13px; color:#475569;'>在下方挑選「全盤總論」或「事業/財運/婚戀/流年」專題，點擊<b>「一鍵複製」</b>藍色按鈕。</div>
             </div>
             """, unsafe_allow_html=True)
         with step_c2:
@@ -2000,6 +2064,16 @@ if st.session_state.report_data:
             st.link_button("🟣 前往 DeepSeek (深度求索)", "https://chat.deepseek.com", use_container_width=True)
 
         st.markdown("---")
+        with st.expander("💡 讓 AI 大師解盤更神準的「提問追問小技巧」 (Tips)", expanded=False):
+            st.markdown("""
+            在 AI 產出初步解析後，您可以將以下語句直接複製貼給 AI，獲得更具實戰意義的回答：
+            1. **趨吉避凶與解方**：「*請從本命盤中力量最強、最尊貴的吉星與宮位切入，告訴我如何透過後天具體行動來化解凶星帶來的張力？*」
+            2. **精確應期與轉折年**：「*請比對小限宮位與法達星限的交集，列出我未來 3 年內最關鍵的人生轉折年份與月份？*」
+            3. **事業方向定位**：「*依據我的第 10 宮天頂與精神點狀態，我更適合自立創業、專業技術合夥，還是大型機構體系？*」
+            4. **感情伴侶畫像**：「*請依據我的第 7 宮主星、飛宮與接納互容，具體描述我未來正緣伴侶的性格、職業背景與相識契機？*」
+            5. **重要決定擇日**：「*如果我近期有重大合約簽署或轉換工作，應避開哪些凶險星象（如逆行、燃燒、月亮空亡）？*」
+            """)
+
         st.markdown("#### 📋 專題 Prompt 提示詞生成器")
 
         # Prepare prompts
@@ -2013,7 +2087,7 @@ if st.session_state.report_data:
                 "請嚴格依據 1647 年 William Lilly 古典卜卦占星法則，直接給予成事判斷、阻礙分析與預期應期！"
             )
             st.info(f"🔮 當前問卜問題：**「{cur_q_hor}」**")
-            st.text_area("專用卜卦成事診斷 Prompt (已整合 1647 原典規格與盤體數據)：", value=active_prompt, height=280)
+            _render_copy_prompt_box(active_prompt, "horary_q", "專用卜卦成事診斷 Prompt (已整合 1647 原典規格與盤體數據)")
             st.download_button(
                 "📥 下載此卜卦專用 Prompt 文字檔 (.txt)",
                 data=active_prompt,
@@ -2036,8 +2110,7 @@ if st.session_state.report_data:
                     f"{st.session_state.report_md}\n\n"
                     "請依據 1647 年《Christian Astrology》Book 3，為命盤主提供全面的人生格局、生命主星、氣質、十二宮位與重要推運時機之深度剖析。"
                 )
-                st.caption("涵蓋全盤生命主、壽主星、氣質、十二宮與大運時間軸之宏觀診斷。")
-                st.text_area("全盤深度診斷 Prompt：", value=full_natal_prompt, height=260, key="prompt_full_natal")
+                _render_copy_prompt_box(full_natal_prompt, "full_natal", "全盤深度診斷 Prompt (涵蓋全盤生命主、壽主星、氣質、十二宮與大運時間軸之宏觀診斷)")
                 st.download_button(
                     "📥 下載全盤診斷 Prompt (.txt)",
                     data=full_natal_prompt,
@@ -2050,8 +2123,7 @@ if st.session_state.report_data:
             # Tab 2: Career
             with p_tab_objs[1]:
                 career_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "career")
-                st.caption("鎖定第 10 宮事業天頂、第 6 宮工作、第 11 宮貴人、精神點與黃道釋放法之職涯專題。")
-                st.text_area("事業職涯專題 Prompt：", value=career_p, height=260, key="prompt_career")
+                _render_copy_prompt_box(career_p, "career", "事業職涯專題 Prompt (鎖定第 10 宮事業天頂、第 6 宮工作、第 11 宮貴人、精神點與黃道釋放法)")
                 st.download_button(
                     "📥 下載事業專題 Prompt (.txt)",
                     data=career_p,
@@ -2064,8 +2136,7 @@ if st.session_state.report_data:
             # Tab 3: Wealth
             with p_tab_objs[2]:
                 wealth_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "wealth")
-                st.caption("鎖定第 2 宮財庫、第 8 宮偏財、第 4 宮不動產、福德點與資產避坑專題。")
-                st.text_area("財富資產專題 Prompt：", value=wealth_p, height=260, key="prompt_wealth")
+                _render_copy_prompt_box(wealth_p, "wealth", "財富資產專題 Prompt (鎖定第 2 宮財庫、第 8 宮偏財、第 4 宮不動產、福德點與資產避坑)")
                 st.download_button(
                     "📥 下載財富專題 Prompt (.txt)",
                     data=wealth_p,
@@ -2078,8 +2149,7 @@ if st.session_state.report_data:
             # Tab 4: Romance
             with p_tab_objs[3]:
                 romance_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "romance")
-                st.caption("鎖定第 7 宮夫妻、第 5 宮戀愛桃花、金星/火星與伴侶原型專題。")
-                st.text_area("婚戀關係專題 Prompt：", value=romance_p, height=260, key="prompt_romance")
+                _render_copy_prompt_box(romance_p, "romance", "婚戀關係專題 Prompt (鎖定第 7 宮夫妻、第 5 宮戀愛桃花、金星/火星與伴侶原型)")
                 st.download_button(
                     "📥 下載婚戀專題 Prompt (.txt)",
                     data=romance_p,
@@ -2092,8 +2162,7 @@ if st.session_state.report_data:
             # Tab 5: Solar Return
             with p_tab_objs[4]:
                 sr_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "solar_return")
-                st.caption("整合年度太陽返照盤、小限、法達星限與黃道釋放法之流年大合參專題。")
-                st.text_area("年度流年專題 Prompt：", value=sr_p, height=260, key="prompt_solar_return")
+                _render_copy_prompt_box(sr_p, "solar_return", "年度流年專題 Prompt (整合年度太陽返照盤、小限、法達星限與黃道釋放法之流年大合參)")
                 st.download_button(
                     "📥 下載流年專題 Prompt (.txt)",
                     data=sr_p,
@@ -2107,8 +2176,7 @@ if st.session_state.report_data:
             if st.session_state.report_data.get('synastry_data') and len(prompt_tabs) > 5:
                 with p_tab_objs[5]:
                     syn_p = ThematicReportsLogic.generate_thematic_prompt(st.session_state.report_data, "synastry")
-                    st.caption("雙人古典合盤能量共振、跨盤相位與接納互容深度合參專題。")
-                    st.text_area("雙人合盤專題 Prompt：", value=syn_p, height=260, key="prompt_synastry")
+                    _render_copy_prompt_box(syn_p, "synastry", "雙人合盤專題 Prompt (雙人古典合盤能量共振、跨盤相位與接納互容深度合參)")
                     st.download_button(
                         "📥 下載雙人合盤專題 Prompt (.txt)",
                         data=syn_p,
