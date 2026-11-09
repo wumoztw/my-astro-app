@@ -863,7 +863,7 @@ th, td {{ border: 1px solid {t['muted']}; padding: 3px 6px; text-align: left; }}
             f'<title>古典占星專業命書 - {_e(name)}</title><style>{css}</style></head><body>'
             '<div class="no-print"><button onclick="window.print()">🖨️ 直接列印 / 另存為 PDF (Print to PDF)</button></div>'
             f'<header><h1>古典占星專業命書與推運全覽報告</h1>{"".join(cover)}</header>'
-            f'<section class="page-break"><h2>Section 1 雙模星盤圖譜</h2>{s1}</section>'
+            f'<section class="page-break"><h2>Section 1 傳統星盤圖譜</h2>{s1}</section>'
             f'<section class="page-break"><h2>Section 2 氣質與定位星能量流向</h2>{s2}</section>'
             f'<section class="page-break"><h2>Section 3 法達星限 × ZR 時間軸</h2>{s3}</section>'
             f'<section class="page-break"><h2>Section 4 核心星盤與推運結構化報告</h2>{"".join(tb)}</section>'
