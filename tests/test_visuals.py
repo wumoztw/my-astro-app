@@ -373,7 +373,7 @@ class TestVisuals(unittest.TestCase):
                        render_dispositor_tree_svg(nc['dispositors'])[:60],
                        render_timeline_gantt_svg(rd)[:60]):
             self.assertIn(needle, html_)
-        self.assertGreaterEqual(html_.count("<svg"), 5)
+        self.assertGreaterEqual(html_.count("<svg"), 4)
         self.assertIn("<table>", html_)
 
     def test_wrapper(self):

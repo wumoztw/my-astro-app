@@ -998,50 +998,19 @@ if st.session_state.report_data:
         } for r in ph.get('hours_table', [])]))
 
     with all_tabs[0]:
-        from visuals import (render_lilly_square_chart_svg, render_circular_chart_svg,
-                             render_interactive_chart_viewer, THEMES)
+        from visuals import render_lilly_square_chart_svg, render_interactive_chart_viewer, THEMES
         _theme_bg = lambda key: THEMES[key]["paper"]
         theme_label = st.radio("🎨 視覺主題", ["🏛️ 古典羊皮紙", "🌌 皇家暗夜星空"], index=0, horizontal=True)
         theme_key = "starry_night" if "星空" in theme_label else "parchment"
-        cc1, cc2, cc3 = st.columns([2, 2, 1.4])
-        with cc1:
-            chart_style = st.radio("📐 星盤樣式", ["🔲 古典十二宮方形盤 (Lilly 預設)", "⭕ 古典整宮制圓形盤"],
-                                   index=0, horizontal=True)
-        is_circular = chart_style.startswith("⭕")
-        overlay_mode = "none"
-        with cc2:
-            if is_circular and st.session_state.chart_type == 'natal':
-                overlay_opts = {
-                    "單盤：本命星盤": "none",
-                    "雙環：本命 + 太陽弧 (Solar Arc)": "solar_arc",
-                    "雙環：本命 + 次限推運 (一日一年)": "secondary",
-                    "雙環：本命 + 三限推運 (一日一月)": "tertiary",
-                    "雙環：本命 + 合盤對象 (Synastry)": "synastry",
-                    "雙環：本命 + 太陽返照盤 (Solar Return)": "solar_return",
-                    "雙環：本命 + 月亮返照盤 (Lunar Return)": "lunar_return",
-                    "雙環：本命 + 即時流年行運 (Transits)": "transits",
-                }
-                overlay_mode = overlay_opts[st.selectbox("⏳ 推運雙環疊盤 (Bi-Wheel)", list(overlay_opts), index=0)]
-                if overlay_mode == "synastry" and not d.get("synastry_data"):
-                    st.info("💡 請先於左側邊欄展開「💑 雙人合盤設定」勾選啟用並點擊「排本命盤」即可顯示雙人合盤外環！")
-        with cc3:
-            show_lots = st.checkbox("顯示赫密斯點 (福德/精神)", value=True)
-            show_all_lots = st.checkbox("展開全部 6 大赫密斯點", value=False) if show_lots else False
-            show_stars = st.checkbox("顯示恆星合相與尊貴徽章", value=True)
-            show_aspects = st.checkbox("顯示相位連線", value=True) if is_circular else True
-            show_antiscia = st.checkbox("顯示映點與至點軸線 (Antiscia)", value=False)
+        show_lots = st.checkbox("顯示赫密斯點 (福德/精神)", value=True)
+        show_all_lots = st.checkbox("展開全部 6 大赫密斯點", value=False) if show_lots else False
+        show_stars = st.checkbox("顯示恆星合相與尊貴徽章", value=True)
+        show_antiscia = st.checkbox("顯示映點接觸 (Antiscia)", value=False)
         try:
-            if is_circular:
-                chart_svg = render_circular_chart_svg(d, overlay_mode=overlay_mode, show_lots=show_lots,
-                                                      show_aspects=show_aspects, theme=theme_key,
+            chart_svg = render_lilly_square_chart_svg(d, show_lots=show_lots, theme=theme_key,
                                                       show_all_lots=show_all_lots, show_stars=show_stars,
                                                       show_antiscia=show_antiscia)
-                fname = "astro_circular_chart"
-            else:
-                chart_svg = render_lilly_square_chart_svg(d, show_lots=show_lots, theme=theme_key,
-                                                         show_all_lots=show_all_lots, show_stars=show_stars,
-                                                         show_antiscia=show_antiscia)
-                fname = "astro_lilly_square_chart"
+            fname = "astro_lilly_square_chart"
             components.html(render_interactive_chart_viewer(chart_svg, fname, bg_color=_theme_bg(theme_key)), height=920, scrolling=False)
             st.download_button("📥 下載 SVG 向量圖", data=chart_svg.encode("utf-8"),
                                file_name=f"{fname}.svg", mime="image/svg+xml")

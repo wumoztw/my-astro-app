@@ -1126,9 +1126,6 @@ def render_printable_astro_book_html(report_data: Dict[str, Any], theme: str = "
 
     s1 = svg_block("William Lilly 傳統方形星盤", lambda: render_lilly_square_chart_svg(
         rd, show_lots=True, theme=theme, show_all_lots=True, show_stars=True, show_antiscia=True))
-    s1 += svg_block("整宮制圓形星盤", lambda: render_circular_chart_svg(
-        rd, overlay_mode="solar_return" if rd.get("sr_data") else "none", show_lots=True, show_aspects=True,
-        theme=theme, show_all_lots=True, show_stars=True, show_antiscia=True))
 
     s2 = ""
     if nc.get("temperament"):
