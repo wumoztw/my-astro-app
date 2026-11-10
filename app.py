@@ -1016,7 +1016,7 @@ if st.session_state.report_data:
                     'face_lord': '迦勒底面主 +1', 'detriment_fall': '落/陷', 'net_score': '淨分'}))
             with st.expander("🧬 古典四液氣質與寒熱乾濕量化儀 (Temperament) ＋ 👑 生命主 (Hyleg)、壽主星 (Alcocoden) 與產前朔望 (SAN)", expanded=False):
                 _tp = _nc['temperament']
-                components.html(render_temperament_svg(_tp, _nc_theme), height=240)
+                components.html(render_temperament_svg(_tp, _nc_theme), height=300)
                 st.markdown(_tp['summary'])
                 st.table(pd.DataFrame(_tp['factors']).rename(columns={
                     'factor': '因子', 'detail': '內容', 'weight': '權重', 'qualities': '寒熱乾濕', 'humor': '氣質'}))
@@ -1029,7 +1029,7 @@ if st.session_state.report_data:
                     for c in _hd['candidates']]))
             with st.expander("🪐 十二宮飛星連鎖與最終定位星能量流向圖 (Dispositorship Chain)", expanded=False):
                 _dp = _nc['dispositors']
-                components.html(render_dispositor_tree_svg(_dp, _nc_theme), height=300)
+                components.html(render_dispositor_tree_svg(_dp, _nc_theme), height=380)
                 st.markdown(_dp['summary'])
                 st.table(pd.DataFrame([{
                     '宮位': f['house_name'], '星座': f['sign'], '宮主星': f['ruler_name'],
@@ -1037,13 +1037,11 @@ if st.session_state.report_data:
                     '尊貴分': f['ruler_dignity_score'], '解讀': f['interpretation']}
                     for f in _dp['house_fly_chains']]))
 
-        st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
         st.subheader("十二宮位表")
         df_h = pd.DataFrame(d['houses'])
         col_map_h = {'id_str': '宮位名稱', 'sign': '對應星座', 'ruler': '宮位主星'}
         cols_h = [c for c in col_map_h if c in df_h.columns]
         st.table(df_h[cols_h].rename(columns=col_map_h))
-        st.markdown("</div>", unsafe_allow_html=True)
 
     # Tab 2: Aspects
     with all_tabs[2]:

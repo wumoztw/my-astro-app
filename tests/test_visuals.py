@@ -241,11 +241,11 @@ class TestVisuals(unittest.TestCase):
         self.assertEqual(len(nc['dignities_matrix']), 11)
         for svg in (render_temperament_svg(tp, "parchment"), render_temperament_svg(tp, "starry_night")):
             self.assertValidSvg(svg)
-            self.assertIn('viewBox="0 0 760 220"', svg)
+            self.assertIn('viewBox="0 0 760 240"', svg)
         for th in ("parchment", "starry_night"):
             svg = render_dispositor_tree_svg(dp, th)
             self.assertValidSvg(svg)
-            self.assertIn('viewBox="0 0 760 280"', svg)
+            self.assertIn('viewBox="0 0 760 300"', svg)
             if len(dp['self_dispositors']) < 7:
                 self.assertIn('marker-end="url(#arrow', svg)
 

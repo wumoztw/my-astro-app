@@ -715,11 +715,11 @@ def _svg_canvas(w: int, h: int, t: Dict[str, Any], defs: str = "") -> List[str]:
 
 
 def render_temperament_svg(temperament_data: Dict[str, Any], theme: str = "parchment") -> str:
-    """四液氣質橫條 + 冷熱/乾濕菱形象限指示器 (viewBox 760x220)"""
+    """四液氣質橫條 + 冷熱/乾濕菱形象限指示器 (viewBox 760x240)"""
     t = _theme(theme)
     td = temperament_data or {}
     humors, quals = td.get("humors", {}), td.get("qualities", {})
-    out = _svg_canvas(760, 220, t)
+    out = _svg_canvas(760, 240, t)
     out.append(_text(20, 26, "古典四液氣質 Four Humors", 15, t["navy"], "start", "bold"))
     for i, (key, label, col) in enumerate(_HUMOR_ROWS):
         y = 40 + i * 36
@@ -744,13 +744,13 @@ def render_temperament_svg(temperament_data: Dict[str, Any], theme: str = "parch
     py = cy - r * 0.9 * (moist - dry) / ((dry + moist) or 1.0)
     out.append(f'<circle class="temp-dot" cx="{px:.1f}" cy="{py:.1f}" r="6" fill="{t["gold"]}" '
                f'stroke="{t["navy"]}" stroke-width="1.2"/>')
-    out.append(_text(20, 208, f"主導：{td.get('dominant_temperament', '')}", 12, t["gold"], "start", "bold"))
+    out.append(_text(20, 218, f"主導：{td.get('dominant_temperament', '')}", 12, t["gold"], "start", "bold"))
     out.append("</svg>")
     return "".join(out)
 
 
 def render_dispositor_tree_svg(dispositor_data: Dict[str, Any], theme: str = "parchment") -> str:
-    """七曜定位星有向圖：弧形箭頭、自守雙金環、互容雙向金箭頭 (viewBox 760x280)"""
+    """七曜定位星有向圖：弧形箭頭、自守雙金環、互容雙向金箭頭 (viewBox 760x300)"""
     t = _theme(theme)
     dd = dispositor_data or {}
     nxt = {e["planet_id"]: e["dispositor_id"] for e in dd.get("planet_dispositor_edges", [])}
@@ -759,9 +759,9 @@ def render_dispositor_tree_svg(dispositor_data: Dict[str, Any], theme: str = "pa
         f'<marker id="{mid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
         f'orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="{col}"/></marker>'
         for mid, col in (("arrow", t["ink"]), ("arrow-gold", t["gold"])))
-    out = _svg_canvas(760, 280, t, defs)
+    out = _svg_canvas(760, 300, t, defs)
     out.append(_text(20, 24, "七曜定位星能量流向 Dispositor Graph", 14, t["navy"], "start", "bold"))
-    pos = {p: (80 + i * 100, 170) for i, p in enumerate(CLASSICAL)}
+    pos = {p: (80 + i * 100, 160) for i, p in enumerate(CLASSICAL)}
     R = 24
     drawn = set()
     for p, d in nxt.items():
@@ -791,7 +791,7 @@ def render_dispositor_tree_svg(dispositor_data: Dict[str, Any], theme: str = "pa
         if is_self:
             out.append(_text(x, y + R + 40, "👑 最終定位星" if p == final else "👑 自守廟星", 11, t["gold"],
                              "middle", "bold"))
-    out.append(_text(20, 268, dd.get("summary", ""), 12, t["gold"], "start"))
+    out.append(_text(20, 276, dd.get("summary", ""), 12, t["gold"], "start"))
     out.append("</svg>")
     return "".join(out)
 
