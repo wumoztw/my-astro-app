@@ -902,7 +902,7 @@ if st.session_state.report_data:
             '行星與本質力量',
             '相位與接納',
             '特殊點位與恆星',
-            '推運時間軸 (法達/小限/ZR/太陽弧)',
+            '推運時間軸 (返照/太陽弧/次限/法達)',
             '🤖 AI 解盤提示詞與使用指引'
         ]
     
@@ -1550,15 +1550,7 @@ if st.session_state.report_data:
                     st.markdown("**剛脫離的離相位清單**：")
                     st.table(pd.DataFrame(mf['all_separating']).rename(columns={'target_planet': '目標星體', 'aspect_name': '相位類型', 'orb': '脫離交角差', 'is_applying': '入相標記'}))
         else:
-            from visuals import render_timeline_gantt_svg, render_interactive_chart_viewer as _viewer, THEMES as _THEMES
-            st.subheader("📊 法達星限 × 黃道釋放法 (ZR) 75 年互動式甘特時間軸")
-            try:
-                gantt_svg = render_timeline_gantt_svg(d, theme=theme_key)
-                components.html(_viewer(gantt_svg, "astro_timeline_gantt", bg_color=_THEMES[theme_key]["paper"]),
-                                height=640, scrolling=False)
-            except Exception as e:
-                st.error(f"時間軸繪製錯誤: {e}")
-            st.markdown("---")
+            # 1. 推運資訊摘要
             st.markdown("<div class='stContainer'>", unsafe_allow_html=True)
             st.subheader("推運資訊摘要")
             pi = d['prof_info']
@@ -1566,55 +1558,8 @@ if st.session_state.report_data:
             st.write(f"小限走到：{pi.get('prof_sign')} (第 {pi.get('prof_house_num')} 宮)")
             st.write(f"年度主星：{pi.get('lord_of_year')}")
             st.markdown("---")
-        
-            st.subheader("法達大限 (Firdaria) 時間表")
-            act = d['f_data']['active']
-            st.info(f"**當前大運**：{logic.TRANS_PLANETS.get(act['major'], act['major'])} | **當前小運**：{logic.TRANS_PLANETS.get(act['minor'], act['minor'])} (直到 {act['end'].strftime('%Y/%m/%d')})")
-        
-            with st.expander("查看完整法達星限時間表"):
-                f_rows = []
-                for major in d['f_data']['timeline']:
-                    for minor in major['subs']:
-                        f_rows.append({
-                            '大運': logic.TRANS_PLANETS.get(major['lord'], major['lord']),
-                            '小運': logic.TRANS_PLANETS.get(minor['minor'], minor['minor']),
-                            '開始日期': minor['start'].strftime('%Y/%m/%d'),
-                            '結束日期': minor['end'].strftime('%Y/%m/%d')
-                        })
-                st.table(pd.DataFrame(f_rows))
-            st.markdown("---")
 
-            # --- Zodiacal Releasing (ZR) Section ---
-            st.subheader("希臘黃道釋放法 (Zodiacal Releasing - 精神點)")
-            zr = d.get('zr_data', {}).get('spirit', {})
-            if zr:
-                act_l1 = zr.get('active_l1', {})
-                act_l2 = zr.get('active_l2', {})
-                z_col1, z_col2 = st.columns(2)
-                with z_col1:
-                    st.markdown(f"**L1 主運**：`{act_l1.get('sign_name')}` ({act_l1.get('ruler_name')})")
-                    st.caption(f"區間：{act_l1.get('start_date')} ~ {act_l1.get('end_date')} ｜ {act_l1.get('peak_type', '普通時期')}")
-                with z_col2:
-                    st.markdown(f"**L2 子運**：`{act_l2.get('sign_name')}` ({act_l2.get('ruler_name')})")
-                    st.caption(f"區間：{act_l2.get('start_date')} ~ {act_l2.get('end_date')} ｜ {act_l2.get('peak_type', '普通時期')}")
-                if act_l2.get('is_lb'):
-                    st.warning("⚠️ 當前處於換宮跳躍 (Losing of the Bond) 關鍵轉折大變動期！")
-
-                with st.expander("查看黃道釋放法 L1 完整時間軸"):
-                    l1_list = []
-                    for p in zr.get('l1_periods', []):
-                        l1_list.append({
-                            '星座': p['sign_name'],
-                            '主星': p['ruler_name'],
-                            '黃道年數': p['years'],
-                            '開始時間': p['start_date'],
-                            '結束時間': p['end_date'],
-                            '巔峰屬性': p['peak_type']
-                        })
-                    st.table(pd.DataFrame(l1_list))
-            st.markdown("---")
-
-            # --- Solar Return Section ---
+            # 2. 年度太陽返照盤 (Solar Return Chart) 深度指標
             st.subheader("📅 年度太陽返照盤 (Solar Return Chart) 深度指標")
             srd = d.get('sr_data') or {}
             if srd:
@@ -1641,7 +1586,7 @@ if st.session_state.report_data:
                 st.write("尚無太陽返照盤資料，請重新點擊「排本命盤」。")
             st.markdown("---")
 
-            # --- Phase 2 predictive extensions ---
+            # 2-1. 年度 12 個月流月小限日曆
             with st.expander("📈 年度 12 個月流月小限日曆 (Monthly Profections 12-Month Calendar)", expanded=True):
                 mp = d.get('monthly_profections') or []
                 if mp:
@@ -1652,6 +1597,8 @@ if st.session_state.report_data:
                     } for r in mp]))
                 else:
                     st.write("尚無流月小限資料。")
+
+            # 2-2. 當月月亮返照盤
             with st.expander("🌕 當月月亮返照盤 (Lunar Return Chart) 深度指標"):
                 lrd = d.get('lr_data') or {}
                 if lrd:
@@ -1672,6 +1619,8 @@ if st.session_state.report_data:
                         } for a in lrd['active_aspects']]))
                 else:
                     st.write("尚無月亮返照盤資料。")
+
+            # 2-3. 即時流年行運
             with st.expander("⚡ 即時流年行運 (Real-Time Transits) 過境宮位與觸發相位表"):
                 trd = d.get('transits_data') or {}
                 if trd:
@@ -1687,6 +1636,8 @@ if st.session_state.report_data:
                         } for a in trd['active_aspects']]))
                 else:
                     st.write("尚無即時行運資料。")
+
+            # 2-4. 當日 24 小時古典行星時與擇日吉時良辰表
             with st.expander("🗓️ 當日 24 小時古典行星時與擇日吉時良辰表 (Planetary Hours)"):
                 phd = d.get('planetary_hours') or {}
                 if phd:
@@ -1696,7 +1647,7 @@ if st.session_state.report_data:
                     st.write("尚無行星時資料。")
             st.markdown("---")
 
-            # --- Solar Arc Directions (SAD) Section ---
+            # 3. 現代事件占星：太陽弧推運 (Solar Arc Directions)
             st.subheader("現代事件占星：太陽弧推運 (Solar Arc Directions)")
             sa = d.get('sa_data', {})
             if sa:
@@ -1718,7 +1669,7 @@ if st.session_state.report_data:
                     st.write("目前無容許度 <= 1.0° 之重大事件硬相位（處於相對穩定期）。")
             st.markdown("---")
 
-            # --- Secondary Progressions (一日一年) Section ---
+            # 4. 次限推運法 (Secondary Progressions - 一日一年)
             st.subheader("次限推運法 (Secondary Progressions - 一日一年)")
             sp = d.get('sec_prog_data', {})
             if sp:
@@ -1778,98 +1729,27 @@ if st.session_state.report_data:
                     st.table(pd.DataFrame(sp_rows))
                 else:
                     st.write("目前無容許度內之活躍次限對本命相位。")
-                st.markdown("---")
+            st.markdown("---")
 
-                # --- Tertiary Progressions (一日一月) Section ---
-                st.subheader("三限推運法 (Tertiary Progressions - 一日一月)")
-                st.caption("推進法則：以地球自轉一日對應熱帶月（約 27.32 日），精準捕捉以「月份/週」為尺度的生活場景轉移與情緒心理焦點。")
-                tp = d.get('tert_prog_data', {})
-                if tp:
-                    t_moon = tp.get('tertiary_moon', {})
-                    tl_phase = tp.get('lunar_phase', {})
-                
-                    tp_col1, tp_col2 = st.columns(2)
-                    with tp_col1:
-                        st.markdown(f"**🌙 三限月亮當月焦點**：`{t_moon.get('sign', '')} {t_moon.get('degree_str', '')}` ({t_moon.get('house_str', '')})")
-                        st.caption(f"當月生活重心：{t_moon.get('theme', '')}")
-                        st.caption(f"預計換宮剩餘：約 {t_moon.get('weeks_left_in_sign', 0)} 週 ({t_moon.get('days_left_in_sign', 0)} 天)")
-                    with tp_col2:
-                        st.markdown(f"**🌗 2.5 年月相週期**：`{tl_phase.get('phase_name', '')}`")
-                        st.caption(f"階段進程：【{tl_phase.get('stage', '')}】(第 {tl_phase.get('cycle_month', 0)} 個月 / 29.5 個月週期)")
-                        st.caption(f"{tl_phase.get('desc', '')}")
-
-                    # 2.5 年三限月相進度軸
-                    t_angle_val = tl_phase.get('angle', 0.0)
-                    t_prog_ratio = min(1.0, max(0.0, t_angle_val / 360.0))
-                    st.progress(t_prog_ratio, text=f"2.5年月相循環：{round(t_prog_ratio * 100, 1)}% (約第 {tl_phase.get('cycle_month', 0)} 個月 / 29.5 個月週期)")
-
-                    cur_tpname = tl_phase.get('phase_name', '')
-                    tp_badges_html = "<div style='display: flex; justify-content: space-between; margin-top: 4px; margin-bottom: 12px; gap: 4px; overflow-x: auto;'>"
-                    for name, icon, deg_range, stage in phase_stages:
-                        is_active = (name in cur_tpname)
-                        bg_col = "#1E293B" if is_active else "#F1F5F9"
-                        text_col = "#38BDF8" if is_active else "#475569"
-                        border = "2px solid #38BDF8" if is_active else "1px solid #CBD5E1"
-                        tp_badges_html += f"<div style='flex: 1; min-width: 65px; text-align: center; background: {bg_col}; color: {text_col}; border: {border}; border-radius: 6px; padding: 6px 2px; font-size: 11px;'>"
-                        tp_badges_html += f"<div style='font-size: 16px; margin-bottom: 2px;'>{icon}</div><b>{stage}</b><div style='font-size: 9px; opacity: 0.8;'>{deg_range}</div></div>"
-                    tp_badges_html += "</div>"
-                    st.markdown(tp_badges_html, unsafe_allow_html=True)
-
-                    tp_aspects = tp.get('active_aspects', [])
-                    if tp_aspects:
-                        st.markdown("**當月活躍三限相位 (對本命盤，持續約 2~4 週)**：")
-                        tp_rows = []
-                        for asp in tp_aspects:
-                            tp_rows.append({
-                                '三限星 (Tert)': asp['prog_planet'],
-                                '相位': asp['aspect'],
-                                '本命星 (Natal)': asp['natal_planet'],
-                                '誤差': asp['orb_str'],
-                                '持續引動期': asp['duration']
-                            })
-                        st.table(pd.DataFrame(tp_rows))
-                    else:
-                        st.write("目前無容許度內之活躍三限對本命相位。")
-
-            # --- Subsection: Primary Directions (原級推運 / 赤道主向推運) ---
-            st.markdown("<hr style='margin: 20px 0;'>", unsafe_allow_html=True)
-            st.subheader("📐 古典原級推運 (Primary Directions / 赤道主向推進)")
-            st.markdown(
-                "依托勒密 (Ptolemy's Key) 赤道自轉主向推進法則：**「天球自轉 1° 赤經 (約 4 分鐘) ＝ 1 太陽年」**。"
-                "計算本命五大指示星（ASC 上升、MC 中天、太陽、月亮、福德點）遭遇七大推進星之五大托勒密相位精確交會年代。"
-            )
-            col_pd1, col_pd2 = st.columns([2, 1])
-            with col_pd1:
-                pd_key_sel = st.radio("推運率 (Key of Direction)", ["托勒密鑰 (Ptolemy 1° = 1.000年)", "奈博德鑰 (Naibod 1° = 1.0146年)"], horizontal=True)
-            with col_pd2:
-                pd_max_age = st.slider("推運最高年齡", min_value=30, max_value=100, value=80, step=10)
-
-            try:
-                from primary_directions_logic import calculate_primary_directions
-                key_mode = "naibod" if "奈博德" in pd_key_sel else "ptolemy"
-                pd_events = calculate_primary_directions(d, d['meta']['birth_date_str'], max_age=pd_max_age, direction_key=key_mode)
-                if pd_events:
-                    st.write(f"共計算出 **{len(pd_events)}** 組原級推進相位事件（已依觸發年齡排序）：")
-                    pd_df_rows = []
-                    for ev in pd_events:
-                        pd_df_rows.append({
-                            '年齡': f"{ev['age']:.1f} 歲",
-                            '預估應期': ev['event_date_str'],
-                            '指示星 (Significator)': f"{ev['significator_glyph']} {ev['significator']}",
-                            '推進星 (Promissor)': f"{ev['promissor_glyph']} {ev['promissor']}",
-                            '相位': f"{ev['aspect_symbol']} {ev['aspect_name']}",
-                            '赤道弧': f"{ev['arc_deg']}°",
-                            '吉凶定性': ev['nature'],
-                            '古典斷辭與影響': ev['meaning']
+            # 5. 法達大限 (Firdaria) 時間表
+            st.subheader("法達大限 (Firdaria) 時間表")
+            act = d['f_data']['active']
+            st.info(f"**當前大運**：{logic.TRANS_PLANETS.get(act['major'], act['major'])} | **當前小運**：{logic.TRANS_PLANETS.get(act['minor'], act['minor'])} (直到 {act['end'].strftime('%Y/%m/%d')})")
+        
+            with st.expander("查看完整法達星限時間表"):
+                f_rows = []
+                for major in d['f_data']['timeline']:
+                    for minor in major['subs']:
+                        f_rows.append({
+                            '大運': logic.TRANS_PLANETS.get(major['lord'], major['lord']),
+                            '小運': logic.TRANS_PLANETS.get(minor['minor'], minor['minor']),
+                            '開始日期': minor['start'].strftime('%Y/%m/%d'),
+                            '結束日期': minor['end'].strftime('%Y/%m/%d')
                         })
-                    st.dataframe(pd.DataFrame(pd_df_rows), use_container_width=True, height=360)
-                else:
-                    st.info("於指定年齡範圍內未檢出主要原級推進事件。")
-            except Exception as e:
-                st.error(f"原級推運計算錯誤: {e}")
+                st.table(pd.DataFrame(f_rows))
+            st.markdown("---")
 
-            # --- Subsection: Rectification (生時校正) ---
-            st.markdown("<hr style='margin: 20px 0;'>", unsafe_allow_html=True)
+            # 6. 古典生時校正小助手
             st.subheader("⏱️ 古典生時校正小助手 (Astrological Rectification)")
             st.markdown(
                 "藉由過去人生發生的重大客觀事件（如婚戀、升遷、子女出生、重大手術、置產等），"
